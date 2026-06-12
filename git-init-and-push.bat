@@ -1,8 +1,7 @@
 @echo off
-chcp 65001 >nul
 cd /d "H:\AAIAGitHub\aaia-module-manager"
 git add .
-git commit -m "fix: add .gitattributes"
+git commit -m "fix: force Node.js 24 for GitHub Actions"
 git push origin main
 echo === Done! ===
 pause
