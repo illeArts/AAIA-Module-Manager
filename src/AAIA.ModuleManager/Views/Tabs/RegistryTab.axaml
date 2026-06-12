@@ -1,0 +1,55 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             xmlns:svc="using:AAIA.ModuleManager.Services"
+             x:Class="AAIA.ModuleManager.Views.Tabs.RegistryTab"
+             x:DataType="vm:RegistryTabViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,*" Margin="20">
+
+    <!-- Header -->
+    <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,12">
+      <TextBlock Classes="h1" Text="Extension Registry"/>
+      <TextBlock Classes="muted"
+                 Text="Alle registrierten AAIA-Module und Plugins aus der Extension Registry."/>
+    </StackPanel>
+
+    <!-- Toolbar -->
+    <Grid Grid.Row="1" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,12">
+      <TextBox Grid.Column="0" Text="{Binding SearchText}"
+               Watermark="Suchen…" Margin="0,0,8,0"/>
+      <Button Grid.Column="1" Classes="ghost" Content="↻ Aktualisieren"
+              Command="{Binding RefreshCommand}" Margin="0,0,8,0"/>
+      <Button Grid.Column="2" Classes="success" Content="✚ Eintragen"
+              Command="{Binding RegisterNewCommand}"/>
+    </Grid>
+
+    <!-- List -->
+    <Border Grid.Row="2" Classes="card" Padding="0">
+      <ListBox ItemsSource="{Binding Entries}"
+               SelectedItem="{Binding SelectedEntry}"
+               Background="Transparent">
+        <ListBox.ItemTemplate>
+          <DataTemplate x:DataType="svc:RegistryEntry">
+            <Grid ColumnDefinitions="180,80,90,100,140,*" Margin="4,6">
+              <TextBlock Grid.Column="0" Text="{Binding Name}"      FontWeight="Medium" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Grid.Column="1" Text="{Binding Type}"      Foreground="#8892a4" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Grid.Column="2" Text="{Binding Version}"   Foreground="#8892a4"/>
+              <TextBlock Grid.Column="3" Text="{Binding Contracts}" Foreground="#8892a4" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Grid.Column="4" Text="{Binding Author}"    Foreground="#8892a4" TextTrimming="CharacterEllipsis"/>
+              <TextBlock Grid.Column="5" Text="{Binding Description}" Foreground="#8892a4" TextTrimming="CharacterEllipsis"/>
+            </Grid>
+          </DataTemplate>
+        </ListBox.ItemTemplate>
+        <!-- Column headers via panel above list -->
+        <ListBox.Styles>
+          <Style Selector="ListBoxItem:selected /template/ ContentPresenter">
+            <Setter Property="Background" Value="#0f3460"/>
+          </Style>
+        </ListBox.Styles>
+      </ListBox>
+    </Border>
+
+  </Grid>
+
+</UserControl>

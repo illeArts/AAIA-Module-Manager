@@ -1,0 +1,129 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.SetupTab"
+             x:DataType="vm:SetupTabViewModel">
+
+  <!-- Grid: Konfiguration scrollbar oben, Ausgabe fixiert unten -->
+  <Grid RowDefinitions="*,240">
+
+    <!-- ── Oberer Bereich: Konfiguration ── -->
+    <ScrollViewer Grid.Row="0" Padding="20,20,20,8">
+      <StackPanel Spacing="16">
+
+        <TextBlock Classes="h1" Text="Setup &amp; Umgebung"/>
+        <TextBlock Classes="muted"
+                   Text="GitHub CLI, git und Credentials für den AAIA-Workflow einrichten."/>
+
+        <!-- Umgebungsstatus -->
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Umgebungsstatus"/>
+
+            <Grid ColumnDefinitions="28,*,Auto" RowDefinitions="Auto,Auto,Auto,Auto">
+              <TextBlock Grid.Row="0" Grid.Column="0"
+                         Text="{Binding GitStatusIcon}" FontSize="16" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="0" Grid.Column="1"
+                         Text="{Binding GitStatusText}" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="1" Grid.Column="0"
+                         Text="{Binding GhStatusIcon}" FontSize="16" VerticalAlignment="Center" Margin="0,6,0,0"/>
+              <TextBlock Grid.Row="1" Grid.Column="1"
+                         Text="{Binding GhStatusText}" VerticalAlignment="Center" Margin="0,6,0,0"/>
+              <TextBlock Grid.Row="2" Grid.Column="0"
+                         Text="{Binding LoginStatusIcon}" FontSize="16" VerticalAlignment="Center" Margin="0,6,0,0"/>
+              <TextBlock Grid.Row="2" Grid.Column="1"
+                         Text="{Binding LoginStatusText}" VerticalAlignment="Center" Margin="0,6,0,0"/>
+              <TextBlock Grid.Row="3" Grid.Column="0"
+                         Text="{Binding DotnetStatusIcon}" FontSize="16" VerticalAlignment="Center" Margin="0,6,0,0"/>
+              <TextBlock Grid.Row="3" Grid.Column="1"
+                         Text="{Binding DotnetStatusText}" VerticalAlignment="Center" Margin="0,6,0,0"/>
+              <Button Grid.Row="0" Grid.Column="2" Grid.RowSpan="4"
+                      Classes="ghost" Content="↻ Alle prüfen"
+                      Command="{Binding CheckAllCommand}"
+                      VerticalAlignment="Center"/>
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Schnellaktionen -->
+        <Border Classes="card">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Schnellaktionen"/>
+            <WrapPanel Orientation="Horizontal">
+              <Button Classes="primary" Content="GitHub CLI installieren"
+                      Command="{Binding InstallGhCliCommand}" Margin="0,0,8,8"/>
+              <Button Classes="ghost" Content="GitHub Login (gh auth login)"
+                      Command="{Binding GhLoginCommand}" Margin="0,0,8,8"/>
+              <Button Classes="ghost" Content="GitHub Rechte prüfen (repo + workflow)"
+                      Command="{Binding CheckPermissionsCommand}" Margin="0,0,8,8"/>
+              <Button Classes="ghost" Content="Git Credentials reparieren"
+                      Command="{Binding FixCredentialsCommand}" Margin="0,0,8,8"/>
+            </WrapPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Pfade / Konfiguration -->
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Pfad-Konfiguration"/>
+
+            <TextBlock Classes="muted" Text="aaia-sdk Verzeichnis"/>
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0" Text="{Binding SdkPath}" Watermark="H:\AAIAGitHub\aaia-sdk"/>
+              <Button Grid.Column="1" Classes="ghost" Content="…" Width="36"
+                      Command="{Binding BrowseSdkCommand}" Margin="6,0,0,0"/>
+            </Grid>
+
+            <TextBlock Classes="muted" Text="Universal AAIA Monorepo"/>
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0" Text="{Binding MonorepoPath}"
+                       Watermark="C:\…\Universal AAIA"/>
+              <Button Grid.Column="1" Classes="ghost" Content="…" Width="36"
+                      Command="{Binding BrowseMonorepoCommand}" Margin="6,0,0,0"/>
+            </Grid>
+
+            <TextBlock Classes="muted" Text="Extension Registry Verzeichnis"/>
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0" Text="{Binding RegistryPath}"
+                       Watermark="H:\AAIAGitHub\aaia-extension-registry"/>
+              <Button Grid.Column="1" Classes="ghost" Content="…" Width="36"
+                      Command="{Binding BrowseRegistryCommand}" Margin="6,0,0,0"/>
+            </Grid>
+
+            <Button Classes="success" Content="Speichern" HorizontalAlignment="Right"
+                    Command="{Binding SaveConfigCommand}"/>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ── Unterer Bereich: Ausgabe (fixer Bereich, eigener Scroll) ── -->
+    <Border Grid.Row="1" Classes="card" Margin="20,0,20,12">
+      <Grid RowDefinitions="Auto,*">
+
+        <!-- Titelzeile mit Pop-out-Button -->
+        <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto" Margin="0,0,0,6">
+          <TextBlock Grid.Column="0" Classes="h2" Text="Ausgabe" VerticalAlignment="Center"/>
+          <Button Grid.Column="1" Classes="ghost" Content="🗑" FontSize="11"
+                  Command="{Binding ClearLogCommand}" Margin="0,0,4,0"
+                  ToolTip.Tip="Ausgabe leeren"/>
+          <Button Grid.Column="2" Classes="ghost" Content="⤢" FontSize="13"
+                  Click="PopOutLog_Click"
+                  ToolTip.Tip="In eigenem Fenster öffnen"/>
+        </Grid>
+
+        <!-- Scrollbarer Log — kein äußerer ScrollViewer mehr -->
+        <TextBox Grid.Row="1"
+                 Classes="log"
+                 Name="LogTextBox"
+                 Text="{Binding Log}"
+                 IsReadOnly="True"
+                 TextWrapping="Wrap"
+                 AcceptsReturn="True"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+      </Grid>
+    </Border>
+
+  </Grid>
+</UserControl>

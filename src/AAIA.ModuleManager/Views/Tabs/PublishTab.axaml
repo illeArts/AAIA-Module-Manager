@@ -1,0 +1,155 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.PublishTab"
+             x:DataType="vm:PublishTabViewModel">
+
+  <ScrollViewer Padding="20">
+    <StackPanel Spacing="16">
+
+      <TextBlock Classes="h1" Text="Publish" />
+      <TextBlock Classes="muted"
+                 Text="Modul bauen, signieren und im AAIA Marketplace veröffentlichen." />
+
+      <!-- Nicht eingeloggt -->
+      <Border Classes="card" IsVisible="{Binding !IsLoggedIn}">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="accent" Text="⚠️ Nicht eingeloggt" FontWeight="SemiBold" />
+          <TextBlock Classes="muted"
+                     Text="Bitte zuerst im Developer-Tab mit deiner ETW-ID anmelden." />
+        </StackPanel>
+      </Border>
+
+      <!-- Eingeloggt -->
+      <StackPanel Spacing="16" IsVisible="{Binding IsLoggedIn}">
+
+        <!-- Entwickler-Info -->
+        <Border Classes="card">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Classes="muted" Text="Eingeloggt als" VerticalAlignment="Center" />
+            <TextBlock Classes="accent" Text="{Binding EtwId}"
+                       FontWeight="SemiBold" VerticalAlignment="Center" />
+          </StackPanel>
+        </Border>
+
+        <!-- Projektpfad -->
+        <Border Classes="card">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Modul-Projekt" />
+
+            <Grid ColumnDefinitions="*,Auto" RowDefinitions="Auto,Auto" >
+              <TextBox Grid.Row="0" Grid.Column="0"
+                       Text="{Binding ProjectPath}"
+                       Watermark="Pfad zum Modul-Projektverzeichnis (enthält aaia-extension.json)"
+                       Margin="0,0,8,0" />
+              <Button Grid.Row="0" Grid.Column="1"
+                      Content="Durchsuchen…"
+                      Command="{Binding BrowseProjectCommand}"
+                      Click="OnBrowseProjectClick" />
+
+              <TextBlock Grid.Row="1" Grid.ColumnSpan="2" Classes="muted"
+                         Text="Das Verzeichnis muss eine aaia-extension.json enthalten."
+                         Margin="0,4,0,0" />
+            </Grid>
+
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="Version" />
+              <TextBox Grid.Column="1" Text="{Binding Version}"
+                       Watermark="1.0.0" />
+            </Grid>
+
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="Changelog" />
+              <TextBox Grid.Column="1" Text="{Binding Changelog}"
+                       Watermark="Was hat sich geändert?" AcceptsReturn="True"
+                       MinHeight="80" TextWrapping="Wrap" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Signing -->
+        <Border Classes="card">
+          <StackPanel Spacing="12">
+            <TextBlock Classes="h2" Text="Publisher-Schlüssel" />
+            <TextBlock Classes="muted"
+                       Text="Privater Schlüssel zum Signieren des .aaix-Pakets. Dieser Schlüssel verlässt niemals deinen Computer." />
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0"
+                       Text="{Binding PrivateKeyPath}"
+                       Watermark="Pfad zum privaten Schlüssel (.pem)"
+                       Margin="0,0,8,0" />
+              <Button Grid.Column="1"
+                      Content="Durchsuchen…"
+                      Command="{Binding BrowsePrivateKeyCommand}"
+                      Click="OnBrowsePrivateKeyClick" />
+            </Grid>
+          </StackPanel>
+        </Border>
+
+        <!-- Optionale Schritte -->
+        <Border Classes="card">
+          <StackPanel Spacing="10">
+            <TextBlock Classes="h2" Text="Publish-Ziele" />
+
+            <CheckBox Content="Im AAIA Marketplace veröffentlichen"
+                      IsChecked="{Binding PublishMarketplace}" />
+            <CheckBox Content="NuGet-Paket pushen (optional)"
+                      IsChecked="{Binding PublishNuGet}" />
+            <CheckBox Content="GitHub Release erstellen (optional)"
+                      IsChecked="{Binding CreateGitHub}" />
+          </StackPanel>
+        </Border>
+
+        <!-- Publish-Button -->
+        <Button Classes="accent"
+                Content="🚀 Jetzt veröffentlichen"
+                Command="{Binding PublishCommand}"
+                IsEnabled="{Binding !IsBusy}"
+                HorizontalAlignment="Left" />
+
+        <!-- Status -->
+        <Border Classes="card" IsVisible="{Binding HasLog}">
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Classes="h2" Text="Log" />
+              <Button Grid.Column="1" Classes="ghost" Content="Löschen"
+                      Command="{Binding ClearLogCommand}" />
+            </Grid>
+
+            <!-- Erfolgs-Banner -->
+            <Border Background="#1a4d2e" CornerRadius="6" Padding="12,8"
+                    IsVisible="{Binding IsSuccess}">
+              <StackPanel Spacing="4">
+                <TextBlock Foreground="#4ade80" FontWeight="Bold"
+                           Text="✅ Erfolgreich veröffentlicht!" />
+                <TextBlock Foreground="#4ade80" Text="{Binding MarketplaceUrl}"
+                           IsVisible="{Binding MarketplaceUrl, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                           TextWrapping="Wrap" />
+              </StackPanel>
+            </Border>
+
+            <ItemsControl ItemsSource="{Binding Log}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" FontFamily="Consolas,Monospace"
+                             FontSize="12" TextWrapping="Wrap" Margin="0,1" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </StackPanel>
+        </Border>
+
+        <!-- Status-Message (Loading) -->
+        <StackPanel Orientation="Horizontal" Spacing="10"
+                    IsVisible="{Binding IsBusy}">
+          <TextBlock Text="⏳" FontSize="16" />
+          <TextBlock Text="{Binding StatusMessage}" Classes="muted"
+                     VerticalAlignment="Center" />
+        </StackPanel>
+
+      </StackPanel>
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

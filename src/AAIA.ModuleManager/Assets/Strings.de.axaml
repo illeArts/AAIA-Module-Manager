@@ -1,0 +1,43 @@
+<ResourceDictionary xmlns="https://github.com/avaloniaui"
+                    xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+                    xmlns:sys="clr-namespace:System;assembly=mscorlib">
+
+  <!-- ── Navigation ── -->
+  <sys:String x:Key="Str_Tab_Sdk">🔧  SDK / Contracts</sys:String>
+  <sys:String x:Key="Str_Tab_Module">📦  Mein Modul</sys:String>
+  <sys:String x:Key="Str_Tab_Registry">🌐  Registry</sys:String>
+  <sys:String x:Key="Str_Tab_Tester">🧪  Tester</sys:String>
+  <sys:String x:Key="Str_Tab_Setup">⚙️  Setup</sys:String>
+  <sys:String x:Key="Str_Menu_Settings">Einstellungen</sys:String>
+  <sys:String x:Key="Str_Menu_Help">Hilfe</sys:String>
+  <sys:String x:Key="Str_Menu_About">Über</sys:String>
+
+  <!-- ── Allgemein ── -->
+  <sys:String x:Key="Str_Save">Speichern</sys:String>
+  <sys:String x:Key="Str_Cancel">Abbrechen</sys:String>
+  <sys:String x:Key="Str_Close">Schließen</sys:String>
+  <sys:String x:Key="Str_Refresh">↻ Aktualisieren</sys:String>
+  <sys:String x:Key="Str_Browse">Durchsuchen</sys:String>
+  <sys:String x:Key="Str_Connect">Verbinden</sys:String>
+  <sys:String x:Key="Str_Disconnect">Trennen</sys:String>
+  <sys:String x:Key="Str_Build">🔨  Build &amp; Publish</sys:String>
+  <sys:String x:Key="Str_Install">⬆  Install + Enable</sys:String>
+  <sys:String x:Key="Str_HotReload">🔄  Hot-Reload</sys:String>
+  <sys:String x:Key="Str_Simulate">▶  Simulieren</sys:String>
+  <sys:String x:Key="Str_Stream_Start">▶ Stream</sys:String>
+  <sys:String x:Key="Str_Stream_Stop">◼ Stop</sys:String>
+  <sys:String x:Key="Str_Clear">🗑</sys:String>
+  <sys:String x:Key="Str_PopOut">⤢</sys:String>
+  <sys:String x:Key="Str_Copy">📋  Kopieren</sys:String>
+
+  <!-- ── Settings ── -->
+  <sys:String x:Key="Str_Settings_Title">Einstellungen</sys:String>
+  <sys:String x:Key="Str_Settings_Language">Sprache / Language</sys:String>
+  <sys:String x:Key="Str_Settings_De">🇩🇪  Deutsch</sys:String>
+  <sys:String x:Key="Str_Settings_En">🇬🇧  English</sys:String>
+
+  <!-- ── Help ── -->
+  <sys:String x:Key="Str_Help_Title">Hilfe — AAIA Module Manager v2</sys:String>
+  <sys:String x:Key="Str_Help_Subtitle">Der vollständige Dev-Assistent für AAIA-Modul- und Plugin-Entwickler.</sys:String>
+
+</ResourceDictionary>

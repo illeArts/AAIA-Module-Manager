@@ -1,0 +1,42 @@
+name: Build & Test
+
+on:
+  push:
+    branches: [ main, dev ]
+  pull_request:
+    branches: [ main ]
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # Checkout module-manager at ./aaia-module-manager
+      - uses: actions/checkout@v4
+        with:
+          path: aaia-module-manager
+
+      # Checkout aaia-sdk at ./aaia-sdk (sibling — matches local ProjectReference ../../../aaia-sdk/)
+      # Requires secret GH_PAT with repo read access to illeArts/aaia-sdk
+      - uses: actions/checkout@v4
+        with:
+          repository: illeArts/aaia-sdk
+          path: aaia-sdk
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Restore
+        run: dotnet restore aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
+
+      - name: Build
+        run: dotnet build aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj -c Release --no-restore
+
+      - name: Publish (smoke test)
+        run: >
+          dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
+          -c Release -r win-x64 --self-contained true
+          /p:PublishSingleFile=true -o ./publish

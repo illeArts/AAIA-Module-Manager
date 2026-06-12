@@ -1,0 +1,190 @@
+<Styles xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml">
+
+  <!-- ── Farben ── -->
+  <Style>
+    <Style.Resources>
+      <Color x:Key="BgDeep">#1a1a2e</Color>
+      <Color x:Key="BgPanel">#16213e</Color>
+      <Color x:Key="BgCard">#0f3460</Color>
+      <Color x:Key="AccentBlue">#00b4d8</Color>
+      <Color x:Key="AccentGreen">#06d6a0</Color>
+      <Color x:Key="AccentOrange">#f77f00</Color>
+      <Color x:Key="AccentRed">#e63946</Color>
+      <Color x:Key="TextPrimary">#e0e0e0</Color>
+      <Color x:Key="TextMuted">#8892a4</Color>
+      <Color x:Key="BorderSubtle">#2a2a4a</Color>
+
+      <SolidColorBrush x:Key="BgDeepBrush" Color="{StaticResource BgDeep}" />
+      <SolidColorBrush x:Key="BgPanelBrush" Color="{StaticResource BgPanel}" />
+      <SolidColorBrush x:Key="BgCardBrush" Color="{StaticResource BgCard}" />
+      <SolidColorBrush x:Key="AccentBlueBrush" Color="{StaticResource AccentBlue}" />
+      <SolidColorBrush x:Key="AccentGreenBrush" Color="{StaticResource AccentGreen}" />
+      <SolidColorBrush x:Key="AccentOrangeBrush" Color="{StaticResource AccentOrange}" />
+      <SolidColorBrush x:Key="AccentRedBrush" Color="{StaticResource AccentRed}" />
+      <SolidColorBrush x:Key="TextPrimaryBrush" Color="{StaticResource TextPrimary}" />
+      <SolidColorBrush x:Key="TextMutedBrush" Color="{StaticResource TextMuted}" />
+      <SolidColorBrush x:Key="BorderSubtleBrush" Color="{StaticResource BorderSubtle}" />
+      <!-- Aliases used in V2 TesterTab -->
+      <SolidColorBrush x:Key="FgMuted" Color="{StaticResource TextMuted}" />
+    </Style.Resources>
+  </Style>
+
+  <!-- ── Window ── -->
+  <Style Selector="Window">
+    <Setter Property="Background" Value="{StaticResource BgDeepBrush}" />
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    <Setter Property="FontFamily" Value="Inter,Segoe UI,sans-serif" />
+    <Setter Property="FontSize" Value="13" />
+  </Style>
+
+  <!-- ── Primärer Button ── -->
+  <Style Selector="Button.primary">
+    <Setter Property="Background" Value="{StaticResource AccentBlueBrush}" />
+    <Setter Property="Foreground" Value="#ffffff" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.primary:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#0096b7" />
+  </Style>
+
+  <!-- ── Grüner Button ── -->
+  <Style Selector="Button.success">
+    <Setter Property="Background" Value="{StaticResource AccentGreenBrush}" />
+    <Setter Property="Foreground" Value="#0a1628" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <!-- ── Roter/Warn Button ── -->
+  <Style Selector="Button.danger">
+    <Setter Property="Background" Value="{StaticResource AccentRedBrush}" />
+    <Setter Property="Foreground" Value="#ffffff" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+
+  <!-- ── Sekundärer (Ghost) Button ── -->
+  <Style Selector="Button.ghost">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    <Setter Property="Padding" Value="14,7" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="Button.ghost:pointerover /template/ ContentPresenter">
+    <Setter Property="Background" Value="#1a2040" />
+  </Style>
+
+  <!-- ── Card / Panel ── -->
+  <Style Selector="Border.card">
+    <Setter Property="Background" Value="{StaticResource BgPanelBrush}" />
+    <Setter Property="CornerRadius" Value="10" />
+    <Setter Property="Padding" Value="16" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+    <Setter Property="BorderThickness" Value="1" />
+  </Style>
+
+  <!-- ── TextBox ── -->
+  <Style Selector="TextBox">
+    <Setter Property="Background" Value="#0d1b2e" />
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10,7" />
+    <Setter Property="CaretBrush" Value="{StaticResource AccentBlueBrush}" />
+  </Style>
+
+  <!-- ── Log-Output ── -->
+  <Style Selector="TextBox.log">
+    <Setter Property="Background" Value="#0a0e1a" />
+    <Setter Property="Foreground" Value="#a8d8a8" />
+    <Setter Property="FontFamily" Value="Cascadia Code,Consolas,monospace" />
+    <Setter Property="FontSize" Value="12" />
+    <Setter Property="BorderBrush" Value="{StaticResource BorderSubtleBrush}" />
+    <Setter Property="CornerRadius" Value="6" />
+    <Setter Property="Padding" Value="10" />
+  </Style>
+
+  <!-- ── TabControl ── -->
+  <Style Selector="TabControl">
+    <Setter Property="Background" Value="Transparent" />
+    <Setter Property="TabStripPlacement" Value="Top" />
+  </Style>
+  <Style Selector="TabItem">
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    <Setter Property="FontWeight" Value="Medium" />
+    <Setter Property="Padding" Value="16,10" />
+    <Setter Property="Cursor" Value="Hand" />
+  </Style>
+  <Style Selector="TabItem:selected">
+    <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}" />
+  </Style>
+
+  <!-- ── Labels / Überschriften ── -->
+  <Style Selector="TextBlock.h1">
+    <Setter Property="FontSize" Value="20" />
+    <Setter Property="FontWeight" Value="Bold" />
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.h2">
+    <Setter Property="FontSize" Value="15" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextPrimaryBrush}" />
+  </Style>
+  <Style Selector="TextBlock.muted">
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+  <Style Selector="TextBlock.accent">
+    <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.ok">
+    <Setter Property="Foreground" Value="{StaticResource AccentGreenBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+  <Style Selector="TextBlock.warn">
+    <Setter Property="Foreground" Value="{StaticResource AccentOrangeBrush}" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+  </Style>
+
+  <!-- ── Compact TextBox (weniger Padding) ── -->
+  <Style Selector="TextBox.compact">
+    <Setter Property="Padding" Value="8,5" />
+    <Setter Property="FontSize" Value="12" />
+  </Style>
+
+  <!-- ── Card-Label / Sektion-Überschrift ── -->
+  <Style Selector="TextBlock.label">
+    <Setter Property="FontSize" Value="11" />
+    <Setter Property="FontWeight" Value="SemiBold" />
+    <Setter Property="Foreground" Value="{StaticResource TextMutedBrush}" />
+    <Setter Property="Margin" Value="0,0,0,2" />
+  </Style>
+
+  <!-- ── Separator ── -->
+  <Style Selector="Separator">
+    <Setter Property="Background" Value="{StaticResource BorderSubtleBrush}" />
+    <Setter Property="Height" Value="1" />
+    <Setter Property="Margin" Value="0,8" />
+  </Style>
+
+  <!-- ── ProgressBar ── -->
+  <Style Selector="ProgressBar">
+    <Setter Property="Background" Value="#1a1a3e" />
+    <Setter Property="Foreground" Value="{StaticResource AccentBlueBrush}" />
+    <Setter Property="Height" Value="6" />
+    <Setter Property="CornerRadius" Value="3" />
+  </Style>
+
+</Styles>

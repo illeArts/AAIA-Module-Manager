@@ -1,0 +1,256 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             xmlns:svc="using:AAIA.ModuleManager.Services"
+             x:Class="AAIA.ModuleManager.Views.TesterTab"
+             x:DataType="vm:TesterTabViewModel"
+             Padding="0">
+
+  <Grid ColumnDefinitions="320,*">
+
+    <!-- ══ LEFT PANEL ══════════════════════════════════════════════════════ -->
+    <ScrollViewer Grid.Column="0" HorizontalScrollBarVisibility="Disabled">
+      <StackPanel Background="{DynamicResource BgPanel}" Spacing="0" Margin="0,0,1,0">
+
+        <!-- Connection Card -->
+        <Border Classes="card" Margin="12,12,12,6">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="label">AAIAS Verbindung</TextBlock>
+
+            <TextBox Watermark="http://localhost:5174"
+                     Text="{Binding AaiasUrl}"
+                     Classes="compact"/>
+
+            <Grid ColumnDefinitions="*,*">
+              <TextBox Grid.Column="0" Watermark="Username"
+                       Text="{Binding AaiasUsername}"
+                       Classes="compact" Margin="0,0,4,0"/>
+              <TextBox Grid.Column="1" Watermark="Passwort"
+                       Text="{Binding AaiasPassword}"
+                       PasswordChar="●"
+                       Classes="compact"/>
+            </Grid>
+
+            <!-- Status + Buttons -->
+            <TextBlock Text="{Binding ConnectionStatus}"
+                       Foreground="{DynamicResource FgMuted}"
+                       FontSize="11" TextTrimming="CharacterEllipsis"/>
+
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Button Classes="primary" Content="Verbinden"
+                      Command="{Binding ConnectCommand}"
+                      IsVisible="{Binding !IsConnected}"/>
+              <Button Classes="danger" Content="Trennen"
+                      Command="{Binding DisconnectCommand}"
+                      IsVisible="{Binding IsConnected}"/>
+            </StackPanel>
+
+            <!-- Dev Mode badge -->
+            <Border Background="#1a2a1a" CornerRadius="4" Padding="6,3"
+                    IsVisible="{Binding IsConnected}">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <Ellipse Width="8" Height="8" VerticalAlignment="Center"
+                         Fill="{DynamicResource AccentGreen}"/>
+                <TextBlock FontSize="11" VerticalAlignment="Center"
+                           Text="{Binding DevModeActive, StringFormat='{}Developer Mode: {0}'}"/>
+              </StackPanel>
+            </Border>
+          </StackPanel>
+        </Border>
+
+        <!-- Project Card -->
+        <Border Classes="card" Margin="12,6,12,6">
+          <StackPanel Spacing="8">
+            <TextBlock Classes="label">Projekt</TextBlock>
+
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0"
+                       Text="{Binding ProjectPath}"
+                       Watermark="Projektordner…"
+                       IsReadOnly="True"
+                       Classes="compact" Margin="0,0,4,0"/>
+              <Button Grid.Column="1" Content="📁"
+                      Command="{Binding BrowseProjectCommand}"
+                      Classes="ghost"/>
+            </Grid>
+
+            <!-- Project info -->
+            <StackPanel Spacing="2"
+                        IsVisible="{Binding ProjectName, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+              <TextBlock FontSize="11">
+                <Run Foreground="{DynamicResource FgMuted}">ID  </Run>
+                <Run FontFamily="Consolas" Text="{Binding ExtensionId}"/>
+              </TextBlock>
+              <TextBlock FontSize="11">
+                <Run Foreground="{DynamicResource FgMuted}">v   </Run>
+                <Run Text="{Binding ProjectVersion}"/>
+              </TextBlock>
+            </StackPanel>
+
+            <!-- FileWatcher -->
+            <StackPanel Orientation="Horizontal" Spacing="6" IsVisible="{Binding IsWatching}">
+              <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentGreen}" VerticalAlignment="Center"/>
+              <TextBlock FontSize="10" Foreground="{DynamicResource FgMuted}" VerticalAlignment="Center">
+                Watcher aktiv
+              </TextBlock>
+            </StackPanel>
+
+            <!-- Unsaved changes -->
+            <Border Background="#2a2210" CornerRadius="4" Padding="6,4"
+                    IsVisible="{Binding HasUnsavedChanges}">
+              <TextBlock FontSize="11" Foreground="#f4c430">
+                <Run>⚠ Änderung: </Run>
+                <Run Text="{Binding LastChangedFile}"/>
+              </TextBlock>
+            </Border>
+
+            <!-- IDE selector -->
+            <ComboBox ItemsSource="{Binding DetectedIdes}"
+                      SelectedItem="{Binding SelectedIde}"
+                      HorizontalAlignment="Stretch">
+              <ComboBox.ItemTemplate>
+                <DataTemplate x:DataType="svc:IdeInfo">
+                  <TextBlock>
+                    <Run Text="{Binding Name}"/>
+                    <Run Foreground="{DynamicResource FgMuted}"
+                         Text="{Binding Installed, StringFormat='{} ({0})'}"/>
+                  </TextBlock>
+                </DataTemplate>
+              </ComboBox.ItemTemplate>
+            </ComboBox>
+            <Button Content="In IDE öffnen"
+                    Command="{Binding OpenInIdeCommand}"
+                    Classes="ghost" HorizontalAlignment="Stretch"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Actions Card -->
+        <Border Classes="card" Margin="12,6,12,6">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="label">Aktionen</TextBlock>
+
+            <Button Content="🔨  Build &amp; Publish"
+                    Command="{Binding BuildCommand}"
+                    Classes="primary" HorizontalAlignment="Stretch"
+                    IsEnabled="{Binding !BuildRunning}"/>
+
+            <Button Content="⬆  Install + Enable"
+                    Command="{Binding InstallAndEnableCommand}"
+                    Classes="success" HorizontalAlignment="Stretch"/>
+
+            <Button Content="🔄  Hot-Reload (Dev Mode)"
+                    Command="{Binding HotReloadCommand}"
+                    Classes="ghost" HorizontalAlignment="Stretch"/>
+
+            <TextBlock Text="{Binding InstallStatus}" FontSize="11" TextWrapping="Wrap"
+                       IsVisible="{Binding InstallStatus, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                       Foreground="{DynamicResource AccentGreen}"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Installed Extensions -->
+        <Border Classes="card" Margin="12,6,12,12">
+          <StackPanel Spacing="6">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBlock Grid.Column="0" Classes="label">Installierte Extensions</TextBlock>
+              <Button Grid.Column="1" Content="↺" Classes="ghost" FontSize="11"
+                      Command="{Binding RefreshInstalledCommand}"/>
+            </Grid>
+
+            <ListBox ItemsSource="{Binding InstalledExtensions}"
+                     SelectedItem="{Binding SelectedExtension}"
+                     MaxHeight="160" Background="Transparent">
+              <ListBox.ItemTemplate>
+                <DataTemplate x:DataType="svc:AaiasExtensionInfo">
+                  <StackPanel Spacing="2" Margin="2,3">
+                    <TextBlock FontSize="12" Text="{Binding DisplayName}" FontWeight="Medium"/>
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock FontSize="10" Foreground="{DynamicResource FgMuted}" Text="{Binding Version}"/>
+                      <TextBlock FontSize="10" Foreground="{DynamicResource FgMuted}" Text="{Binding TrustStatus}"/>
+                      <TextBlock FontSize="10" Foreground="{DynamicResource FgMuted}"
+                                 Text="{Binding Enabled, StringFormat='{}aktiv: {0}'}"/>
+                    </StackPanel>
+                  </StackPanel>
+                </DataTemplate>
+              </ListBox.ItemTemplate>
+            </ListBox>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ══ RIGHT PANEL ═════════════════════════════════════════════════════ -->
+    <Grid Grid.Column="1" RowDefinitions="Auto,Auto,*" Margin="0,12,12,12">
+
+      <!-- Build Output -->
+      <Border Classes="card" Grid.Row="0" Margin="0,0,0,6">
+        <StackPanel Spacing="6">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Grid.Column="0" Classes="label">Build Output</TextBlock>
+            <ProgressBar Grid.Column="1" IsIndeterminate="True" Width="80" Height="4"
+                         IsVisible="{Binding BuildRunning}"/>
+          </Grid>
+          <TextBox Classes="log" Text="{Binding BuildOutput}"
+                   IsReadOnly="True" MaxHeight="160"/>
+        </StackPanel>
+      </Border>
+
+      <!-- WorkOrder Simulator -->
+      <Border Classes="card" Grid.Row="1" Margin="0,0,0,6">
+        <StackPanel Spacing="6">
+          <TextBlock Classes="label">WorkOrder Simulator  (Dev Mode)</TextBlock>
+          <TextBox Classes="log" AcceptsReturn="True"
+                   Text="{Binding WorkOrderJson}" MaxHeight="90"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Content="▶  Simulieren"
+                    Command="{Binding SimulateCommand}"
+                    Classes="primary"/>
+            <TextBlock VerticalAlignment="Center" FontSize="11"
+                       Foreground="{DynamicResource FgMuted}"
+                       IsVisible="{Binding !DevModeActive}">
+              (Developer Mode nicht aktiv)
+            </TextBlock>
+          </StackPanel>
+          <TextBox Classes="log" Text="{Binding WorkOrderResult}"
+                   IsReadOnly="True" MaxHeight="80"/>
+        </StackPanel>
+      </Border>
+
+      <!-- Live Log -->
+      <Border Classes="card" Grid.Row="2">
+        <Grid RowDefinitions="Auto,*">
+          <Grid Grid.Row="0" ColumnDefinitions="*,Auto,Auto,Auto,Auto" Margin="0,0,0,6">
+            <TextBlock Grid.Column="0" Classes="label" VerticalAlignment="Center">
+              Live-Log
+            </TextBlock>
+            <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="4" Margin="0,0,8,0"
+                        IsVisible="{Binding LogStreaming}">
+              <Ellipse Width="6" Height="6" Fill="{DynamicResource AccentGreen}" VerticalAlignment="Center"/>
+              <TextBlock FontSize="10" Foreground="{DynamicResource FgMuted}" VerticalAlignment="Center">
+                SSE aktiv
+              </TextBlock>
+            </StackPanel>
+            <Button Grid.Column="2" Content="▶ Stream"
+                    Command="{Binding StartLogStreamCommand}"
+                    Classes="success" IsEnabled="{Binding !LogStreaming}" Margin="0,0,4,0"/>
+            <Button Grid.Column="3" Content="◼ Stop"
+                    Command="{Binding StopLogStreamCommand}"
+                    Classes="danger" IsEnabled="{Binding LogStreaming}" Margin="0,0,4,0"/>
+            <StackPanel Grid.Column="4" Orientation="Horizontal" Spacing="4">
+              <Button Content="🔍" Command="{Binding ShowDiagnosticsCommand}"
+                      Classes="ghost" ToolTip.Tip="Diagnostik-Snapshot"/>
+              <Button Content="🗑" Command="{Binding ClearLogCommand}" Classes="ghost"/>
+            </StackPanel>
+          </Grid>
+
+          <TextBox Grid.Row="1" Classes="log"
+                   Text="{Binding Log}"
+                   IsReadOnly="True" AcceptsReturn="True"/>
+        </Grid>
+      </Border>
+
+    </Grid>
+
+  </Grid>
+</UserControl>

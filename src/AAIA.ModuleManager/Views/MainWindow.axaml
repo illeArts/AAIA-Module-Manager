@@ -1,0 +1,131 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+        xmlns:tabs="using:AAIA.ModuleManager.Views.Tabs"
+        xmlns:views="using:AAIA.ModuleManager.Views"
+        x:Class="AAIA.ModuleManager.Views.MainWindow"
+        x:DataType="vm:MainWindowViewModel"
+        Title="AAIA Module Manager v2"
+        Width="1200" Height="720"
+        MinWidth="760" MinHeight="520"
+        WindowStartupLocation="CenterScreen"
+        ExtendClientAreaToDecorationsHint="True"
+        ExtendClientAreaChromeHints="NoChrome"
+        ExtendClientAreaTitleBarHeightHint="-1"
+        Background="#1a1a2e">
+
+  <Grid RowDefinitions="38,*">
+
+    <!-- ── Titelzeile ── -->
+    <Grid Grid.Row="0"
+          Background="#12122a"
+          IsHitTestVisible="True"
+          PointerPressed="TitleBar_PointerPressed">
+      <Grid.ColumnDefinitions>
+        <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="*"/>
+        <ColumnDefinition Width="Auto"/>
+      </Grid.ColumnDefinitions>
+
+      <!-- Logo + Titel -->
+      <StackPanel Grid.Column="0" Orientation="Horizontal"
+                  VerticalAlignment="Center" Margin="12,0,0,0" Spacing="8">
+        <Image Source="avares://AAIA.ModuleManager/Assets/AAIA_Module_Manager.png"
+               Width="22" Height="22" RenderOptions.BitmapInterpolationMode="HighQuality"/>
+        <TextBlock Text="AAIA Module Manager  v2"
+                   Foreground="#e0e0e0" FontWeight="SemiBold" FontSize="13"
+                   VerticalAlignment="Center"/>
+      </StackPanel>
+
+      <!-- Menüleiste -->
+      <StackPanel Grid.Column="1" Orientation="Horizontal"
+                  VerticalAlignment="Center" Margin="16,0,0,0" Spacing="4">
+        <Button Classes="menu-btn" Content="{DynamicResource Str_Menu_Settings}" Click="Settings_Click"/>
+        <Button Classes="menu-btn" Content="{DynamicResource Str_Menu_Help}" Click="Help_Click"/>
+        <Button Classes="menu-btn" Content="{DynamicResource Str_Menu_About}" Click="About_Click"/>
+      </StackPanel>
+
+      <!-- Fenster-Buttons -->
+      <StackPanel Grid.Column="2" Orientation="Horizontal"
+                  VerticalAlignment="Center" Margin="0,0,8,0" Spacing="4">
+        <Button Classes="wnd-btn" Content="─" Click="Minimize_Click"/>
+        <Button Classes="wnd-btn" Content="□" Click="Maximize_Click"/>
+        <Button Classes="wnd-btn close-btn" Content="✕" Click="Close_Click"/>
+      </StackPanel>
+    </Grid>
+
+    <!-- ── Hauptinhalt ── -->
+    <TabControl Grid.Row="1" Margin="0">
+
+      <!-- Tab 1: SDK / Contracts -->
+      <TabItem Header="{DynamicResource Str_Tab_Sdk}">
+        <tabs:SdkTab DataContext="{Binding SdkTab}"/>
+      </TabItem>
+
+      <!-- Tab 2: Mein Modul / Plugin -->
+      <TabItem Header="{DynamicResource Str_Tab_Module}">
+        <tabs:ModuleTab DataContext="{Binding ModuleTab}"/>
+      </TabItem>
+
+      <!-- Tab 3: Extension Registry -->
+      <TabItem Header="{DynamicResource Str_Tab_Registry}">
+        <tabs:RegistryTab DataContext="{Binding RegistryTab}"/>
+      </TabItem>
+
+      <!-- Tab 4: Tester (V2) -->
+      <TabItem Header="{DynamicResource Str_Tab_Tester}">
+        <views:TesterTab DataContext="{Binding TesterTab}"/>
+      </TabItem>
+
+      <!-- Tab 5: Setup -->
+      <TabItem Header="{DynamicResource Str_Tab_Setup}">
+        <tabs:SetupTab DataContext="{Binding SetupTab}"/>
+      </TabItem>
+
+      <!-- Tab 6: Developer Account / Marketplace -->
+      <TabItem Header="Developer">
+        <tabs:DeveloperTab DataContext="{Binding DeveloperTab}"/>
+      </TabItem>
+
+      <!-- Tab 7: Publish — Build, Sign, Marketplace-Upload -->
+      <TabItem Header="Publish">
+        <tabs:PublishTab DataContext="{Binding PublishTab}"/>
+      </TabItem>
+
+    </TabControl>
+
+  </Grid>
+
+  <Window.Styles>
+    <Style Selector="Button.menu-btn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#8892a4"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="10,4"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.menu-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#1a2040"/>
+      <Setter Property="TextElement.Foreground" Value="#e0e0e0"/>
+    </Style>
+    <Style Selector="Button.wnd-btn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#8892a4"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Width" Value="30"/>
+      <Setter Property="Height" Value="26"/>
+      <Setter Property="Padding" Value="0"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.wnd-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#2a2a4a"/>
+    </Style>
+    <Style Selector="Button.close-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#c0392b"/>
+      <Setter Property="TextElement.Foreground" Value="White"/>
+    </Style>
+  </Window.Styles>
+
+</Window>

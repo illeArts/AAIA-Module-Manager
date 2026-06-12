@@ -1,0 +1,102 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.ModuleTab"
+             x:DataType="vm:ModuleTabViewModel">
+
+  <ScrollViewer Padding="20">
+    <StackPanel Spacing="16">
+
+      <TextBlock Classes="h1" Text="Mein Modul / Plugin" />
+      <TextBlock Classes="muted"
+                 Text="Neues Modul aus Template scaffolden oder bestehendes Projekt öffnen." />
+
+      <!-- Projekt wählen -->
+      <Border Classes="card">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Projektordner" />
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBox Grid.Column="0" Text="{Binding ProjectPath}" Watermark="Pfad zum Modul- oder Plugin-Projekt…"/>
+            <Button Grid.Column="1" Classes="ghost" Content="Wählen…"
+                    Command="{Binding BrowseCommand}" Margin="8,0,0,0"/>
+          </Grid>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <Button Classes="success" Content="✚  Neues Modul"
+                    Command="{Binding ScaffoldModuleCommand}"/>
+            <Button Classes="ghost" Content="✚  Neues Plugin"
+                    Command="{Binding ScaffoldPluginCommand}"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Projektinfo -->
+      <Border Classes="card" IsVisible="{Binding ProjectLoaded}">
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto">
+
+          <StackPanel Grid.Column="0" Spacing="4">
+            <TextBlock Classes="muted" Text="Typ" />
+            <TextBlock Classes="h2 accent" Text="{Binding ProjectType}" />
+          </StackPanel>
+
+          <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock Classes="muted" Text="Version" />
+            <TextBlock Classes="h2" Text="{Binding ProjectVersion}" Foreground="#e0e0e0"/>
+          </StackPanel>
+
+          <StackPanel Grid.Column="2" Spacing="4">
+            <TextBlock Classes="muted" Text="Contracts-Referenz" />
+            <TextBlock Text="{Binding ContractsRef}"
+                       Foreground="{Binding ContractsRefColor}" FontWeight="SemiBold"/>
+          </StackPanel>
+
+          <!-- Warnung bei veralteter Contracts-Version -->
+          <Border Grid.ColumnSpan="3" Grid.Row="1"
+                  Background="#2a1a00" CornerRadius="6" Padding="10,7"
+                  Margin="0,10,0,0"
+                  IsVisible="{Binding ContractsOutdated}">
+            <TextBlock Classes="warn"
+                       Text="⚠  Contracts-Version veraltet — bitte auf die neueste NuGet-Version updaten." />
+          </Border>
+        </Grid>
+      </Border>
+
+      <!-- Aktionen -->
+      <Border Classes="card" IsVisible="{Binding ProjectLoaded}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Aktionen" />
+          <WrapPanel Orientation="Horizontal">
+            <Button Classes="ghost" Content="↓  Pull" Margin="0,0,8,8"
+                    Command="{Binding PullCommand}" IsEnabled="{Binding !IsBusy}"/>
+            <Button Classes="ghost" Content="🔨  Build" Margin="0,0,8,8"
+                    Command="{Binding BuildCommand}" IsEnabled="{Binding !IsBusy}"/>
+            <Button Classes="primary" Content="↑  Bump &amp; Push" Margin="0,0,8,8"
+                    Command="{Binding BumpAndPushCommand}" IsEnabled="{Binding !IsBusy}"/>
+            <Button Classes="success" Content="📋  In Registry eintragen" Margin="0,0,8,8"
+                    Command="{Binding RegisterCommand}" IsEnabled="{Binding !IsBusy}"/>
+            <Button Classes="ghost" Content="🔄  Contracts updaten" Margin="0,0,8,8"
+                    Command="{Binding UpdateContractsCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    IsVisible="{Binding ContractsOutdated}"/>
+          </WrapPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Ausgabe -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h2" Text="Ausgabe" />
+            <Button Grid.Column="1" Classes="ghost" Content="Leeren"
+                    Command="{Binding ClearLogCommand}" FontSize="11" Padding="8,4"/>
+          </Grid>
+          <TextBox Classes="log" Text="{Binding Log}" IsReadOnly="True"
+                   MinHeight="140" MaxHeight="220"
+                   TextWrapping="Wrap" AcceptsReturn="True"
+                   ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

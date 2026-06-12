@@ -1,0 +1,95 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.SdkTab"
+             x:DataType="vm:SdkTabViewModel">
+
+  <ScrollViewer Padding="20">
+    <StackPanel Spacing="16">
+
+      <!-- Header -->
+      <TextBlock Classes="h1" Text="SDK / Contracts" />
+      <TextBlock Classes="muted"
+                 Text="AAIA.Shared.Contracts auf NuGet verwalten — Version bumpen, publishen und alle Projekte im Monorepo updaten." />
+
+      <!-- Versionsinfo -->
+      <Border Classes="card">
+        <Grid ColumnDefinitions="*,*,*" RowDefinitions="Auto,Auto" >
+
+          <!-- Lokal -->
+          <StackPanel Grid.Column="0" Spacing="4">
+            <TextBlock Classes="muted" Text="Lokale Version (aaia-sdk)" />
+            <TextBlock Classes="h2 accent" Text="{Binding LocalVersion}" />
+          </StackPanel>
+
+          <!-- NuGet -->
+          <StackPanel Grid.Column="1" Spacing="4">
+            <TextBlock Classes="muted" Text="Letzte NuGet-Version" />
+            <TextBlock Classes="h2" Text="{Binding NuGetVersion}"
+                       Foreground="{Binding NuGetVersionColor}" />
+          </StackPanel>
+
+          <!-- Status -->
+          <StackPanel Grid.Column="2" Spacing="4">
+            <TextBlock Classes="muted" Text="Status" />
+            <TextBlock Text="{Binding StatusText}" Foreground="{Binding StatusColor}"
+                       FontWeight="SemiBold" />
+          </StackPanel>
+
+          <!-- Refresh-Button -->
+          <Button Grid.Column="2" Grid.Row="1"
+                  Classes="ghost" Content="↻ Aktualisieren"
+                  Command="{Binding RefreshCommand}"
+                  HorizontalAlignment="Right" Margin="0,8,0,0"/>
+        </Grid>
+      </Border>
+
+      <!-- Bump-Buttons -->
+      <Border Classes="card">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Release" />
+          <TextBlock Classes="muted"
+                     Text="Wähle den Bump-Typ. Das Skript bumpt die Version, committet, pushed den Tag, wartet auf NuGet und updated alle .csproj im Monorepo automatisch." />
+
+          <StackPanel Orientation="Horizontal" Spacing="10" Margin="0,4,0,0">
+            <Button Classes="ghost" Content="Patch  x.x.↑"
+                    Command="{Binding ReleasePatchCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    ToolTip.Tip="2.0.0 → 2.0.1 — Bugfix oder optionale Property"/>
+            <Button Classes="primary" Content="Minor  x.↑.0"
+                    Command="{Binding ReleaseMinorCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    ToolTip.Tip="2.0.0 → 2.1.0 — Neues Interface oder DTO"/>
+            <Button Classes="danger" Content="Major  ↑.0.0"
+                    Command="{Binding ReleaseMajorCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    ToolTip.Tip="2.0.0 → 3.0.0 — Breaking Change"/>
+          </StackPanel>
+
+          <!-- NuGet-Polling Fortschritt -->
+          <StackPanel IsVisible="{Binding IsBusy}" Spacing="6">
+            <ProgressBar IsIndeterminate="{Binding NuGetPolling}" Value="{Binding Progress}" />
+            <TextBlock Classes="muted" Text="{Binding ProgressLabel}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Ausgabe -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h2" Text="Ausgabe" />
+            <Button Grid.Column="1" Classes="ghost" Content="Leeren"
+                    Command="{Binding ClearLogCommand}" FontSize="11" Padding="8,4"/>
+          </Grid>
+          <TextBox Classes="log" Text="{Binding Log}" IsReadOnly="True"
+                   MinHeight="160" MaxHeight="260"
+                   TextWrapping="Wrap" AcceptsReturn="True"
+                   ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

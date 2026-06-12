@@ -1,0 +1,31 @@
+
+Microsoft Visual Studio Solution File, Format Version 12.00
+# Visual Studio Version 17
+VisualStudioVersion = 17.0.31903.59
+MinimumVisualStudioVersion = 10.0.40219.1
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAIA.ModuleManager", "src\AAIA.ModuleManager\AAIA.ModuleManager.csproj", "{CCF03AC2-03A3-4919-8884-0D6B9AB12DA9}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "AAIA.Shared.Contracts", "..\aaia-sdk\src\AAIA.Shared.Contracts\AAIA.Shared.Contracts.csproj", "{A7B3C1D2-E4F5-6789-ABCD-EF0123456789}"
+EndProject
+Global
+	GlobalSection(SolutionConfigurationPlatforms) = preSolution
+		Debug|Any CPU = Debug|Any CPU
+		Release|Any CPU = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(ProjectConfigurationPlatforms) = postSolution
+		{CCF03AC2-03A3-4919-8884-0D6B9AB12DA9}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CCF03AC2-03A3-4919-8884-0D6B9AB12DA9}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CCF03AC2-03A3-4919-8884-0D6B9AB12DA9}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CCF03AC2-03A3-4919-8884-0D6B9AB12DA9}.Release|Any CPU.Build.0 = Release|Any CPU
+		{A7B3C1D2-E4F5-6789-ABCD-EF0123456789}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{A7B3C1D2-E4F5-6789-ABCD-EF0123456789}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{A7B3C1D2-E4F5-6789-ABCD-EF0123456789}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{A7B3C1D2-E4F5-6789-ABCD-EF0123456789}.Release|Any CPU.Build.0 = Release|Any CPU
+	EndGlobalSection
+	GlobalSection(SolutionProperties) = preSolution
+		HideSolutionNode = FALSE
+	EndGlobalSection
+	GlobalSection(ExtensibilityGlobals) = postSolution
+		SolutionGuid = {1CEC2818-A69A-46B9-9F5C-C7149404F42E}
+	EndGlobalSection
+EndGlobal

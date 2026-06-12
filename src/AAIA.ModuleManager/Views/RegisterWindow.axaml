@@ -1,0 +1,50 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AAIA.ModuleManager.Views.RegisterWindow"
+        Title="Modul / Plugin eintragen"
+        Width="460" Height="420"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#1a1a2e"
+        Foreground="#e0e0e0"
+        FontFamily="Inter,Segoe UI,sans-serif">
+
+  <StackPanel Margin="24,20" Spacing="12">
+    <TextBlock Text="Extension Registry — Eintrag" FontSize="15" FontWeight="Bold"/>
+    <TextBlock Text="Felder ausfüllen und speichern. Der Eintrag wird in registry/index.json geschrieben und gepusht."
+               Foreground="#8892a4" FontSize="12" TextWrapping="Wrap"/>
+
+    <Grid ColumnDefinitions="120,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto"
+          >
+      <TextBlock Grid.Row="0" Grid.Column="0" Text="Name" VerticalAlignment="Center" Foreground="#8892a4" FontSize="12"/>
+      <TextBox   Grid.Row="0" Grid.Column="1" x:Name="NameBox" Margin="0,0,0,6"/>
+
+      <TextBlock Grid.Row="1" Grid.Column="0" Text="Typ" VerticalAlignment="Center" Foreground="#8892a4" FontSize="12"/>
+      <ComboBox  Grid.Row="1" Grid.Column="1" x:Name="TypeBox" Margin="0,0,0,6">
+        <ComboBoxItem Content="module"/>
+        <ComboBoxItem Content="plugin"/>
+      </ComboBox>
+
+      <TextBlock Grid.Row="2" Grid.Column="0" Text="Version" VerticalAlignment="Center" Foreground="#8892a4" FontSize="12"/>
+      <TextBox   Grid.Row="2" Grid.Column="1" x:Name="VersionBox" Margin="0,0,0,6"/>
+
+      <TextBlock Grid.Row="3" Grid.Column="0" Text="Contracts" VerticalAlignment="Center" Foreground="#8892a4" FontSize="12"/>
+      <TextBox   Grid.Row="3" Grid.Column="1" x:Name="ContractsBox" Margin="0,0,0,6"/>
+
+      <TextBlock Grid.Row="4" Grid.Column="0" Text="Autor" VerticalAlignment="Center" Foreground="#8892a4" FontSize="12"/>
+      <TextBox   Grid.Row="4" Grid.Column="1" x:Name="AuthorBox" Margin="0,0,0,6"/>
+
+      <TextBlock Grid.Row="5" Grid.Column="0" Text="Repository" VerticalAlignment="Center" Foreground="#8892a4" FontSize="12"/>
+      <TextBox   Grid.Row="5" Grid.Column="1" x:Name="RepoBox" Margin="0,0,0,6"/>
+
+      <TextBlock Grid.Row="6" Grid.Column="0" Text="Beschreibung" VerticalAlignment="Top" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
+      <TextBox   Grid.Row="6" Grid.Column="1" x:Name="DescBox" AcceptsReturn="True" Height="60" Margin="0,0,0,6"/>
+    </Grid>
+
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8" Margin="0,6,0,0">
+      <Button Classes="ghost" Content="Abbrechen" Click="Cancel_Click"/>
+      <Button Classes="success" Content="✓ Speichern &amp; Push" Click="Save_Click"/>
+    </StackPanel>
+  </StackPanel>
+
+</Window>

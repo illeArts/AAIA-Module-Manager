@@ -1,0 +1,65 @@
+name: Publish AAIA Module Manager
+
+on:
+  push:
+    tags:
+      - 'v*.*.*'
+
+jobs:
+  build:
+    runs-on: windows-latest
+
+    steps:
+      # Checkout module-manager at ./aaia-module-manager
+      - uses: actions/checkout@v4
+        with:
+          path: aaia-module-manager
+
+      # Checkout aaia-sdk at ./aaia-sdk (sibling — matches local ProjectReference ../../../aaia-sdk/)
+      # Requires secret GH_PAT with repo read access to illeArts/aaia-sdk
+      - uses: actions/checkout@v4
+        with:
+          repository: illeArts/aaia-sdk
+          path: aaia-sdk
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract version from tag
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Publish (Single-File, win-x64)
+        run: >
+          dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
+          -c Release
+          -r win-x64
+          --self-contained true
+          /p:PublishSingleFile=true
+          /p:Version=${{ steps.version.outputs.VERSION }}
+          -o ./publish
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: AAIA Module Manager ${{ github.ref_name }}
+          draft: false
+          prerelease: false
+          files: ./publish/AAIA.ModuleManager.exe
+          body: |
+            ## AAIA Module Manager ${{ github.ref_name }}
+
+            ### Was ist neu
+            Siehe [CHANGELOG](CHANGELOG.md)
+
+            ### Installation
+            1. `AAIA.ModuleManager.exe` herunterladen
+            2. Irgendwo ablegen und ausführen — kein Installer nötig
+            3. Beim ersten Start: **Setup**-Tab → Pfade & GitHub Login konfigurieren
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}

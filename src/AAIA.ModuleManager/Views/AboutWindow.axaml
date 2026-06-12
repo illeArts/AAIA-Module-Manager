@@ -1,0 +1,85 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AAIA.ModuleManager.Views.AboutWindow"
+        Title="Über AAIA Module Manager"
+        Width="380" Height="460"
+        CanResize="False"
+        WindowStartupLocation="CenterOwner"
+        Background="#1a1a2e"
+        Foreground="#e0e0e0"
+        FontFamily="Inter,Segoe UI,sans-serif">
+
+  <StackPanel Spacing="0" Margin="32,28,32,24" HorizontalAlignment="Center">
+
+    <!-- Profilbild -->
+    <Border Width="80" Height="80" CornerRadius="40"
+            ClipToBounds="True" HorizontalAlignment="Center">
+      <Image Source="avares://AAIA.ModuleManager/Assets/illeMc.jpg"
+             Stretch="UniformToFill"
+             RenderOptions.BitmapInterpolationMode="HighQuality"/>
+    </Border>
+
+    <!-- Name -->
+    <TextBlock Text="André Iljaschow"
+               FontSize="18" FontWeight="Bold"
+               Foreground="#e0e0e0"
+               HorizontalAlignment="Center"
+               Margin="0,12,0,0"/>
+
+    <!-- Subtitle -->
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center"
+                Spacing="6" Margin="0,4,0,0">
+      <TextBlock Text="IleArts" Foreground="#00b4d8" FontWeight="SemiBold" FontSize="13"/>
+      <TextBlock Text="·" Foreground="#8892a4" FontSize="13"/>
+      <TextBlock Text="AI Developer" Foreground="#8892a4" FontSize="13"/>
+    </StackPanel>
+
+    <!-- Tech-Badges -->
+    <WrapPanel HorizontalAlignment="Center" Margin="0,14,0,0">
+      <Border Background="#0f3460" CornerRadius="12" Padding="10,4" Margin="3">
+        <TextBlock Text="GitHub" Foreground="#00b4d8" FontSize="11" FontWeight="SemiBold"/>
+      </Border>
+      <Border Background="#0f3460" CornerRadius="12" Padding="10,4" Margin="3">
+        <TextBlock Text="git" Foreground="#00b4d8" FontSize="11" FontWeight="SemiBold"/>
+      </Border>
+      <Border Background="#0f3460" CornerRadius="12" Padding="10,4" Margin="3">
+        <TextBlock Text="gh CLI" Foreground="#00b4d8" FontSize="11" FontWeight="SemiBold"/>
+      </Border>
+      <Border Background="#0f3460" CornerRadius="12" Padding="10,4" Margin="3">
+        <TextBlock Text="Avalonia" Foreground="#00b4d8" FontSize="11" FontWeight="SemiBold"/>
+      </Border>
+      <Border Background="#0f3460" CornerRadius="12" Padding="10,4" Margin="3">
+        <TextBlock Text=".NET 8" Foreground="#00b4d8" FontSize="11" FontWeight="SemiBold"/>
+      </Border>
+      <Border Background="#0f3460" CornerRadius="12" Padding="10,4" Margin="3">
+        <TextBlock Text="NuGet" Foreground="#00b4d8" FontSize="11" FontWeight="SemiBold"/>
+      </Border>
+    </WrapPanel>
+
+    <!-- Beschreibung -->
+    <TextBlock Margin="0,16,0,0"
+               TextWrapping="Wrap"
+               TextAlignment="Center"
+               Foreground="#8892a4"
+               FontSize="12"
+               Text="AAIA Module Manager — Dev-Tool für AAIA-Modul- und Plugin-Entwickler. Contracts releasen, Module scaffolden, Versionen bumpen, Registry verwalten. Alles auf einen Klick." />
+
+    <!-- Separator -->
+    <Rectangle Fill="#2a2a4a" Height="1" Margin="0,18,0,14"/>
+
+    <!-- App-Logo + Name -->
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Center" Spacing="12">
+      <Image Source="avares://AAIA.ModuleManager/Assets/AAIA_Module_Manager.png"
+             Width="48" Height="48"
+             RenderOptions.BitmapInterpolationMode="HighQuality"/>
+      <StackPanel VerticalAlignment="Center" Spacing="2">
+        <TextBlock Text="AAIA Module Manager"
+                   FontSize="15" FontWeight="Bold" Foreground="#e0e0e0"/>
+        <TextBlock x:Name="VersionLabel"
+                   FontSize="11" Foreground="#8892a4"/>
+      </StackPanel>
+    </StackPanel>
+
+  </StackPanel>
+
+</Window>

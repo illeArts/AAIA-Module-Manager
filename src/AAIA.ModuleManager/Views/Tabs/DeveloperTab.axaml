@@ -1,0 +1,133 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.DeveloperTab"
+             x:DataType="vm:DeveloperTabViewModel">
+
+  <ScrollViewer Padding="20">
+    <StackPanel Spacing="16">
+
+      <TextBlock Classes="h1" Text="Developer Account" />
+      <TextBlock Classes="muted"
+                 Text="ETW-ID verwalten, Publisher-Schlüssel registrieren, Module im Marketplace veröffentlichen." />
+
+      <!-- Status-Banner (eingeloggt) -->
+      <Border Classes="card" IsVisible="{Binding IsLoggedIn}">
+        <Grid ColumnDefinitions="*,Auto">
+          <StackPanel Spacing="6">
+            <TextBlock Classes="h2 accent" Text="{Binding EtwId}" />
+            <TextBlock Text="{Binding DisplayName}" />
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Classes="muted" Text="{Binding Role, StringFormat='Rolle: {0}'}" />
+              <TextBlock Classes="muted" Text="{Binding Reputation, StringFormat='Rating: {0:F1}'}" />
+              <TextBlock Classes="muted" Text="{Binding ModuleCount, StringFormat='Module: {0}'}" />
+            </StackPanel>
+          </StackPanel>
+          <Button Grid.Column="1" Classes="ghost" Content="Abmelden"
+                  Command="{Binding LogoutCommand}"
+                  VerticalAlignment="Top"/>
+        </Grid>
+      </Border>
+
+      <!-- Login-Formular (nicht eingeloggt) -->
+      <Border Classes="card" IsVisible="{Binding !IsLoggedIn}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Anmelden" />
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="E-Mail" />
+              <TextBox Grid.Column="1" Text="{Binding LoginEmail}"
+                       Watermark="developer@example.com" />
+            </Grid>
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="Passwort" />
+              <TextBox Grid.Column="1" Text="{Binding LoginPassword}" PasswordChar="●" />
+            </Grid>
+            <Button Margin="120,0,0,0" Classes="success" Content="Anmelden"
+                    Command="{Binding LoginCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    HorizontalAlignment="Left"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Registrierungs-Formular (nicht eingeloggt) -->
+      <Border Classes="card" IsVisible="{Binding !IsLoggedIn}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Neuen Account anlegen" />
+          <TextBlock Classes="muted" Text="Nach der Registrierung erhältst du eine permanente ETW-ID." />
+          <StackPanel Spacing="8">
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="Anzeigename" />
+              <TextBox Grid.Column="1" Text="{Binding RegDisplayName}"
+                       Watermark="Max Mustermann" />
+            </Grid>
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="E-Mail" />
+              <TextBox Grid.Column="1" Text="{Binding RegEmail}"
+                       Watermark="developer@example.com" />
+            </Grid>
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="Passwort" />
+              <TextBox Grid.Column="1" Text="{Binding RegPassword}" PasswordChar="●" />
+            </Grid>
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="GitHub (opt.)" />
+              <TextBox Grid.Column="1" Text="{Binding RegGitHub}"
+                       Watermark="github-username" />
+            </Grid>
+            <Button Margin="120,0,0,0" Classes="ghost" Content="Account anlegen"
+                    Command="{Binding RegisterCommand}"
+                    IsEnabled="{Binding !IsBusy}"
+                    HorizontalAlignment="Left"/>
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- Publisher-Schlüssel (eingeloggt) -->
+      <Border Classes="card" IsVisible="{Binding IsLoggedIn}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Publisher-Schlüssel" />
+          <TextBlock Classes="muted"
+                     Text="Dein privater Schlüssel bleibt lokal. Nur der Public Key wird registriert." />
+
+          <!-- Vorhandener Key -->
+          <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasPublisherKey}">
+            <TextBlock Classes="success" Text="✅" VerticalAlignment="Center" />
+            <TextBlock Text="{Binding KeyId, StringFormat='Registrierter Key: {0}'}"
+                       VerticalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Kein Key -->
+          <TextBlock Classes="muted warning"
+                     Text="⚠ Kein Publisher-Schlüssel hinterlegt. Signierung nicht möglich."
+                     IsVisible="{Binding !HasPublisherKey}" />
+
+          <Button Classes="ghost"
+                  Content="🔑 Neuen Schlüssel generieren und hochladen"
+                  Command="{Binding GenerateAndUploadKeyCommand}"
+                  IsEnabled="{Binding !IsBusy}" />
+        </StackPanel>
+      </Border>
+
+      <!-- Status + Log -->
+      <Border Classes="card">
+        <StackPanel Spacing="8">
+          <TextBlock Classes="h2" Text="Status" />
+          <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap" />
+
+          <ScrollViewer MaxHeight="200" IsVisible="{Binding HasLog}">
+            <ItemsControl ItemsSource="{Binding Log}">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate>
+                  <TextBlock Text="{Binding}" FontFamily="Consolas,Monospace" FontSize="11" />
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+</UserControl>

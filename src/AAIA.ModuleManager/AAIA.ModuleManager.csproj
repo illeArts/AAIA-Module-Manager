@@ -1,0 +1,49 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <!-- Windows: WinExe (kein Konsolenfenster); macOS/Linux: Exe -->
+    <OutputType Condition="$([MSBuild]::IsOSPlatform('Windows'))">WinExe</OutputType>
+    <OutputType Condition="!$([MSBuild]::IsOSPlatform('Windows'))">Exe</OutputType>
+    <!-- Ziel-Framework: Windows nutzt net8.0-windows für WinForms-Interop; macOS/Linux net8.0 -->
+    <TargetFramework Condition="$([MSBuild]::IsOSPlatform('Windows'))">net8.0-windows</TargetFramework>
+    <TargetFramework Condition="!$([MSBuild]::IsOSPlatform('Windows'))">net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <!-- COM-Interop und app.manifest nur unter Windows -->
+    <BuiltInComInteropSupport Condition="$([MSBuild]::IsOSPlatform('Windows'))">true</BuiltInComInteropSupport>
+    <ApplicationManifest Condition="$([MSBuild]::IsOSPlatform('Windows'))">app.manifest</ApplicationManifest>
+    <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
+    <RootNamespace>AAIA.ModuleManager</RootNamespace>
+    <AssemblyName>AAIA.ModuleManager</AssemblyName>
+    <Version>2.0.0</Version>
+    <Authors>André Iljaschow / IleArts</Authors>
+    <Description>AAIA Module Manager — Dev-Tool für AAIA Module- und Plugin-Entwickler</Description>
+    <!-- ApplicationIcon>Assets\AAIA_Module_Manager.ico</ApplicationIcon -->
+    <!-- Icon einkommentieren sobald copy-assets.bat ausgeführt wurde -->
+    <!-- Single-file publish: nur aktiv beim dotnet publish, nicht beim normalen Build -->
+    <PublishSingleFile Condition="'$(PublishSingleFile)' == ''">false</PublishSingleFile>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <FrameworkReference Include="Microsoft.AspNetCore.App" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <!-- AAIA.Shared.Contracts — lokal referenziert; nach NuGet-Publish auf Paket umstellen -->
+    <ProjectReference Include="..\..\..\aaia-sdk\src\AAIA.Shared.Contracts\AAIA.Shared.Contracts.csproj" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <PackageReference Include="Avalonia" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Desktop" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Themes.Fluent" Version="11.2.3" />
+    <PackageReference Include="Avalonia.Fonts.Inter" Version="11.2.3" />
+    <PackageReference Include="Avalonia.ReactiveUI" Version="11.2.3" />
+    <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+</Project>
