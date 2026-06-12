@@ -9,17 +9,15 @@ env:
   FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
 
 jobs:
-  build:
-    runs-on: windows-latest
 
+  # ── Windows x64 ────────────────────────────────────────────────────────────
+  build-windows:
+    runs-on: windows-latest
     steps:
-      # Checkout module-manager at ./aaia-module-manager
       - uses: actions/checkout@v4
         with:
           path: aaia-module-manager
 
-      # Checkout aaia-sdk at ./aaia-sdk (sibling — matches local ProjectReference ../../../aaia-sdk/)
-      # Requires secret GH_PAT with repo read access to illeArts/aaia-sdk
       - uses: actions/checkout@v4
         with:
           repository: illeArts/aaia-sdk
@@ -31,20 +29,116 @@ jobs:
         with:
           dotnet-version: '8.0.x'
 
-      - name: Extract version from tag
+      - name: Extract version
         id: version
         shell: bash
         run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
 
-      - name: Publish (Single-File, win-x64)
+      - name: Publish win-x64
         run: >
           dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
-          -c Release
-          -r win-x64
-          --self-contained true
+          -c Release -r win-x64 --self-contained true
           /p:PublishSingleFile=true
           /p:Version=${{ steps.version.outputs.VERSION }}
-          -o ./publish
+          -o ./publish-win
+
+      - name: Upload Windows artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-x64
+          path: ./publish-win/AAIA.ModuleManager.exe
+
+  # ── macOS Apple Silicon (arm64) ────────────────────────────────────────────
+  build-macos-arm64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: aaia-module-manager
+
+      - uses: actions/checkout@v4
+        with:
+          repository: illeArts/aaia-sdk
+          path: aaia-sdk
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract version
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Publish osx-arm64
+        run: >
+          dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
+          -c Release -r osx-arm64 --self-contained true
+          /p:PublishSingleFile=true
+          /p:Version=${{ steps.version.outputs.VERSION }}
+          -o ./publish-mac-arm64
+
+      - name: Rename binary
+        run: mv ./publish-mac-arm64/AAIA.ModuleManager ./publish-mac-arm64/AAIA.ModuleManager-osx-arm64
+
+      - name: Upload macOS arm64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: osx-arm64
+          path: ./publish-mac-arm64/AAIA.ModuleManager-osx-arm64
+
+  # ── macOS Intel (x64) ──────────────────────────────────────────────────────
+  build-macos-x64:
+    runs-on: macos-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: aaia-module-manager
+
+      - uses: actions/checkout@v4
+        with:
+          repository: illeArts/aaia-sdk
+          path: aaia-sdk
+          token: ${{ secrets.GH_PAT }}
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+
+      - name: Extract version
+        id: version
+        shell: bash
+        run: echo "VERSION=${GITHUB_REF_NAME#v}" >> $GITHUB_OUTPUT
+
+      - name: Publish osx-x64
+        run: >
+          dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
+          -c Release -r osx-x64 --self-contained true
+          /p:PublishSingleFile=true
+          /p:Version=${{ steps.version.outputs.VERSION }}
+          -o ./publish-mac-x64
+
+      - name: Rename binary
+        run: mv ./publish-mac-x64/AAIA.ModuleManager ./publish-mac-x64/AAIA.ModuleManager-osx-x64
+
+      - name: Upload macOS x64 artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: osx-x64
+          path: ./publish-mac-x64/AAIA.ModuleManager-osx-x64
+
+  # ── GitHub Release (alle Plattformen) ─────────────────────────────────────
+  release:
+    needs: [build-windows, build-macos-arm64, build-macos-x64]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: ./artifacts
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v2
@@ -53,16 +147,27 @@ jobs:
           name: AAIA Module Manager ${{ github.ref_name }}
           draft: false
           prerelease: false
-          files: ./publish/AAIA.ModuleManager.exe
+          files: |
+            ./artifacts/win-x64/AAIA.ModuleManager.exe
+            ./artifacts/osx-arm64/AAIA.ModuleManager-osx-arm64
+            ./artifacts/osx-x64/AAIA.ModuleManager-osx-x64
           body: |
             ## AAIA Module Manager ${{ github.ref_name }}
 
-            ### Was ist neu
-            Siehe [CHANGELOG](CHANGELOG.md)
+            ### Downloads
+            | Plattform | Datei |
+            |-----------|-------|
+            | Windows x64 | `AAIA.ModuleManager.exe` |
+            | macOS Apple Silicon | `AAIA.ModuleManager-osx-arm64` |
+            | macOS Intel | `AAIA.ModuleManager-osx-x64` |
 
-            ### Installation
-            1. `AAIA.ModuleManager.exe` herunterladen
-            2. Irgendwo ablegen und ausführen — kein Installer nötig
+            ### Installation Windows
+            1. `AAIA.ModuleManager.exe` herunterladen und ablegen — kein Installer nötig
+            2. Beim ersten Start: **Setup**-Tab → Pfade & GitHub Login konfigurieren
+
+            ### Installation macOS
+            1. Passende Datei herunterladen (`arm64` = Apple Silicon, `x64` = Intel)
+            2. Terminal: `chmod +x AAIA.ModuleManager-osx-arm64 && ./AAIA.ModuleManager-osx-arm64`
             3. Beim ersten Start: **Setup**-Tab → Pfade & GitHub Login konfigurieren
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
