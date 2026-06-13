@@ -14,11 +14,20 @@
 
 set -e
 
+<<<<<<< HEAD
 APP_NAME="AAIA Module Manager"
 VERSION="2.0.0"
 ARCH="arm64"
 APP_PATH="../publish/${APP_NAME}.app"
 DIST_DIR="$(dirname "$0")/dist"
+=======
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+APP_NAME="AAIA Module Manager"
+VERSION="2.0.0"
+ARCH="arm64"
+DIST_DIR="${SCRIPT_DIR}/dist"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 
 while [[ $# -gt 0 ]]; do
     case "$1" in
@@ -29,6 +38,10 @@ done
 
 DMG_NAME="AAIA_ModuleManager_v${VERSION}_${ARCH}.dmg"
 DMG_PATH="${DIST_DIR}/${DMG_NAME}"
+<<<<<<< HEAD
+=======
+APP_PATH="${REPO_ROOT}/publish/${APP_NAME}-${ARCH}.app"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 
 echo ""
 echo "╔══════════════════════════════════════════════╗"
@@ -38,7 +51,11 @@ echo ""
 
 if [ ! -d "$APP_PATH" ]; then
     echo "✗ .app nicht gefunden: ${APP_PATH}"
+<<<<<<< HEAD
     echo "  Zuerst ausführen: ./installer/build-mac.sh --arch ${ARCH}"
+=======
+    echo "  Zuerst ausführen: ${SCRIPT_DIR}/build-mac.sh --arch ${ARCH}"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
     exit 1
 fi
 

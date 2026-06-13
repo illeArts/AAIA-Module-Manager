@@ -22,15 +22,69 @@
 
 set -e
 
+<<<<<<< HEAD
 # ── Konfiguration ─────────────────────────────────────────────
+=======
+# Xcode GUI builds starten mit einem deutlich kleineren PATH als Terminal-Shells.
+export PATH="/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}"
+
+# ── Konfiguration ─────────────────────────────────────────────
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
+REPO_ROOT="$(cd "${SCRIPT_DIR}/.." && pwd)"
+LOG_PATH="${REPO_ROOT}/xcode-build.log"
+exec > >(tee "$LOG_PATH") 2>&1
+
+export DOTNET_CLI_HOME="${DOTNET_CLI_HOME:-${REPO_ROOT}/.dotnet-home}"
+export HOME="${HOME:-${DOTNET_CLI_HOME}}"
+export NUGET_PACKAGES="${NUGET_PACKAGES:-${DOTNET_CLI_HOME}/.nuget/packages}"
+mkdir -p "$DOTNET_CLI_HOME" "$NUGET_PACKAGES"
+
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 APP_NAME="AAIA Module Manager"
 BUNDLE_ID="de.illearts.aaia-module-manager"
 VERSION="2.0.0"
 EXECUTABLE="AAIA.ModuleManager"
+<<<<<<< HEAD
 PROJECT="../src/AAIA.ModuleManager/AAIA.ModuleManager.csproj"
 PLIST_SRC="$(dirname "$0")/Info.plist"
 ICON_SRC="$(dirname "$0")/AppIcon.icns"
 DIST_DIR="$(dirname "$0")/dist"
+=======
+PROJECT="${REPO_ROOT}/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj"
+SDK_PROJECT="${REPO_ROOT}/../aaia-sdk/src/AAIA.Shared.Contracts/AAIA.Shared.Contracts.csproj"
+PLIST_SRC="${SCRIPT_DIR}/Info.plist"
+ICON_SRC="${SCRIPT_DIR}/AppIcon.icns"
+DIST_DIR="${SCRIPT_DIR}/dist"
+PUBLISH_ROOT="${REPO_ROOT}/publish"
+DOTNET_CMD="${DOTNET_CMD:-}"
+
+if [ -z "$DOTNET_CMD" ]; then
+    for candidate in \
+        "/opt/homebrew/bin/dotnet" \
+        "/usr/local/bin/dotnet" \
+        "/usr/local/share/dotnet/dotnet" \
+        "$(command -v dotnet 2>/dev/null || true)"
+    do
+        if [ -n "$candidate" ] && [ -x "$candidate" ]; then
+            DOTNET_CMD="$candidate"
+            break
+        fi
+    done
+fi
+
+run_dotnet() {
+    env -i \
+        PATH="$PATH" \
+        HOME="$HOME" \
+        DOTNET_CLI_HOME="$DOTNET_CLI_HOME" \
+        DOTNET_ROOT="${DOTNET_ROOT:-}" \
+        NUGET_PACKAGES="$NUGET_PACKAGES" \
+        TMPDIR="${TMPDIR:-/tmp}" \
+        LANG="${LANG:-en_US.UTF-8}" \
+        LC_ALL="${LC_ALL:-en_US.UTF-8}" \
+        "$DOTNET_CMD" "$@"
+}
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 
 # ── Argumente ─────────────────────────────────────────────────
 ARCH="arm64"
@@ -48,8 +102,13 @@ done
 build_arch() {
     local arch="$1"
     local runtime="osx-${arch}"
+<<<<<<< HEAD
     local publish_dir="../publish/${runtime}"
     local app_dir="../publish/${APP_NAME}.app"
+=======
+    local publish_dir="${PUBLISH_ROOT}/${runtime}"
+    local app_dir="${PUBLISH_ROOT}/${APP_NAME}-${arch}.app"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 
     echo ""
     echo "══════════════════════════════════════════════"
@@ -57,8 +116,13 @@ build_arch() {
     echo "══════════════════════════════════════════════"
 
     # SDK-Referenz prüfen
+<<<<<<< HEAD
     if [ ! -f "../../../aaia-sdk/src/AAIA.Shared.Contracts/AAIA.Shared.Contracts.csproj" ]; then
         echo "⚠  aaia-sdk nicht gefunden unter ../../../aaia-sdk"
+=======
+    if [ ! -f "$SDK_PROJECT" ]; then
+        echo "⚠  aaia-sdk nicht gefunden unter ${SDK_PROJECT}"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
         echo "   Bitte sicherstellen, dass beide Repos auf gleicher Ebene liegen:"
         echo "   AAIAGitHub/"
         echo "   ├── aaia-module-manager/"
@@ -67,14 +131,32 @@ build_arch() {
     fi
 
     # [1/3] dotnet restore
+<<<<<<< HEAD
     echo ""
     echo "[1/3]  dotnet restore ..."
     dotnet restore "$PROJECT"
+=======
+    if [ -z "$DOTNET_CMD" ]; then
+        echo "✗ dotnet wurde nicht gefunden."
+        echo "  Installiere .NET 8 SDK oder setze DOTNET_CMD auf den absoluten dotnet-Pfad."
+        echo "  Erwartete Pfade: /opt/homebrew/bin/dotnet oder /usr/local/share/dotnet/dotnet"
+        exit 1
+    fi
+
+    echo ""
+    echo "[1/3]  dotnet restore ..."
+    echo "       ${DOTNET_CMD}"
+    run_dotnet restore "$PROJECT"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 
     # [2/3] dotnet publish
     echo ""
     echo "[2/3]  dotnet publish (Release / ${runtime} / self-contained) ..."
+<<<<<<< HEAD
     dotnet publish "$PROJECT" \
+=======
+    run_dotnet publish "$PROJECT" \
+>>>>>>> 137763b (Prepare Module Manager macOS build)
         -c Release \
         -r "$runtime" \
         --self-contained true \
@@ -94,6 +176,13 @@ build_arch() {
     cp "${publish_dir}/${EXECUTABLE}" "${app_dir}/Contents/MacOS/${EXECUTABLE}"
     chmod +x "${app_dir}/Contents/MacOS/${EXECUTABLE}"
 
+<<<<<<< HEAD
+=======
+    # Avalonia/SkiaSharp liefern native macOS-Bibliotheken neben dem Executable aus.
+    # Single-file bündelt Managed-Code, aber diese .dylib-Dateien müssen im Bundle liegen.
+    find "$publish_dir" -maxdepth 1 -name "*.dylib" -exec cp {} "${app_dir}/Contents/MacOS/" \;
+
+>>>>>>> 137763b (Prepare Module Manager macOS build)
     # Info.plist
     cp "$PLIST_SRC" "${app_dir}/Contents/Info.plist"
 
@@ -117,12 +206,27 @@ build_arch() {
         echo "   ✓ Codesigning abgeschlossen."
     else
         echo ""
+<<<<<<< HEAD
         echo "   ℹ  Kein --sign übergeben — App ist nicht signiert (nur lokal nutzbar)."
+=======
+        echo "   Ad-hoc-Codesigning für lokalen macOS-Start ..."
+        codesign --deep --force --verify --verbose \
+            --sign - \
+            "$app_dir"
+        echo "   ✓ Ad-hoc-Codesigning abgeschlossen."
+        echo "   ℹ  Kein Developer-ID-Zertifikat übergeben — nur lokal/unsigniert distributierbar."
+>>>>>>> 137763b (Prepare Module Manager macOS build)
         echo "      Für Distribution: --sign \"Developer ID Application: André Iljaschow (TEAMID)\""
     fi
 
     echo ""
     echo "  ✓ Bundle fertig: ${app_dir}"
+<<<<<<< HEAD
+=======
+
+    rm -f "${PUBLISH_ROOT}/${APP_NAME}.app"
+    ln -s "$(basename "$app_dir")" "${PUBLISH_ROOT}/${APP_NAME}.app"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 }
 
 # ── Hauptlogik ────────────────────────────────────────────────
@@ -132,6 +236,12 @@ echo ""
 echo "╔══════════════════════════════════════════════╗"
 echo "║   AAIA Module Manager  —  macOS Build        ║"
 echo "╚══════════════════════════════════════════════╝"
+<<<<<<< HEAD
+=======
+echo "  Script: xcode-env-clean-v2"
+echo "  Log: ${LOG_PATH}"
+echo "  PATH: ${PATH}"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 
 if [ "$ARCH" = "both" ]; then
     build_arch "arm64"
@@ -146,7 +256,12 @@ fi
 echo ""
 echo "══════════════════════════════════════════════"
 echo "  Build abgeschlossen."
+<<<<<<< HEAD
 echo "  App: publish/AAIA Module Manager.app"
 echo "  DMG erstellen: ./installer/create-dmg.sh"
+=======
+echo "  App: ${PUBLISH_ROOT}/AAIA Module Manager.app"
+echo "  DMG erstellen: ${SCRIPT_DIR}/create-dmg.sh --arch ${ARCH}"
+>>>>>>> 137763b (Prepare Module Manager macOS build)
 echo "══════════════════════════════════════════════"
 echo ""

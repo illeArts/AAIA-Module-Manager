@@ -3,6 +3,13 @@ obj/
 publish/
 *.user
 .vs/
+.DS_Store
+*.dmg
+*.xcodeproj/xcuserdata/
+*.xcworkspace/xcuserdata/
+**/xcuserdata/
+.dotnet-home/
+xcode-build.log
 copy-assets.bat
 
 # Artefakte / Temp-Dateien

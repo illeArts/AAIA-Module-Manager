@@ -1,0 +1,171 @@
+// !$*UTF8*$!
+{
+	archiveVersion = 1;
+	classes = {
+	};
+	objectVersion = 56;
+	objects = {
+
+/* Begin PBXFileReference section */
+		AAIA00000000000000000001 /* README.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = README.md; sourceTree = "<group>"; };
+		AAIA00000000000000000002 /* AAIA.ModuleManager.sln */ = {isa = PBXFileReference; lastKnownFileType = text; path = AAIA.ModuleManager.sln; sourceTree = "<group>"; };
+		AAIA00000000000000000003 /* build-mac.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "installer/build-mac.sh"; sourceTree = "<group>"; };
+		AAIA00000000000000000004 /* create-dmg.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "installer/create-dmg.sh"; sourceTree = "<group>"; };
+		AAIA00000000000000000005 /* create-icns.sh */ = {isa = PBXFileReference; lastKnownFileType = text.script.sh; path = "installer/create-icns.sh"; sourceTree = "<group>"; };
+		AAIA00000000000000000006 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = installer/Info.plist; sourceTree = "<group>"; };
+/* End PBXFileReference section */
+
+/* Begin PBXGroup section */
+		AAIA00000000000000000007 = {
+			isa = PBXGroup;
+			children = (
+				AAIA00000000000000000002 /* AAIA.ModuleManager.sln */,
+				AAIA00000000000000000008 /* src */,
+				AAIA00000000000000000009 /* installer */,
+				AAIA00000000000000000001 /* README.md */,
+			);
+			sourceTree = "<group>";
+		};
+		AAIA00000000000000000008 /* src */ = {
+			isa = PBXGroup;
+			path = src;
+			sourceTree = "<group>";
+		};
+		AAIA00000000000000000009 /* installer */ = {
+			isa = PBXGroup;
+			children = (
+				AAIA00000000000000000003 /* build-mac.sh */,
+				AAIA00000000000000000004 /* create-dmg.sh */,
+				AAIA00000000000000000005 /* create-icns.sh */,
+				AAIA00000000000000000006 /* Info.plist */,
+			);
+			path = installer;
+			sourceTree = "<group>";
+		};
+/* End PBXGroup section */
+
+/* Begin PBXAggregateTarget section */
+		AAIA00000000000000000010 /* AAIA Module Manager */ = {
+			isa = PBXAggregateTarget;
+			buildConfigurationList = AAIA00000000000000000011 /* Build configuration list for PBXAggregateTarget "AAIA Module Manager" */;
+			buildPhases = (
+				AAIA00000000000000000012 /* Build macOS App Bundle */,
+			);
+			dependencies = (
+			);
+			name = "AAIA Module Manager";
+			productName = "AAIA Module Manager";
+		};
+/* End PBXAggregateTarget section */
+
+/* Begin PBXProject section */
+		AAIA00000000000000000013 /* Project object */ = {
+			isa = PBXProject;
+			attributes = {
+				BuildIndependentTargetsInParallel = 1;
+				LastUpgradeCheck = 1500;
+			};
+			buildConfigurationList = AAIA00000000000000000014 /* Build configuration list for PBXProject "AAIA.ModuleManager" */;
+			compatibilityVersion = "Xcode 15.0";
+			developmentRegion = en;
+			hasScannedForEncodings = 0;
+			knownRegions = (
+				en,
+				de,
+			);
+			mainGroup = AAIA00000000000000000007;
+			productRefGroup = AAIA00000000000000000007;
+			projectDirPath = "";
+			projectRoot = "";
+			targets = (
+				AAIA00000000000000000010 /* AAIA Module Manager */,
+			);
+		};
+/* End PBXProject section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		AAIA00000000000000000012 /* Build macOS App Bundle */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Build macOS App Bundle";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(SRCROOT)/publish/AAIA Module Manager-arm64.app",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "set -euo pipefail\nexport PATH=\"/opt/homebrew/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:${PATH:-}\"\ncd \"${SRCROOT}\"\nchmod +x installer/build-mac.sh installer/create-dmg.sh installer/create-icns.sh\n./installer/build-mac.sh --arch arm64\n";
+			showEnvVarsInLog = 0;
+		};
+/* End PBXShellScriptBuildPhase section */
+
+/* Begin XCBuildConfiguration section */
+		AAIA00000000000000000015 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		AAIA00000000000000000016 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+		AAIA00000000000000000017 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SDKROOT = macosx;
+			};
+			name = Debug;
+		};
+		AAIA00000000000000000018 /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ARCHS = arm64;
+				ENABLE_USER_SCRIPT_SANDBOXING = NO;
+				SDKROOT = macosx;
+			};
+			name = Release;
+		};
+/* End XCBuildConfiguration section */
+
+/* Begin XCConfigurationList section */
+		AAIA00000000000000000011 /* Build configuration list for PBXAggregateTarget "AAIA Module Manager" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAIA00000000000000000015 /* Debug */,
+				AAIA00000000000000000016 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		AAIA00000000000000000014 /* Build configuration list for PBXProject "AAIA.ModuleManager" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				AAIA00000000000000000017 /* Debug */,
+				AAIA00000000000000000018 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+/* End XCConfigurationList section */
+	};
+	rootObject = AAIA00000000000000000013 /* Project object */;
+}

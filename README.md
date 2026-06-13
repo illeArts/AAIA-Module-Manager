@@ -86,6 +86,36 @@ dotnet publish src/AAIA.ModuleManager/AAIA.ModuleManager.csproj \
 # Für Intel Mac: -r osx-x64
 ```
 
+### macOS/Xcode-Build
+
+Das Projekt enthält zusätzlich `AAIA.ModuleManager.xcodeproj` als Xcode-External-Build-Target. Xcode startet dabei die bestehende .NET/Avalonia-Build-Pipeline:
+
+```bash
+open AAIA.ModuleManager.xcodeproj
+```
+
+In Xcode das Scheme **AAIA Module Manager** bauen. Alternativ direkt per Terminal:
+
+```bash
+chmod +x installer/*.sh
+./installer/create-icns.sh src/AAIA.ModuleManager/Assets/AAIA_Module_Manager.png
+./installer/build-mac.sh --arch arm64
+./installer/create-dmg.sh --arch arm64
+```
+
+Ausgaben:
+
+```text
+publish/AAIA Module Manager-arm64.app
+installer/dist/AAIA_ModuleManager_v2.0.0_arm64.dmg
+```
+
+Lokale Builds werden ad hoc signiert. Für öffentliche macOS-Verteilung wird ein Apple-Developer-Zertifikat plus Notarisierung benötigt:
+
+```bash
+./installer/build-mac.sh --arch arm64 --sign "Developer ID Application: Name (TEAMID)"
+```
+
 ---
 
 ## Contracts-Release
