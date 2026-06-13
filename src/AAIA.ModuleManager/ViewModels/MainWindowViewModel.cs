@@ -1,5 +1,7 @@
 using CommunityToolkit.Mvvm.ComponentModel;
+using CommunityToolkit.Mvvm.Input;
 using AAIA.ModuleManager.Services;
+using AAIA.Shared.Contracts.Publisher;
 
 namespace AAIA.ModuleManager.ViewModels;
 
@@ -13,9 +15,26 @@ public partial class MainWindowViewModel : ObservableObject
     public DeveloperTabViewModel DeveloperTab { get; }
     public PublishTabViewModel   PublishTab   { get; }
 
+    // ── Developer-Identität (Titelleiste) ─────────────────────────────────────
+
+    /// <summary>True wenn ein ETW-Account angemeldet ist.</summary>
+    [ObservableProperty] private bool          _isLoggedIn;
+    /// <summary>Anzeigename in der Titelleiste, z.B. "Max Mustermann".</summary>
+    [ObservableProperty] private string        _developerDisplayName = "";
+    /// <summary>ETW-ID in der Titelleiste, z.B. "ETW-000042".</summary>
+    [ObservableProperty] private string        _developerEtwId       = "";
+    /// <summary>Rolle des eingeloggten Entwicklers.</summary>
+    [ObservableProperty] private DeveloperRole _developerRole        = DeveloperRole.Community;
+
+    /// <summary>Nur Owner sieht Admin-Tabs (SDK/Contracts, NuGet, …).</summary>
+    public bool IsOwner => DeveloperRole == DeveloperRole.Owner;
+    /// <summary>Alle ETW-Tabs für Owner + alle anderen Rollen.</summary>
+    public bool IsEtw   => IsLoggedIn;
+
+    // ── Konstruktor ────────────────────────────────────────────────────────────
+
     public MainWindowViewModel()
     {
-        // Use config loaded by App.axaml.cs; fall back to synchronous load if not yet set
         var config = AppConfig.Current ?? AppConfig.Load();
         AppConfig.Current ??= config;
 
@@ -31,7 +50,42 @@ public partial class MainWindowViewModel : ObservableObject
         DeveloperTab = new DeveloperTabViewModel(config, marketplaceClient, certSvc);
         PublishTab   = new PublishTabViewModel(config, publishSvc, marketplaceClient);
 
-        // V2: pre-fill AAIAS connection from config
         _ = TesterTab.InitAsync(config);
+
+        // Gespeicherte Identität in Titelleiste laden
+        if (!string.IsNullOrEmpty(config.DeveloperEtwId))
+        {
+            DeveloperEtwId       = config.DeveloperEtwId ?? "";
+            DeveloperDisplayName = config.DeveloperDisplayName ?? "";
+            DeveloperRole        = config.DeveloperRole;
+            IsLoggedIn           = true;
+
+            // Bearer-Token wiederherstellen
+            if (!string.IsNullOrEmpty(config.MarketplaceToken))
+                marketplaceClient.SetBearer(config.MarketplaceToken);
+        }
+    }
+
+    partial void OnDeveloperRoleChanged(DeveloperRole value)
+    {
+        OnPropertyChanged(nameof(IsOwner));
+        OnPropertyChanged(nameof(IsEtw));
+    }
+
+    partial void OnIsLoggedInChanged(bool value)
+    {
+        OnPropertyChanged(nameof(IsEtw));
+    }
+
+    /// <summary>
+    /// Wird von App.axaml.cs aufgerufen nachdem LoginWindow erfolgreich abgeschlossen wurde.
+    /// Aktualisiert Titelleiste sofort ohne Neustart.
+    /// </summary>
+    public void SetDeveloperIdentity(string etwId, string displayName, DeveloperRole role = DeveloperRole.Community)
+    {
+        DeveloperEtwId       = etwId;
+        DeveloperDisplayName = displayName;
+        DeveloperRole        = role;
+        IsLoggedIn           = true;
     }
 }

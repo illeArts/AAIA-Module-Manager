@@ -25,6 +25,7 @@
         <ColumnDefinition Width="Auto"/>
         <ColumnDefinition Width="*"/>
         <ColumnDefinition Width="Auto"/>
+        <ColumnDefinition Width="Auto"/>
       </Grid.ColumnDefinitions>
 
       <!-- Logo + Titel -->
@@ -45,8 +46,26 @@
         <Button Classes="menu-btn" Content="{DynamicResource Str_Menu_About}" Click="About_Click"/>
       </StackPanel>
 
-      <!-- Fenster-Buttons -->
+      <!-- ETW-Identität — rechts vor Fenster-Buttons -->
       <StackPanel Grid.Column="2" Orientation="Horizontal"
+                  VerticalAlignment="Center" Margin="0,0,10,0" Spacing="7"
+                  IsVisible="{Binding IsLoggedIn}">
+        <Rectangle Width="1" Height="14" Fill="#2a2a4a" VerticalAlignment="Center"/>
+        <Ellipse Width="7" Height="7" Fill="#5865f2" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding DeveloperDisplayName}"
+                   Foreground="#c8cde4" FontSize="12" FontWeight="SemiBold"
+                   VerticalAlignment="Center"/>
+        <TextBlock Text="·" Foreground="#3a3a5a" FontSize="12" VerticalAlignment="Center"/>
+        <TextBlock Text="{Binding DeveloperEtwId}"
+                   Foreground="#5865f2" FontSize="11"
+                   VerticalAlignment="Center"/>
+        <Rectangle Width="1" Height="14" Fill="#2a2a4a" VerticalAlignment="Center"/>
+        <Button Content="Abmelden" Classes="logout-btn"
+                Click="Logout_Click" VerticalAlignment="Center"/>
+      </StackPanel>
+
+      <!-- Fenster-Buttons -->
+      <StackPanel Grid.Column="3" Orientation="Horizontal"
                   VerticalAlignment="Center" Margin="0,0,8,0" Spacing="4">
         <Button Classes="wnd-btn" Content="─" Click="Minimize_Click"/>
         <Button Classes="wnd-btn" Content="□" Click="Maximize_Click"/>
@@ -57,39 +76,50 @@
     <!-- ── Hauptinhalt ── -->
     <TabControl Grid.Row="1" Margin="0">
 
-      <!-- Tab 1: SDK / Contracts -->
-      <TabItem Header="{DynamicResource Str_Tab_Sdk}">
-        <tabs:SdkTab DataContext="{Binding SdkTab}"/>
-      </TabItem>
+      <!-- ── ETW + Owner Tabs (immer zuerst → Tab 0 ist immer sichtbar) ── -->
 
-      <!-- Tab 2: Mein Modul / Plugin -->
-      <TabItem Header="{DynamicResource Str_Tab_Module}">
+      <!-- Tab 1: Mein Modul / Plugin -->
+      <TabItem Header="{DynamicResource Str_Tab_Module}"
+               IsVisible="{Binding IsEtw}">
         <tabs:ModuleTab DataContext="{Binding ModuleTab}"/>
       </TabItem>
 
-      <!-- Tab 3: Extension Registry -->
-      <TabItem Header="{DynamicResource Str_Tab_Registry}">
+      <!-- Tab 2: Extension Registry -->
+      <TabItem Header="{DynamicResource Str_Tab_Registry}"
+               IsVisible="{Binding IsEtw}">
         <tabs:RegistryTab DataContext="{Binding RegistryTab}"/>
       </TabItem>
 
-      <!-- Tab 4: Tester (V2) -->
-      <TabItem Header="{DynamicResource Str_Tab_Tester}">
+      <!-- Tab 3: Tester (V2) -->
+      <TabItem Header="{DynamicResource Str_Tab_Tester}"
+               IsVisible="{Binding IsEtw}">
         <views:TesterTab DataContext="{Binding TesterTab}"/>
       </TabItem>
 
-      <!-- Tab 5: Setup -->
-      <TabItem Header="{DynamicResource Str_Tab_Setup}">
+      <!-- Tab 4: Setup -->
+      <TabItem Header="{DynamicResource Str_Tab_Setup}"
+               IsVisible="{Binding IsEtw}">
         <tabs:SetupTab DataContext="{Binding SetupTab}"/>
       </TabItem>
 
-      <!-- Tab 6: Developer Account / Marketplace -->
-      <TabItem Header="Developer">
+      <!-- Tab 5: Developer Account / Marketplace -->
+      <TabItem Header="Developer"
+               IsVisible="{Binding IsEtw}">
         <tabs:DeveloperTab DataContext="{Binding DeveloperTab}"/>
       </TabItem>
 
-      <!-- Tab 7: Publish — Build, Sign, Marketplace-Upload -->
-      <TabItem Header="Publish">
+      <!-- Tab 6: Publish — Build, Sign, Marketplace-Upload -->
+      <TabItem Header="Publish"
+               IsVisible="{Binding IsEtw}">
         <tabs:PublishTab DataContext="{Binding PublishTab}"/>
+      </TabItem>
+
+      <!-- ── Owner-only Tabs (am Ende — werden bei ETW nie ausgewählt) ── -->
+
+      <!-- Tab 7: SDK / Contracts (nur Owner) -->
+      <TabItem Header="{DynamicResource Str_Tab_Sdk}"
+               IsVisible="{Binding IsOwner}">
+        <tabs:SdkTab DataContext="{Binding SdkTab}"/>
       </TabItem>
 
     </TabControl>
@@ -125,6 +155,17 @@
     <Style Selector="Button.close-btn:pointerover /template/ ContentPresenter">
       <Setter Property="Background" Value="#c0392b"/>
       <Setter Property="TextElement.Foreground" Value="White"/>
+    </Style>
+    <Style Selector="Button.logout-btn">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="Foreground" Value="#8892a4"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="6,2"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.logout-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="TextElement.Foreground" Value="#e74c3c"/>
     </Style>
   </Window.Styles>
 

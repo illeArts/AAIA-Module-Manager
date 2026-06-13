@@ -9,9 +9,12 @@ public partial class SettingsWindow : Window
     {
         InitializeComponent();
 
-        // Pre-select based on current language
         RadioDe.IsChecked = LanguageService.Current == AppLanguage.De;
         RadioEn.IsChecked = LanguageService.Current == AppLanguage.En;
+
+        // Gespeicherte API-URL vorladen
+        if (AppConfig.Current is { } cfg)
+            ApiUrlBox.Text = cfg.MarketplaceApiUrl;
     }
 
     private void Cancel_Click(object? s, Avalonia.Interactivity.RoutedEventArgs e) => Close();
@@ -21,10 +24,10 @@ public partial class SettingsWindow : Window
         var lang = RadioEn.IsChecked == true ? AppLanguage.En : AppLanguage.De;
         LanguageService.SetLanguage(lang);
 
-        // Persist to config
         if (AppConfig.Current is { } cfg)
         {
-            cfg.Language = lang == AppLanguage.En ? "en" : "de";
+            cfg.Language          = lang == AppLanguage.En ? "en" : "de";
+            cfg.MarketplaceApiUrl = ApiUrlBox.Text?.Trim().TrimEnd('/') ?? cfg.MarketplaceApiUrl;
             _ = cfg.SaveAsync();
         }
 

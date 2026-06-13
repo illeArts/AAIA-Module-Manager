@@ -110,8 +110,25 @@ public partial class SetupTabViewModel : ObservableObject
     private async Task CheckPermissions()
     {
         AppendLog("▶ GitHub Rechte prüfen…");
-        await ProcessRunner.GhAsync("auth status --show-token", ".", AppendLog);
+        await ProcessRunner.GhAsync("auth status --show-token", ".", line => AppendLog(MaskTokenLine(line)));
     }
+
+    /// <summary>
+    /// Maskiert GitHub-Tokens in einer Ausgabezeile.
+    /// Aus "Token: gho_ABCDEFxxx" wird "Token: gho_****…Exxx".
+    /// Betroffen: gho_, ghp_, ghs_, ghr_, github_pat_
+    /// </summary>
+    private static string MaskTokenLine(string line)
+        => System.Text.RegularExpressions.Regex.Replace(
+            line,
+            @"\b(gh[opsr]_|github_pat_)(\w{4,})",
+            m =>
+            {
+                var prefix = m.Groups[1].Value;
+                var secret = m.Groups[2].Value;
+                var last4  = secret.Length >= 4 ? secret[^4..] : secret;
+                return $"{prefix}****…{last4}";
+            });
 
     [RelayCommand]
     private async Task FixCredentials()

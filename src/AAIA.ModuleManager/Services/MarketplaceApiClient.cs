@@ -194,3 +194,16 @@ public sealed class MarketplaceApiClient : IDisposable
         throw new HttpRequestException(msg, null, resp.StatusCode);
     }
 
+    // ── Token Management ───────────────────────────────────────────────────────
+
+    public void SetBearer(string token)
+    {
+        _http.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", token);
+    }
+
+    public void ClearBearer() =>
+        _http.DefaultRequestHeaders.Authorization = null;
+
+    public void Dispose() => _http.Dispose();
+}

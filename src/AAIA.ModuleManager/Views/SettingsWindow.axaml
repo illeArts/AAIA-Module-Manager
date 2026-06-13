@@ -2,18 +2,18 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AAIA.ModuleManager.Views.SettingsWindow"
         Title="{DynamicResource Str_Settings_Title}"
-        Width="340" Height="200"
+        Width="440" Height="300"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="#1a1a2e"
         Foreground="#e0e0e0"
         FontFamily="Inter,Segoe UI,sans-serif">
 
-  <StackPanel Margin="28,24" Spacing="16">
+  <StackPanel Margin="28,24" Spacing="20">
     <TextBlock Text="{DynamicResource Str_Settings_Title}" FontSize="16" FontWeight="Bold"/>
 
     <!-- Sprache -->
-    <StackPanel Spacing="8">
+    <StackPanel Spacing="6">
       <TextBlock Text="{DynamicResource Str_Settings_Language}" Foreground="#8892a4" FontSize="12"/>
       <StackPanel Orientation="Horizontal" Spacing="16">
         <RadioButton x:Name="RadioDe"
@@ -24,6 +24,18 @@
                      Content="{DynamicResource Str_Settings_En}"
                      Foreground="#e0e0e0"/>
       </StackPanel>
+    </StackPanel>
+
+    <!-- Marketplace API URL -->
+    <StackPanel Spacing="6">
+      <TextBlock Text="Marketplace API URL" Foreground="#8892a4" FontSize="12"/>
+      <TextBox x:Name="ApiUrlBox"
+               Watermark="http://localhost/aaiagent/wp-json/aaia/v1"
+               Background="#12122a" Foreground="#e0e0e0"
+               BorderBrush="#2a2a4a" BorderThickness="1"
+               CornerRadius="6" Padding="10,7" FontSize="12"/>
+      <TextBlock Foreground="#5865f2" FontSize="11"
+                 Text="Lokal: http://localhost/aaiagent/wp-json/aaia/v1"/>
     </StackPanel>
 
     <!-- Buttons -->

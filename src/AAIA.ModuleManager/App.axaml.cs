@@ -4,6 +4,7 @@ using Avalonia;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Markup.Xaml;
 using AAIA.ModuleManager.Services;
+using AAIA.ModuleManager.ViewModels;
 using AAIA.ModuleManager.Views;
 
 namespace AAIA.ModuleManager;
@@ -16,26 +17,50 @@ public partial class App : Application
     {
         try
         {
-            // Synchronous load — avoids SynchronizationContext deadlock on UI thread startup
             var config = AppConfig.Load();
             AppConfig.Current = config;
 
-            // App.axaml already includes Strings.de.axaml as the default.
-            // Only swap if the user has chosen English.
             if (config.Language == "en")
             {
                 try { LanguageService.SetLanguage(AppLanguage.En); }
-                catch { /* silently ignore — German fallback stays active */ }
+                catch { /* German fallback stays active */ }
             }
 
             if (ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
             {
-                desktop.MainWindow = new MainWindow();
+                // Kein gespeicherter Token → LoginWindow zuerst anzeigen
+                bool needsLogin = string.IsNullOrEmpty(config.MarketplaceToken)
+                               || string.IsNullOrEmpty(config.DeveloperEtwId);
+
+                if (needsLogin)
+                {
+                    var api      = new MarketplaceApiClient(config.MarketplaceApiUrl);
+                    var loginVm  = new LoginWindowViewModel(config, api);
+                    var loginWnd = new LoginWindow(loginVm);
+
+                    loginVm.LoginSucceeded += (_, args) =>
+                    {
+                        var mainWnd = new MainWindow();
+                        // ETW-Identität + Role direkt in die Titelleiste übergeben
+                        if (mainWnd.DataContext is MainWindowViewModel mainVm)
+                            mainVm.SetDeveloperIdentity(args.EtwId, args.DisplayName, args.Role);
+
+                        desktop.MainWindow = mainWnd;
+                        mainWnd.Show();
+                        loginWnd.Close();
+                    };
+
+                    desktop.MainWindow = loginWnd;
+                }
+                else
+                {
+                    // Token vorhanden → direkt ins MainWindow, ETW-Info aus config
+                    desktop.MainWindow = new MainWindow();
+                }
             }
         }
         catch (Exception ex)
         {
-            // Write crash info so we can diagnose startup failures
             var logPath = Path.Combine(
                 Environment.GetFolderPath(Environment.SpecialFolder.ApplicationData),
                 "AAIAModuleManager", "startup-crash.txt");
@@ -45,8 +70,7 @@ public partial class App : Application
                 File.WriteAllText(logPath, $"[{DateTime.Now}] Startup exception:\n{ex}");
             }
             catch { /* ignore write failure */ }
-
-            throw; // still propagate so VS shows the exception
+            throw;
         }
 
         base.OnFrameworkInitializationCompleted();

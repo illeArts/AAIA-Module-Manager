@@ -1,0 +1,75 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+
+    <!-- ── Identität ─────────────────────────────────────────── -->
+    <key>CFBundleName</key>
+    <string>AAIA Module Manager</string>
+
+    <key>CFBundleDisplayName</key>
+    <string>AAIA Module Manager</string>
+
+    <key>CFBundleIdentifier</key>
+    <string>de.illearts.aaia-module-manager</string>
+
+    <key>CFBundleVersion</key>
+    <string>2.0.0</string>
+
+    <key>CFBundleShortVersionString</key>
+    <string>2.0.0</string>
+
+    <!-- ── Bundle-Typ und Executable ─────────────────────────── -->
+    <key>CFBundleExecutable</key>
+    <string>AAIA.ModuleManager</string>
+
+    <key>CFBundlePackageType</key>
+    <string>APPL</string>
+
+    <key>CFBundleSignature</key>
+    <string>????</string>
+
+    <!-- ── Icon ──────────────────────────────────────────────── -->
+    <!-- AppIcon.icns muss in Contents/Resources/ liegen.         -->
+    <!-- Erstellen: siehe installer/create-icns.sh                -->
+    <key>CFBundleIconFile</key>
+    <string>AppIcon</string>
+
+    <!-- ── Display / HiDPI ───────────────────────────────────── -->
+    <key>NSHighResolutionCapable</key>
+    <true/>
+
+    <key>NSPrincipalClass</key>
+    <string>NSApplication</string>
+
+    <!-- ── Mindest-macOS-Version ─────────────────────────────── -->
+    <!-- .NET 8 unterstützt macOS 12+ (Monterey)                  -->
+    <key>LSMinimumSystemVersion</key>
+    <string>12.0</string>
+
+    <!-- ── Netzwerk / ATS ────────────────────────────────────── -->
+    <!-- Erlaubt HTTP zu localhost (Entwicklungsumgebung / XAMPP) -->
+    <key>NSAppTransportSecurity</key>
+    <dict>
+        <key>NSAllowsLocalNetworking</key>
+        <true/>
+    </dict>
+
+    <!-- ── Dokument-Typen (optional, für spätere Erweiterung) ── -->
+    <!-- Wenn der Module Manager .etw-Dateien öffnen soll:        -->
+    <!--
+    <key>CFBundleDocumentTypes</key>
+    <array>
+        <dict>
+            <key>CFBundleTypeName</key>
+            <string>AAIA Module Package</string>
+            <key>CFBundleTypeExtensions</key>
+            <array><string>etw</string></array>
+            <key>CFBundleTypeRole</key>
+            <string>Editor</string>
+        </dict>
+    </array>
+    -->
+
+</dict>
+</plist>

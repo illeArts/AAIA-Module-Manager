@@ -4,3 +4,7 @@ publish/
 *.user
 .vs/
 copy-assets.bat
+
+# Artefakte / Temp-Dateien
+*.zip
+zi0YwQWv

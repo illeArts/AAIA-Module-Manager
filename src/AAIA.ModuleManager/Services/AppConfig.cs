@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using AAIA.Shared.Contracts.Publisher;
 
 namespace AAIA.ModuleManager.Services;
 
@@ -60,13 +61,15 @@ public class AppConfig
     public string Language { get; set; } = "de";
 
     // ── Marketplace API (aaia-marketplace-api) ────────────────────────────────
-    public string MarketplaceApiUrl    { get; set; } = "https://marketplace.aaia.dev";
+    public string MarketplaceApiUrl    { get; set; } = "http://localhost/aaiagent/wp-json/aaia/v1";
     /// <summary>Gespeicherter JWT nach Login. Wird beim Start geladen.</summary>
     public string MarketplaceToken     { get; set; } = "";
     /// <summary>ETW-ID des eingeloggten Entwicklers. Null wenn nicht eingeloggt.</summary>
     public string? DeveloperEtwId      { get; set; }
     /// <summary>Anzeigename des eingeloggten Entwicklers.</summary>
     public string? DeveloperDisplayName { get; set; }
+    /// <summary>Rolle des eingeloggten Entwicklers (Community / Owner / …).</summary>
+    public DeveloperRole DeveloperRole { get; set; } = DeveloperRole.Community;
     /// <summary>KeyId des registrierten Publisher-Schlüssels (aaia-sign keygen).</summary>
     public string? PublisherKeyId { get; set; }
     /// <summary>Pfad zum privaten Publisher-Schlüssel (lokal, nie auf Server).</summary>
