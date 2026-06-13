@@ -61,11 +61,7 @@ public class AppConfig
     public string Language { get; set; } = "de";
 
     // ── Marketplace API (aaia-marketplace-api) ────────────────────────────────
-<<<<<<< HEAD
-    public string MarketplaceApiUrl    { get; set; } = "http://localhost/aaiagent/wp-json/aaia/v1";
-=======
     public string MarketplaceApiUrl    { get; set; } = "https://aaiagent.de/index.php?rest_route=/aaia/v1";
->>>>>>> 137763b (Prepare Module Manager macOS build)
     /// <summary>Gespeicherter JWT nach Login. Wird beim Start geladen.</summary>
     public string MarketplaceToken     { get; set; } = "";
     /// <summary>ETW-ID des eingeloggten Entwicklers. Null wenn nicht eingeloggt.</summary>

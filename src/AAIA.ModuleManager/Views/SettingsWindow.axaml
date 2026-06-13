@@ -30,20 +30,12 @@
     <StackPanel Spacing="6">
       <TextBlock Text="Marketplace API URL" Foreground="#8892a4" FontSize="12"/>
       <TextBox x:Name="ApiUrlBox"
-<<<<<<< HEAD
-               Watermark="http://localhost/aaiagent/wp-json/aaia/v1"
-=======
                Watermark="https://aaiagent.de/index.php?rest_route=/aaia/v1"
->>>>>>> 137763b (Prepare Module Manager macOS build)
                Background="#12122a" Foreground="#e0e0e0"
                BorderBrush="#2a2a4a" BorderThickness="1"
                CornerRadius="6" Padding="10,7" FontSize="12"/>
       <TextBlock Foreground="#5865f2" FontSize="11"
-<<<<<<< HEAD
-                 Text="Lokal: http://localhost/aaiagent/wp-json/aaia/v1"/>
-=======
                  Text="Live: https://aaiagent.de/index.php?rest_route=/aaia/v1"/>
->>>>>>> 137763b (Prepare Module Manager macOS build)
     </StackPanel>
 
     <!-- Buttons -->
