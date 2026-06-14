@@ -2,6 +2,7 @@ using AAIA.ModuleManager.Services;
 using AAIA.Shared.Contracts.Publisher;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -41,7 +42,9 @@ public sealed partial class LoginWindowViewModel : ObservableObject
     [NotifyCanExecuteChangedFor(nameof(LoginCommand))]
     private string _loginPassword = "";
 
-    [ObservableProperty] private string _loginTotp     = "";
+    [ObservableProperty]
+    [NotifyCanExecuteChangedFor(nameof(LoginCommand))]
+    private string _loginTotp     = "";
     [ObservableProperty] private bool   _loginNeedsTotp;
 
     // Register-Formular
@@ -90,6 +93,8 @@ public sealed partial class LoginWindowViewModel : ObservableObject
 
     public record LoginSucceededArgs(string EtwId, string DisplayName, string AccessToken, DeveloperRole Role);
 
+    public string MarketplaceApiUrl => _config.MarketplaceApiUrl;
+
     // ── Konstruktor ────────────────────────────────────────────────────────────
 
     public LoginWindowViewModel(AppConfig config, MarketplaceApiClient api)
@@ -115,13 +120,20 @@ public sealed partial class LoginWindowViewModel : ObservableObject
     [RelayCommand(CanExecute = nameof(CanLogin))]
     private async Task LoginAsync(CancellationToken ct)
     {
+        var totpCode = NormalizeTotpCode(LoginTotp);
+        if (LoginNeedsTotp && totpCode.Length != 6)
+        {
+            SetStatus("Bitte den 6-stelligen Authenticator-Code eingeben.", error: true);
+            return;
+        }
+
         IsBusy = true;
         SetStatus("Anmelden...", error: false);
         try
         {
             var result = await _api.LoginAsync(
                 new DeveloperLoginRequest(LoginEmail, LoginPassword,
-                    string.IsNullOrWhiteSpace(LoginTotp) ? null : LoginTotp.Trim()),
+                    string.IsNullOrWhiteSpace(totpCode) ? null : totpCode),
                 ct);
 
             await PersistAndFireAsync(result);
@@ -129,12 +141,16 @@ public sealed partial class LoginWindowViewModel : ObservableObject
         catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.Unauthorized)
         {
             var serverMsg = ex.Message;
-            if (serverMsg.Contains("TOTP", StringComparison.OrdinalIgnoreCase)
-                || serverMsg.Contains("totp", StringComparison.OrdinalIgnoreCase))
+            if (IsTotpRequired(serverMsg))
             {
                 // Server fordert TOTP → Eingabefeld einblenden
                 LoginNeedsTotp = true;
                 SetStatus("Authenticator-Code erforderlich — bitte App öffnen.", error: true);
+            }
+            else if (IsTotpError(serverMsg))
+            {
+                LoginNeedsTotp = true;
+                SetStatus(serverMsg, error: true);
             }
             else
             {
@@ -152,7 +168,11 @@ public sealed partial class LoginWindowViewModel : ObservableObject
 
     private bool CanLogin() =>
         !string.IsNullOrWhiteSpace(LoginEmail) &&
-        !string.IsNullOrWhiteSpace(LoginPassword);
+        !string.IsNullOrWhiteSpace(LoginPassword) &&
+        (!LoginNeedsTotp || NormalizeTotpCode(LoginTotp).Length == 6);
+
+    partial void OnLoginNeedsTotpChanged(bool value) =>
+        LoginCommand.NotifyCanExecuteChanged();
 
     // ── Registrierung ──────────────────────────────────────────────────────────
 
@@ -276,7 +296,23 @@ public sealed partial class LoginWindowViewModel : ObservableObject
 
     private void SetStatus(string msg, bool error)
     {
-        StatusMessage = msg;
+        StatusMessage = error && !msg.Contains(_config.MarketplaceApiUrl, StringComparison.OrdinalIgnoreCase)
+            ? $"{msg} API: {_config.MarketplaceApiUrl}"
+            : msg;
         IsError       = error;
     }
+
+    private static string NormalizeTotpCode(string? value) =>
+        string.Concat((value ?? string.Empty).Where(char.IsDigit));
+
+    private static bool IsTotpRequired(string message) =>
+        message.Contains("requiresTotp", StringComparison.OrdinalIgnoreCase) ||
+        message.Contains("TOTP_REQUIRED", StringComparison.OrdinalIgnoreCase) ||
+        message.Contains("TOTP-Code erforderlich", StringComparison.OrdinalIgnoreCase) ||
+        message.Contains("Authenticator-Code erforderlich", StringComparison.OrdinalIgnoreCase);
+
+    private static bool IsTotpError(string message) =>
+        message.Contains("TOTP", StringComparison.OrdinalIgnoreCase) ||
+        message.Contains("totp", StringComparison.OrdinalIgnoreCase) ||
+        message.Contains("Authenticator", StringComparison.OrdinalIgnoreCase);
 }

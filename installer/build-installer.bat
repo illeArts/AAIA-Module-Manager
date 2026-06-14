@@ -2,9 +2,9 @@
 setlocal EnableDelayedExpansion
 
 :: ============================================================
-::  AAIA Module Manager — Build + Installer
+::  AAIA Module Manager - Build + Installer
 ::  Aufruf: build-installer.bat
-::  Erzeugt: installer\dist\AAIA_ModuleManager_v2.0.0_Setup.exe
+::  Erzeugt: installer\dist\AAIA_ModuleManager_v2.3.0_Setup.exe
 :: ============================================================
 
 set PROJECT=..\src\AAIA.ModuleManager\AAIA.ModuleManager.csproj
@@ -12,12 +12,12 @@ set PUBLISH_DIR=..\publish\win-x64
 set ISCC="C:\Program Files (x86)\Inno Setup 6\ISCC.exe"
 
 echo.
-echo  ╔══════════════════════════════════════════════╗
-echo  ║     AAIA Module Manager  —  Build Pipeline  ║
-echo  ╚══════════════════════════════════════════════╝
+echo  ==============================================
+echo       AAIA Module Manager - Build Pipeline
+echo  ==============================================
 echo.
 
-:: ── Schritt 1: dotnet restore ────────────────────────────────
+:: Schritt 1: dotnet restore
 echo [1/3]  dotnet restore ...
 dotnet restore %PROJECT%
 if errorlevel 1 (
@@ -25,11 +25,12 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-:: ── Schritt 2: dotnet publish (Self-Contained, Single-File) ──
+:: Schritt 2: dotnet publish (Self-Contained, Single-File)
 echo.
 echo [2/3]  dotnet publish  ^(Release / win-x64 / self-contained^) ...
 dotnet publish %PROJECT% ^
     -c Release ^
+    -f net8.0-windows ^
     -r win-x64 ^
     --self-contained true ^
     -p:PublishSingleFile=true ^
@@ -42,7 +43,7 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-:: ── Schritt 3: Inno Setup Compiler ───────────────────────────
+:: Schritt 3: Inno Setup Compiler
 echo.
 echo [3/3]  Inno Setup Compiler ...
 
@@ -59,11 +60,11 @@ if errorlevel 1 (
     pause & exit /b 1
 )
 
-:: ── Fertig ────────────────────────────────────────────────────
+:: Fertig
 echo.
-echo  ════════════════════════════════════════════════
+echo  ================================================
 echo   Installer fertig:
-echo   installer\dist\AAIA_ModuleManager_v2.0.0_Setup.exe
-echo  ════════════════════════════════════════════════
+echo   installer\dist\AAIA_ModuleManager_v2.3.0_Setup.exe
+echo  ================================================
 echo.
 pause

@@ -67,6 +67,62 @@ Zusätzlich wurden vorher schon die Setup-/GitHub-Buttons stabilisiert:
 
 ## Was auf dem Windows-PC geprueft werden muss
 
+## Plattform-Direktive: Eine Marketplace API fuer alle Systeme
+
+Windows, macOS und Linux muessen fuer denselben Account exakt dieselbe
+`MarketplaceApiUrl` verwenden. TOTP-Secrets liegen serverseitig in der Datenbank
+dieser API. Wenn ein Account auf macOS gegen eine andere API oder Datenbank
+erstellt wurde, kann der Authenticator-Code auf Windows/Linux nicht passen.
+
+Verbindliche Live-URL:
+
+```text
+https://aaiagent.de/index.php?rest_route=/aaia/v1
+```
+
+Config-Pfade:
+
+```text
+Windows: %AppData%\AAIAModuleManager\config.json
+macOS:   ~/Library/Application Support/AAIAModuleManager/config.json
+Linux:   ~/.config/AAIAModuleManager/config.json
+```
+
+Bei Wechsel der API-URL App komplett schliessen und alte Account-Daten leeren:
+
+```json
+{
+  "MarketplaceApiUrl": "https://aaiagent.de/index.php?rest_route=/aaia/v1",
+  "MarketplaceToken": "",
+  "DeveloperEtwId": null,
+  "DeveloperDisplayName": null
+}
+```
+
+Wenn ein TOTP-Code fuer einen auf macOS erstellten Account auf Windows
+`TOTP-Code ungueltig` liefert, ist der Code angekommen, passt aber nicht zum
+Secret der Windows-API. Dann zuerst `MarketplaceApiUrl` und Backend-Datenbank
+vergleichen, nicht weiter am UI suchen.
+
+### GitHub-/Commit-Regel fuer Plattform- und Auth-Aenderungen
+
+Aenderungen an API-Zusammenfuehrung, Login, Registrierung, TOTP,
+`MarketplaceApiUrl`, Config-Pfaden oder gespeicherten Account-Feldern sind
+plattformrelevant. Sie duerfen nicht still als Nebeneffekt eines anderen Fixes
+gemergt werden.
+
+Vor Merge/Commit muss die GitHub-PR-Checkliste bestaetigen:
+
+- Welche Plattformen betroffen sind: Windows, macOS, Linux.
+- Welche `MarketplaceApiUrl` die verbindliche Ziel-API ist.
+- Ob vorhandene Tokens/ETW-IDs geloescht oder migriert werden muessen.
+- Ob der Backend-Vertrag weiterhin passt: `developers/register`,
+  `developers/login`, `developers/verify-totp`.
+- Welche Plattform nicht getestet wurde und warum.
+
+Wenn eine Entscheidung offen ist, wird nicht geraten. Die Aenderung bleibt
+uncommitted oder geht als Draft-PR in GitHub, bis sie bestaetigt ist.
+
 ### 1. Installierte Version ersetzen
 
 Alten Windows-Installer nicht weiterverwenden, wenn er vor diesem Commit gebaut wurde. Neu bauen:

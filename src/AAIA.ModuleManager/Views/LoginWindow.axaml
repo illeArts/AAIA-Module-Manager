@@ -47,6 +47,9 @@
                        Foreground="#e0e0e0"/>
             <TextBlock Text="Melde dich mit deinem ETW-Account an."
                        Foreground="#8892a4" FontSize="13"/>
+            <TextBlock Text="{Binding MarketplaceApiUrl, StringFormat='API: {0}'}"
+                       Foreground="#6f7892" FontSize="11"
+                       TextWrapping="Wrap"/>
           </StackPanel>
 
           <StackPanel Spacing="12">
@@ -98,6 +101,9 @@
                        Foreground="#e0e0e0"/>
             <TextBlock Text="Du erhältst eine permanente Entwickler-ID (z.B. ETW-000042)."
                        Foreground="#8892a4" FontSize="13"/>
+            <TextBlock Text="{Binding MarketplaceApiUrl, StringFormat='API: {0}'}"
+                       Foreground="#6f7892" FontSize="11"
+                       TextWrapping="Wrap"/>
           </StackPanel>
 
           <StackPanel Spacing="12">
