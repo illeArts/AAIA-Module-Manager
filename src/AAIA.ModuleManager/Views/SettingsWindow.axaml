@@ -2,15 +2,48 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AAIA.ModuleManager.Views.SettingsWindow"
         Title="{DynamicResource Str_Settings_Title}"
-        Width="440" Height="300"
+        Width="500" Height="430"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="#1a1a2e"
         Foreground="#e0e0e0"
         FontFamily="Inter,Segoe UI,sans-serif">
 
-  <StackPanel Margin="28,24" Spacing="20">
+  <StackPanel Margin="28,24" Spacing="18">
     <TextBlock Text="{DynamicResource Str_Settings_Title}" FontSize="16" FontWeight="Bold"/>
+
+    <!-- Verbindung -->
+    <Border Background="#202042"
+            BorderBrush="#2a2a4a"
+            BorderThickness="1"
+            CornerRadius="8"
+            Padding="14">
+      <StackPanel Spacing="10">
+        <TextBlock Text="Verbindungen" FontSize="13" FontWeight="SemiBold"/>
+
+        <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto">
+          <TextBlock Grid.Row="0" Grid.Column="0" Text="AAIA Konto" Foreground="#8892a4" FontSize="12"/>
+          <TextBlock x:Name="MarketplaceStatusText"
+                     Grid.Row="0" Grid.Column="1"
+                     Text="wird geprüft..."
+                     TextWrapping="Wrap"/>
+
+          <TextBlock Grid.Row="1" Grid.Column="0" Text="GitHub" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
+          <TextBlock x:Name="GithubStatusText"
+                     Grid.Row="1" Grid.Column="1"
+                     Text="wird geprüft..."
+                     TextWrapping="Wrap"
+                     Margin="0,6,0,0"/>
+
+          <TextBlock Grid.Row="2" Grid.Column="0" Text="AAIAS" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
+          <TextBlock x:Name="AaiasStatusText"
+                     Grid.Row="2" Grid.Column="1"
+                     Text="wird geprüft..."
+                     TextWrapping="Wrap"
+                     Margin="0,6,0,0"/>
+        </Grid>
+      </StackPanel>
+    </Border>
 
     <!-- Sprache -->
     <StackPanel Spacing="6">

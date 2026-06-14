@@ -1,7 +1,9 @@
 using System;
 using System.Diagnostics;
+using System.IO;
 using System.Text;
 using System.Threading.Tasks;
+using Avalonia.Threading;
 
 namespace AAIA.ModuleManager.Services;
 
@@ -15,11 +17,15 @@ public class ProcessRunner
         Action<string> onLine,
         System.Threading.CancellationToken ct = default)
     {
+        var safeWorkingDir = string.IsNullOrWhiteSpace(workingDir) || !Directory.Exists(workingDir)
+            ? Directory.GetCurrentDirectory()
+            : workingDir;
+
         var psi = new ProcessStartInfo
         {
             FileName               = exe,
             Arguments              = args,
-            WorkingDirectory       = workingDir,
+            WorkingDirectory       = safeWorkingDir,
             UseShellExecute        = false,
             RedirectStandardOutput = true,
             RedirectStandardError  = true,
@@ -30,15 +36,50 @@ public class ProcessRunner
 
         using var proc = new Process { StartInfo = psi, EnableRaisingEvents = true };
 
-        proc.OutputDataReceived += (_, e) => { if (e.Data != null) onLine(e.Data); };
-        proc.ErrorDataReceived  += (_, e) => { if (e.Data != null) onLine("ERR: " + e.Data); };
+        proc.OutputDataReceived += (_, e) => { if (e.Data != null) DispatchLine(onLine, e.Data); };
+        proc.ErrorDataReceived  += (_, e) => { if (e.Data != null) DispatchLine(onLine, "ERR: " + e.Data); };
 
-        proc.Start();
+        try
+        {
+            proc.Start();
+        }
+        catch (Exception ex)
+        {
+            DispatchLine(onLine, $"ERR: {exe} konnte nicht gestartet werden: {ex.Message}");
+            return -1;
+        }
+
         proc.BeginOutputReadLine();
         proc.BeginErrorReadLine();
 
-        await proc.WaitForExitAsync(ct);
-        return proc.ExitCode;
+        try
+        {
+            await proc.WaitForExitAsync(ct);
+            return proc.ExitCode;
+        }
+        catch (Exception ex)
+        {
+            DispatchLine(onLine, $"ERR: {exe} wurde abgebrochen: {ex.Message}");
+            return -1;
+        }
+    }
+
+    private static void DispatchLine(Action<string> onLine, string line)
+    {
+        if (Dispatcher.UIThread.CheckAccess())
+        {
+            onLine(line);
+            return;
+        }
+
+        try
+        {
+            Dispatcher.UIThread.InvokeAsync(() => onLine(line)).GetAwaiter().GetResult();
+        }
+        catch (InvalidOperationException)
+        {
+            onLine(line);
+        }
     }
 
     /// <summary>

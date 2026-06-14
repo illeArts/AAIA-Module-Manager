@@ -181,6 +181,16 @@ public sealed partial class LoginWindowViewModel : ObservableObject
             TotpUri      = result.TotpUri    ?? "";
             TotpSecret   = result.TotpSecret ?? "";
             TotpCode     = "";
+
+            if (string.IsNullOrWhiteSpace(TotpUri) && string.IsNullOrWhiteSpace(TotpSecret))
+            {
+                SetStatus(
+                    "Account wurde angelegt, aber die API hat keinen TOTP-Key geliefert. " +
+                    "Bitte Marketplace-API/TOTP-Backend aktualisieren oder die richtige API-URL einstellen.",
+                    error: true);
+                return;
+            }
+
             SetStatus($"Account angelegt: {result.EtwId} — Bitte Authenticator-App einrichten.", error: false);
             CurrentScreen = Screen.TotpSetup;
         }
