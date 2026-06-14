@@ -14,18 +14,18 @@ jobs:
   build-windows:
     runs-on: windows-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: aaia-module-manager
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: illeArts/aaia-sdk
           path: aaia-sdk
           token: ${{ secrets.GH_PAT }}
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -37,7 +37,7 @@ jobs:
       - name: Publish win-x64
         run: >
           dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
-          -c Release -r win-x64 --self-contained true
+          -c Release -f net8.0-windows -r win-x64 --self-contained true
           /p:PublishSingleFile=true
           /p:Version=${{ steps.version.outputs.VERSION }}
           -o ./publish-win
@@ -52,18 +52,18 @@ jobs:
   build-macos-arm64:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: aaia-module-manager
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: illeArts/aaia-sdk
           path: aaia-sdk
           token: ${{ secrets.GH_PAT }}
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -75,7 +75,7 @@ jobs:
       - name: Publish osx-arm64
         run: >
           dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
-          -c Release -r osx-arm64 --self-contained true
+          -c Release -f net8.0 -r osx-arm64 --self-contained true
           /p:PublishSingleFile=true
           /p:Version=${{ steps.version.outputs.VERSION }}
           -o ./publish-mac-arm64
@@ -93,18 +93,18 @@ jobs:
   build-macos-x64:
     runs-on: macos-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: aaia-module-manager
 
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: illeArts/aaia-sdk
           path: aaia-sdk
           token: ${{ secrets.GH_PAT }}
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -116,7 +116,7 @@ jobs:
       - name: Publish osx-x64
         run: >
           dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
-          -c Release -r osx-x64 --self-contained true
+          -c Release -f net8.0 -r osx-x64 --self-contained true
           /p:PublishSingleFile=true
           /p:Version=${{ steps.version.outputs.VERSION }}
           -o ./publish-mac-x64

@@ -15,20 +15,20 @@ jobs:
 
     steps:
       # Checkout module-manager at ./aaia-module-manager
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           path: aaia-module-manager
 
       # Checkout aaia-sdk at ./aaia-sdk (sibling — matches local ProjectReference ../../../aaia-sdk/)
       # Requires secret GH_PAT with repo read access to illeArts/aaia-sdk
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           repository: illeArts/aaia-sdk
           path: aaia-sdk
           token: ${{ secrets.GH_PAT }}
 
       - name: Setup .NET 8
-        uses: actions/setup-dotnet@v4
+        uses: actions/setup-dotnet@v5
         with:
           dotnet-version: '8.0.x'
 
@@ -41,5 +41,5 @@ jobs:
       - name: Publish (smoke test)
         run: >
           dotnet publish aaia-module-manager/src/AAIA.ModuleManager/AAIA.ModuleManager.csproj
-          -c Release -r win-x64 --self-contained true
+          -c Release -f net8.0-windows -r win-x64 --self-contained true
           /p:PublishSingleFile=true -o ./publish
