@@ -14,6 +14,7 @@ public partial class MainWindowViewModel : ObservableObject
     public SetupTabViewModel     SetupTab     { get; }
     public DeveloperTabViewModel DeveloperTab { get; }
     public PublishTabViewModel   PublishTab   { get; }
+    public LicensesTabViewModel  LicensesTab  { get; }
 
     // ── Developer-Identität (Titelleiste) ─────────────────────────────────────
 
@@ -49,6 +50,7 @@ public partial class MainWindowViewModel : ObservableObject
         SetupTab     = new SetupTabViewModel(config);
         DeveloperTab = new DeveloperTabViewModel(config, marketplaceClient, certSvc);
         PublishTab   = new PublishTabViewModel(config, publishSvc, marketplaceClient);
+        LicensesTab  = new LicensesTabViewModel(config, TesterTab.AaiasConn);
 
         _ = TesterTab.InitAsync(config);
 
@@ -83,9 +85,4 @@ public partial class MainWindowViewModel : ObservableObject
     /// </summary>
     public void SetDeveloperIdentity(string etwId, string displayName, DeveloperRole role = DeveloperRole.Community)
     {
-        DeveloperEtwId       = etwId;
-        DeveloperDisplayName = displayName;
-        DeveloperRole        = role;
-        IsLoggedIn           = true;
-    }
-}
+        DeveloperEtwId       = 

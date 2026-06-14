@@ -2,7 +2,7 @@
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         x:Class="AAIA.ModuleManager.Views.SettingsWindow"
         Title="{DynamicResource Str_Settings_Title}"
-        Width="500" Height="430"
+        Width="500" Height="510"
         CanResize="False"
         WindowStartupLocation="CenterOwner"
         Background="#1a1a2e"
@@ -71,15 +71,10 @@
                  Text="Live: https://aaiagent.de/index.php?rest_route=/aaia/v1"/>
     </StackPanel>
 
-    <!-- Buttons -->
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button Classes="ghost"
-              Content="{DynamicResource Str_Cancel}"
-              Click="Cancel_Click"/>
-      <Button Classes="primary"
-              Content="{DynamicResource Str_Save}"
-              Click="Save_Click"/>
-    </StackPanel>
-  </StackPanel>
-
-</Window>
+    <!-- Marketplace Backend API URL (ASP.NET Core) -->
+    <StackPanel Spacing="6">
+      <TextBlock Text="Marketplace Backend API URL" Foreground="#8892a4" FontSize="12"/>
+      <TextBox x:Name="BackendApiUrlBox"
+               Watermark="https://api.marketplace.aaia.app"
+               Background="#12122a" Foreground="#e0e0e0"
+               BorderBrush="#2a2a4a" BorderThickness="

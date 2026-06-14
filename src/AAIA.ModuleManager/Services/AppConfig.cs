@@ -75,6 +75,14 @@ public class AppConfig
     /// <summary>Pfad zum privaten Publisher-Schlüssel (lokal, nie auf Server).</summary>
     public string? PublisherPrivateKeyPath { get; set; }
 
+    // ── Marketplace Backend (ASP.NET Core — aaia-marketplace-api) ─────────────
+    /// <summary>
+    /// Basis-URL der AAIA Marketplace Backend-API (ASP.NET Core).
+    /// Verschieden von MarketplaceApiUrl (WordPress).
+    /// Beispiel: "https://api.marketplace.aaia.app"
+    /// </summary>
+    public string MarketplaceBackendApiUrl { get; set; } = "https://api.marketplace.aaia.app";
+
     /// <summary>Set after LoadAsync() — allows services to access config without DI.</summary>
     public static AppConfig? Current { get; internal set; }
 
@@ -101,17 +109,4 @@ public class AppConfig
             if (File.Exists(ConfigPath))
             {
                 var json = await File.ReadAllTextAsync(ConfigPath).ConfigureAwait(false);
-                return JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
-            }
-        }
-        catch { /* defaults */ }
-        return new AppConfig();
-    }
-
-    public async Task SaveAsync()
-    {
-        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
-        var opts = new JsonSerializerOptions { WriteIndented = true };
-        await File.WriteAllTextAsync(ConfigPath, JsonSerializer.Serialize(this, opts));
-    }
-}
+                return JsonSerializer.D

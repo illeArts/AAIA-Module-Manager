@@ -114,9 +114,14 @@
         <tabs:PublishTab DataContext="{Binding PublishTab}"/>
       </TabItem>
 
+      <!-- Tab 7: Meine Lizenzen — für alle sichtbar (auch ohne ETW-Login) -->
+      <TabItem Header="🔑  Lizenzen">
+        <tabs:LicensesTab DataContext="{Binding LicensesTab}"/>
+      </TabItem>
+
       <!-- ── Owner-only Tabs (am Ende — werden bei ETW nie ausgewählt) ── -->
 
-      <!-- Tab 7: SDK / Contracts (nur Owner) -->
+      <!-- Tab 8: SDK / Contracts (nur Owner) -->
       <TabItem Header="{DynamicResource Str_Tab_Sdk}"
                IsVisible="{Binding IsOwner}">
         <tabs:SdkTab DataContext="{Binding SdkTab}"/>
@@ -163,10 +168,3 @@
       <Setter Property="Padding" Value="6,2"/>
       <Setter Property="FontSize" Value="11"/>
       <Setter Property="Cursor" Value="Hand"/>
-    </Style>
-    <Style Selector="Button.logout-btn:pointerover /template/ ContentPresenter">
-      <Setter Property="TextElement.Foreground" Value="#e74c3c"/>
-    </Style>
-  </Window.Styles>
-
-</Window>

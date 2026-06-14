@@ -17,7 +17,8 @@ public partial class SettingsWindow : Window
         // Gespeicherte API-URL vorladen
         if (AppConfig.Current is { } cfg)
         {
-            ApiUrlBox.Text = cfg.MarketplaceApiUrl;
+            ApiUrlBox.Text        = cfg.MarketplaceApiUrl;
+            BackendApiUrlBox.Text = cfg.MarketplaceBackendApiUrl;
             RefreshStoredConnectionStatus(cfg);
         }
 
@@ -33,8 +34,9 @@ public partial class SettingsWindow : Window
 
         if (AppConfig.Current is { } cfg)
         {
-            cfg.Language          = lang == AppLanguage.En ? "en" : "de";
-            cfg.MarketplaceApiUrl = ApiUrlBox.Text?.Trim().TrimEnd('/') ?? cfg.MarketplaceApiUrl;
+            cfg.Language                   = lang == AppLanguage.En ? "en" : "de";
+            cfg.MarketplaceApiUrl          = ApiUrlBox.Text?.Trim().TrimEnd('/')        ?? cfg.MarketplaceApiUrl;
+            cfg.MarketplaceBackendApiUrl   = BackendApiUrlBox.Text?.Trim().TrimEnd('/') ?? cfg.MarketplaceBackendApiUrl;
             _ = cfg.SaveAsync();
         }
 

@@ -1,0 +1,174 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             xmlns:svc="using:AAIA.ModuleManager.Services"
+             x:Class="AAIA.ModuleManager.Views.Tabs.LicensesTab"
+             x:DataType="vm:LicensesTabViewModel">
+
+  <ScrollViewer Padding="20">
+    <StackPanel Spacing="16">
+
+      <TextBlock Classes="h1" Text="🔑  Meine Lizenzen" />
+      <TextBlock Classes="muted"
+                 Text="Hier findest du alle aktivierten AAIA-Lizenzen auf diesem Gerät." />
+
+      <!-- Aktionsleiste -->
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="primary" Content="+ Lizenz aktivieren"
+                Command="{Binding OpenActivateDialogCommand}" />
+        <Button Classes="ghost" Content="↻ Aktualisieren"
+                Command="{Binding RefreshCommand}" />
+        <Button Classes="danger" Content="🗑 Entfernen"
+                Command="{Binding RemoveLicenseCommand}"
+                IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNotNull}}" />
+      </StackPanel>
+
+      <!-- Leer-Hinweis -->
+      <Border Classes="card"
+              IsVisible="{Binding StatusMessage, Converter={x:Static StringConverters.IsNotNullOrEmpty}}">
+        <TextBlock Classes="muted" Text="{Binding StatusMessage}"
+                   HorizontalAlignment="Center" Padding="0,12"/>
+      </Border>
+
+      <!-- Lizenzliste -->
+      <Border Classes="card"
+              IsVisible="{Binding HasLicenses}">
+        <StackPanel Spacing="0">
+
+          <!-- Tabellen-Header -->
+          <Grid ColumnDefinitions="2*,*,*,*,Auto"
+                Margin="8,0,8,4">
+            <TextBlock Grid.Column="0" Text="Lizenz-Schlüssel"
+                       Classes="muted" FontSize="11" FontWeight="SemiBold"/>
+            <TextBlock Grid.Column="1" Text="Modul-ID"
+                       Classes="muted" FontSize="11" FontWeight="SemiBold"/>
+            <TextBlock Grid.Column="2" Text="Typ"
+                       Classes="muted" FontSize="11" FontWeight="SemiBold"/>
+            <TextBlock Grid.Column="3" Text="Ablauf"
+                       Classes="muted" FontSize="11" FontWeight="SemiBold"/>
+            <TextBlock Grid.Column="4" Text="Status"
+                       Classes="muted" FontSize="11" FontWeight="SemiBold" Width="70"/>
+          </Grid>
+
+          <Separator Margin="0,2,0,4"/>
+
+          <!-- Zeilen -->
+          <ListBox ItemsSource="{Binding Licenses}"
+                   SelectedItem="{Binding Selected}"
+                   Background="Transparent"
+                   BorderThickness="0">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="svc:ActivatedLicense">
+                <Grid ColumnDefinitions="2*,*,*,*,Auto"
+                      Margin="4,5,4,5">
+
+                  <!-- Key -->
+                  <TextBlock Grid.Column="0"
+                             Text="{Binding LicenseKey}"
+                             FontFamily="Consolas,Menlo,monospace"
+                             FontSize="11"
+                             Foreground="#c8cde4"
+                             VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis"/>
+
+                  <!-- ModuleId -->
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding ModuleId}"
+                             FontSize="11"
+                             Foreground="#8892a4"
+                             VerticalAlignment="Center"
+                             TextTrimming="CharacterEllipsis"
+                             Margin="8,0,0,0"/>
+
+                  <!-- Typ -->
+                  <TextBlock Grid.Column="2"
+                             Text="{Binding ExtensionType}"
+                             FontSize="11"
+                             Foreground="#5865f2"
+                             VerticalAlignment="Center"
+                             Margin="8,0,0,0"/>
+
+                  <!-- Ablauf -->
+                  <TextBlock Grid.Column="3"
+                             Text="{Binding ExpiresDisplay}"
+                             FontSize="11"
+                             Foreground="#8892a4"
+                             VerticalAlignment="Center"
+                             Margin="8,0,0,0"/>
+
+                  <!-- Status -->
+                  <Border Grid.Column="4"
+                          Width="68"
+                          CornerRadius="4"
+                          Padding="6,2"
+                          Margin="8,0,0,0"
+                          HorizontalAlignment="Left"
+                          VerticalAlignment="Center">
+                    <Border.Background>
+                      <SolidColorBrush Color="#1a2a1a"/>
+                    </Border.Background>
+                    <TextBlock Text="{Binding StatusDisplay}"
+                               FontSize="10"
+                               FontWeight="SemiBold"
+                               Foreground="#06d6a0"
+                               HorizontalAlignment="Center"/>
+                  </Border>
+
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+
+        </StackPanel>
+      </Border>
+
+      <!-- Detail-Panel für ausgewählte Lizenz -->
+      <Border Classes="card"
+              IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNotNull}}">
+        <StackPanel Spacing="10">
+          <TextBlock Classes="h2" Text="Details" />
+          <Grid ColumnDefinitions="Auto,*" RowDefinitions="Auto,Auto,Auto,Auto">
+
+            <TextBlock Grid.Row="0" Grid.Column="0" Classes="muted" Text="Schlüssel"
+                       FontSize="11" Margin="0,0,16,6"/>
+            <TextBlock Grid.Row="0" Grid.Column="1"
+                       Text="{Binding Selected.LicenseKey}"
+                       FontFamily="Consolas,Menlo,monospace"
+                       FontSize="11" Foreground="#e0e0e0"
+                       TextWrapping="Wrap"/>
+
+            <TextBlock Grid.Row="1" Grid.Column="0" Classes="muted" Text="E-Mail"
+                       FontSize="11" Margin="0,0,16,6"/>
+            <TextBlock Grid.Row="1" Grid.Column="1"
+                       Text="{Binding Selected.BuyerEmail}"
+                       FontSize="11" Foreground="#c8cde4"/>
+
+            <TextBlock Grid.Row="2" Grid.Column="0" Classes="muted" Text="Geräte-ID"
+                       FontSize="11" Margin="0,0,16,6"/>
+            <TextBlock Grid.Row="2" Grid.Column="1"
+                       Text="{Binding Selected.DeviceId}"
+                       FontFamily="Consolas,Menlo,monospace"
+                       FontSize="11" Foreground="#c8cde4"/>
+
+            <TextBlock Grid.Row="3" Grid.Column="0" Classes="muted" Text="JWT"
+                       FontSize="11" Margin="0,0,16,6"
+                       IsVisible="{Binding Selected.LicenseJwt,
+                           Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+            <TextBlock Grid.Row="3" Grid.Column="1"
+                       Text="{Binding Selected.LicenseJwt}"
+                       FontFamily="Consolas,Menlo,monospace"
+                       FontSize="9"
+                       Foreground="#5a607a"
+                       TextWrapping="Wrap"
+                       MaxHeight="48"
+                       TextTrimming="CharacterEllipsis"
+                       IsVisible="{Binding Selected.LicenseJwt,
+                           Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+    </StackPanel>
+  </ScrollViewer>
+
+</UserControl>

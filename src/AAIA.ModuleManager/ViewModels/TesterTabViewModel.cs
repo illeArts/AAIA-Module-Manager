@@ -16,6 +16,9 @@ public sealed partial class TesterTabViewModel : ObservableObject, IDisposable
 {
     private readonly AaiasConnectionService _aaias = new();
     private readonly FileWatcherService     _watcher = new();
+
+    /// <summary>Shared AAIAS connection — auch von LicensesTabViewModel für DeviceId genutzt.</summary>
+    public AaiasConnectionService AaiasConn => _aaias;
     private CancellationTokenSource?        _logStreamCts;
 
     // ── Connection ─────────────────────────────────────────────────────────────
@@ -431,13 +434,4 @@ public sealed partial class TesterTabViewModel : ObservableObject, IDisposable
     private void LogLine(string line)
     {
         var ts = DateTime.Now.ToString("HH:mm:ss");
-        Log   += $"[{ts}] {line}\n";
-    }
-
-    public void Dispose()
-    {
-        _logStreamCts?.Cancel();
-        _watcher.Dispose();
-        _aaias.Dispose();
-    }
-}
+       

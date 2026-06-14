@@ -1,0 +1,101 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+        x:Class="AAIA.ModuleManager.Views.LicenseActivateWindow"
+        x:DataType="vm:LicenseActivateViewModel"
+        Title="Lizenz aktivieren"
+        Width="520" Height="400"
+        MinWidth="420" MinHeight="340"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#1a1a2e">
+
+  <Grid RowDefinitions="Auto,*,Auto" Margin="28,24,28,20">
+
+    <!-- Header -->
+    <StackPanel Grid.Row="0" Spacing="6" Margin="0,0,0,20">
+      <TextBlock Text="🔑  Lizenz aktivieren"
+                 FontSize="18" FontWeight="Bold" Foreground="#e0e0e0"/>
+      <TextBlock TextWrapping="Wrap" Foreground="#8892a4" FontSize="12"
+                 Text="Lizenz-Schlüssel und E-Mail-Adresse aus deiner WooCommerce-Bestellung eingeben."/>
+    </StackPanel>
+
+    <!-- Form -->
+    <StackPanel Grid.Row="1" Spacing="14">
+
+      <!-- LicenseKey -->
+      <StackPanel Spacing="5">
+        <TextBlock Text="Lizenz-Schlüssel" Foreground="#c8cde4" FontSize="12" FontWeight="SemiBold"/>
+        <TextBox Text="{Binding LicenseKey}"
+                 Watermark="AAIA-ML-…"
+                 FontFamily="Consolas,Menlo,monospace"
+                 IsEnabled="{Binding !IsBusy}"/>
+      </StackPanel>
+
+      <!-- Email -->
+      <StackPanel Spacing="5">
+        <TextBlock Text="E-Mail-Adresse (Kaufemail)" Foreground="#c8cde4" FontSize="12" FontWeight="SemiBold"/>
+        <TextBox Text="{Binding Email}"
+                 Watermark="name@example.com"
+                 IsEnabled="{Binding !IsBusy}"/>
+      </StackPanel>
+
+      <!-- DeviceId -->
+      <StackPanel Spacing="5">
+        <TextBlock Text="Geräte-ID (AAIAS ServerId)" Foreground="#c8cde4" FontSize="12" FontWeight="SemiBold"/>
+        <TextBox Text="{Binding DeviceId}"
+                 Watermark="Wird automatisch aus AAIAS geladen…"
+                 FontFamily="Consolas,Menlo,monospace"
+                 IsEnabled="{Binding !IsBusy}"/>
+        <TextBlock Text="Für Sprachpakete kann dieses Feld leer bleiben."
+                   Foreground="#5a607a" FontSize="11"/>
+      </StackPanel>
+
+      <!-- ModuleId (optional) -->
+      <StackPanel Spacing="5">
+        <TextBlock Text="Modul-ID (optional)" Foreground="#c8cde4" FontSize="12" FontWeight="SemiBold"/>
+        <TextBox Text="{Binding ModuleId}"
+                 Watermark="z.B. aaia.fritzbox — leer lassen wenn unbekannt"
+                 IsEnabled="{Binding !IsBusy}"/>
+      </StackPanel>
+
+      <!-- Status (Erfolg) -->
+      <Border Background="#0d1a0d" CornerRadius="6" Padding="12,8"
+              IsVisible="{Binding IsSuccess}">
+        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                   FontSize="12" Foreground="#06d6a0"/>
+      </Border>
+
+      <!-- Status (Fehler / Info) -->
+      <Border Background="#1a0d0d" CornerRadius="6" Padding="12,8"
+              IsVisible="{Binding IsError}">
+        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                   FontSize="12" Foreground="#e74c3c"/>
+      </Border>
+
+      <!-- Status (lädt) -->
+      <Border Background="#0d1117" CornerRadius="6" Padding="12,8"
+              IsVisible="{Binding IsBusy}">
+        <TextBlock Text="{Binding StatusMessage}" TextWrapping="Wrap"
+                   FontSize="12" Foreground="#8892a4"/>
+      </Border>
+
+    </StackPanel>
+
+    <!-- Buttons -->
+    <Grid Grid.Row="2" ColumnDefinitions="*,Auto,Auto" Margin="0,16,0,0">
+      <ProgressBar Grid.Column="0" IsIndeterminate="True" IsVisible="{Binding IsBusy}"
+                   Height="4" VerticalAlignment="Center" Margin="0,0,12,0"/>
+
+      <Button Grid.Column="1" Content="Abbrechen" Classes="ghost"
+              Click="Cancel_Click" Margin="0,0,8,0"/>
+
+      <Button Grid.Column="2" Content="Aktivieren"
+              Classes="primary"
+              Command="{Binding ActivateCommand}"
+              IsEnabled="{Binding !IsBusy}"/>
+    </Grid>
+
+  </Grid>
+
+</Window>

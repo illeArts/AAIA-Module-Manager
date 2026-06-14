@@ -133,6 +133,27 @@ public sealed class AaiasConnectionService : IDisposable
         _http = null;
     }
 
+    // ── Server Info ────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Gibt die ServerId (= DeviceId) des verbundenen AAIAS zurück.
+    /// Wird für License-Aktivierung benötigt (JWT wird an dieses Gerät gebunden).
+    /// Gibt null zurück wenn nicht verbunden oder Server-Fehler.
+    /// </summary>
+    public async Task<string?> GetServerIdAsync(CancellationToken ct = default)
+    {
+        if (!IsConnected || _http is null) return null;
+        try
+        {
+            var resp = await _http.GetAsync("api/server/info", ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            using var doc = JsonDocument.Parse(body);
+            return doc.RootElement.TryGetProperty("serverId", out var id) ? id.GetString() : null;
+        }
+        catch { return null; }
+    }
+
     // ── Extensions API ─────────────────────────────────────────────────────────
 
     public async Task<List<AaiasExtensionInfo>> GetInstalledAsync()
@@ -338,33 +359,4 @@ public sealed class AaiasConnectionService : IDisposable
     private void EnsureConnected()
     {
         if (!IsConnected || _http is null)
-            throw new InvalidOperationException("Nicht mit AAIAS verbunden. ConnectAsync zuerst aufrufen.");
-    }
-
-    private static string ExtractError(string json)
-    {
-        try
-        {
-            using var doc = JsonDocument.Parse(json);
-            if (doc.RootElement.TryGetProperty("error", out var e)) return e.GetString() ?? json;
-            if (doc.RootElement.TryGetProperty("message", out var m)) return m.GetString() ?? json;
-        }
-        catch { }
-        return json.Length > 300 ? json[..300] + "…" : json;
-    }
-
-    public void Dispose()
-    {
-        _http?.Dispose();
-    }
-}
-
-// ── JsonElement extension ─────────────────────────────────────────────────────
-
-internal static class JsonElementExtensions
-{
-    public static string GetStringOrEmpty(this JsonElement el, string prop) =>
-        el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String
-            ? v.GetString() ?? ""
-            : "";
-}
+            throw new InvalidOperationExcepti
