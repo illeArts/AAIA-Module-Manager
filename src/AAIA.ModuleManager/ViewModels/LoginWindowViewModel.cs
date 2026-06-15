@@ -93,7 +93,7 @@ public sealed partial class LoginWindowViewModel : ObservableObject
 
     public record LoginSucceededArgs(string EtwId, string DisplayName, string AccessToken, DeveloperRole Role);
 
-    public string MarketplaceApiUrl => _config.MarketplaceApiUrl;
+    public string MarketplaceApiUrl => _config.MarketplaceBackendApiUrl;
 
     // ── Konstruktor ────────────────────────────────────────────────────────────
 
@@ -296,8 +296,8 @@ public sealed partial class LoginWindowViewModel : ObservableObject
 
     private void SetStatus(string msg, bool error)
     {
-        StatusMessage = error && !msg.Contains(_config.MarketplaceApiUrl, StringComparison.OrdinalIgnoreCase)
-            ? $"{msg} API: {_config.MarketplaceApiUrl}"
+        StatusMessage = error && !msg.Contains(_config.MarketplaceBackendApiUrl, StringComparison.OrdinalIgnoreCase)
+            ? $"{msg} API: {_config.MarketplaceBackendApiUrl}"
             : msg;
         IsError       = error;
     }

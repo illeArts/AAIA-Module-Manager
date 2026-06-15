@@ -61,7 +61,7 @@ public partial class MainWindow : Window
         await config.SaveAsync();
 
         // LoginWindow öffnen, MainWindow schließen
-        var api      = new MarketplaceApiClient(config.MarketplaceApiUrl);
+        var api      = new MarketplaceApiClient(config.MarketplaceBackendApiUrl);
         var loginVm  = new LoginWindowViewModel(config, api);
         var loginWnd = new LoginWindow(loginVm);
 

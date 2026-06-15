@@ -168,3 +168,10 @@
       <Setter Property="Padding" Value="6,2"/>
       <Setter Property="FontSize" Value="11"/>
       <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.logout-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="TextElement.Foreground" Value="#e74c3c"/>
+    </Style>
+  </Window.Styles>
+
+</Window>

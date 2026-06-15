@@ -434,4 +434,13 @@ public sealed partial class TesterTabViewModel : ObservableObject, IDisposable
     private void LogLine(string line)
     {
         var ts = DateTime.Now.ToString("HH:mm:ss");
-       
+        Log   += $"[{ts}] {line}\n";
+    }
+
+    public void Dispose()
+    {
+        _logStreamCts?.Cancel();
+        _watcher.Dispose();
+        _aaias.Dispose();
+    }
+}

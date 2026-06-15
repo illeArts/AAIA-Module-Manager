@@ -109,4 +109,17 @@ public class AppConfig
             if (File.Exists(ConfigPath))
             {
                 var json = await File.ReadAllTextAsync(ConfigPath).ConfigureAwait(false);
-                return JsonSerializer.D
+                return JsonSerializer.Deserialize<AppConfig>(json) ?? new AppConfig();
+            }
+        }
+        catch { /* defaults */ }
+        return new AppConfig();
+    }
+
+    public async Task SaveAsync()
+    {
+        Directory.CreateDirectory(Path.GetDirectoryName(ConfigPath)!);
+        var opts = new JsonSerializerOptions { WriteIndented = true };
+        await File.WriteAllTextAsync(ConfigPath, JsonSerializer.Serialize(this, opts));
+    }
+}

@@ -359,4 +359,33 @@ public sealed class AaiasConnectionService : IDisposable
     private void EnsureConnected()
     {
         if (!IsConnected || _http is null)
-            throw new InvalidOperationExcepti
+            throw new InvalidOperationException("Nicht mit AAIAS verbunden. ConnectAsync zuerst aufrufen.");
+    }
+
+    private static string ExtractError(string json)
+    {
+        try
+        {
+            using var doc = JsonDocument.Parse(json);
+            if (doc.RootElement.TryGetProperty("error", out var e)) return e.GetString() ?? json;
+            if (doc.RootElement.TryGetProperty("message", out var m)) return m.GetString() ?? json;
+        }
+        catch { }
+        return json.Length > 300 ? json[..300] + "…" : json;
+    }
+
+    public void Dispose()
+    {
+        _http?.Dispose();
+    }
+}
+
+// ── JsonElement extension ─────────────────────────────────────────────────────
+
+internal static class JsonElementExtensions
+{
+    public static string GetStringOrEmpty(this JsonElement el, string prop) =>
+        el.TryGetProperty(prop, out var v) && v.ValueKind == JsonValueKind.String
+            ? v.GetString() ?? ""
+            : "";
+}

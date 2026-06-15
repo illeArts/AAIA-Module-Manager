@@ -39,7 +39,8 @@ public partial class MainWindowViewModel : ObservableObject
         var config = AppConfig.Current ?? AppConfig.Load();
         AppConfig.Current ??= config;
 
-        var marketplaceClient = new MarketplaceApiClient(config.MarketplaceApiUrl);
+        var marketplaceClient = new MarketplaceApiClient(config.MarketplaceBackendApiUrl);
+        var wpMarketplace     = new WpMarketplaceClient(config.MarketplaceApiUrl);
         var certSvc           = new PublisherCertService(marketplaceClient);
         var publishSvc        = new PublishService(certSvc, marketplaceClient, config);
 
@@ -48,7 +49,7 @@ public partial class MainWindowViewModel : ObservableObject
         RegistryTab  = new RegistryTabViewModel(config);
         TesterTab    = new TesterTabViewModel();
         SetupTab     = new SetupTabViewModel(config);
-        DeveloperTab = new DeveloperTabViewModel(config, marketplaceClient, certSvc);
+        DeveloperTab = new DeveloperTabViewModel(config, marketplaceClient, wpMarketplace, certSvc);
         PublishTab   = new PublishTabViewModel(config, publishSvc, marketplaceClient);
         LicensesTab  = new LicensesTabViewModel(config, TesterTab.AaiasConn);
 
@@ -85,4 +86,9 @@ public partial class MainWindowViewModel : ObservableObject
     /// </summary>
     public void SetDeveloperIdentity(string etwId, string displayName, DeveloperRole role = DeveloperRole.Community)
     {
-        DeveloperEtwId       = 
+        DeveloperEtwId       = etwId;
+        DeveloperDisplayName = displayName;
+        DeveloperRole        = role;
+        IsLoggedIn           = true;
+    }
+}

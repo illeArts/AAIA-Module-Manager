@@ -123,7 +123,9 @@
       </Border>
 
       <!-- Detail-Panel für ausgewählte Lizenz -->
+      <!-- x:CompileBindings="False": Nullable-Navigation Selected.* braucht Reflection-Bindings -->
       <Border Classes="card"
+              x:CompileBindings="False"
               IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNotNull}}">
         <StackPanel Spacing="10">
           <TextBlock Classes="h2" Text="Details" />

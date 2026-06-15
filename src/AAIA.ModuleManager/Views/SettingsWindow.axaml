@@ -77,4 +77,21 @@
       <TextBox x:Name="BackendApiUrlBox"
                Watermark="https://api.marketplace.aaia.app"
                Background="#12122a" Foreground="#e0e0e0"
-               BorderBrush="#2a2a4a" BorderThickness="
+               BorderBrush="#2a2a4a" BorderThickness="1"
+               CornerRadius="6" Padding="10,7" FontSize="12"/>
+      <TextBlock Foreground="#5a607a" FontSize="11"
+                 Text="Wird für Lizenzaktivierung (JWT) verwendet — getrennt vom WooCommerce-Endpunkt."/>
+    </StackPanel>
+
+    <!-- Buttons -->
+    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
+      <Button Classes="ghost"
+              Content="{DynamicResource Str_Cancel}"
+              Click="Cancel_Click"/>
+      <Button Classes="primary"
+              Content="{DynamicResource Str_Save}"
+              Click="Save_Click"/>
+    </StackPanel>
+  </StackPanel>
+
+</Window>

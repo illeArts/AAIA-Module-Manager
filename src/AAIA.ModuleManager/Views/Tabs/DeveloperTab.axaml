@@ -11,7 +11,7 @@
       <TextBlock Classes="muted"
                  Text="ETW-ID verwalten, Publisher-Schlüssel registrieren, Module im Marketplace veröffentlichen." />
 
-      <!-- Status-Banner (eingeloggt) -->
+      <!-- ══ PROFIL-BANNER (eingeloggt) ════════════════════════════════════════ -->
       <Border Classes="card" IsVisible="{Binding IsLoggedIn}">
         <Grid ColumnDefinitions="*,Auto">
           <StackPanel Spacing="6">
@@ -29,7 +29,7 @@
         </Grid>
       </Border>
 
-      <!-- Login-Formular (nicht eingeloggt) -->
+      <!-- ══ LOGIN-FORMULAR (nicht eingeloggt) ════════════════════════════════ -->
       <Border Classes="card" IsVisible="{Binding !IsLoggedIn}">
         <StackPanel Spacing="10">
           <TextBlock Classes="h2" Text="Anmelden" />
@@ -51,7 +51,7 @@
         </StackPanel>
       </Border>
 
-      <!-- Registrierungs-Formular (nicht eingeloggt) -->
+      <!-- ══ REGISTRIERUNGS-FORMULAR (nicht eingeloggt) ═══════════════════════ -->
       <Border Classes="card" IsVisible="{Binding !IsLoggedIn}">
         <StackPanel Spacing="10">
           <TextBlock Classes="h2" Text="Neuen Account anlegen" />
@@ -84,21 +84,184 @@
         </StackPanel>
       </Border>
 
-      <!-- Publisher-Schlüssel (eingeloggt) -->
+      <!-- ══ STATISTIK-KARTEN (eingeloggt) ════════════════════════════════════ -->
+      <Border Classes="card" IsVisible="{Binding IsLoggedIn}">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h2" Text="Statistiken" />
+            <Button Grid.Column="1" Classes="ghost" Content="🔄 Aktualisieren"
+                    Command="{Binding LoadModulesCommand}"
+                    IsEnabled="{Binding !IsLoadingModules}" />
+          </Grid>
+
+          <Grid ColumnDefinitions="*,*,*,*" ColumnSpan="1">
+            <!-- Gesamt-Module -->
+            <Border Grid.Column="0" Background="#1a2a3a" CornerRadius="8" Padding="12,10" Margin="0,0,6,0">
+              <StackPanel Spacing="4">
+                <TextBlock FontSize="22" FontWeight="Bold" Text="{Binding StatTotalModules}" />
+                <TextBlock Classes="muted" FontSize="11" Text="Module gesamt" />
+              </StackPanel>
+            </Border>
+            <!-- Veröffentlicht -->
+            <Border Grid.Column="1" Background="#1a3a1a" CornerRadius="8" Padding="12,10" Margin="0,0,6,0">
+              <StackPanel Spacing="4">
+                <TextBlock FontSize="22" FontWeight="Bold" Foreground="#4ade80"
+                           Text="{Binding StatPublishedModules}" />
+                <TextBlock Classes="muted" FontSize="11" Text="Veröffentlicht" />
+              </StackPanel>
+            </Border>
+            <!-- Lizenzen -->
+            <Border Grid.Column="2" Background="#1a1a3a" CornerRadius="8" Padding="12,10" Margin="0,0,6,0">
+              <StackPanel Spacing="4">
+                <TextBlock FontSize="22" FontWeight="Bold" Foreground="#818cf8"
+                           Text="{Binding StatTotalLicenses}" />
+                <TextBlock Classes="muted" FontSize="11" Text="Lizenzen gesamt" />
+              </StackPanel>
+            </Border>
+            <!-- Letzte 30 Tage -->
+            <Border Grid.Column="3" Background="#2a1a1a" CornerRadius="8" Padding="12,10">
+              <StackPanel Spacing="4">
+                <TextBlock FontSize="22" FontWeight="Bold" Foreground="#fb923c"
+                           Text="{Binding StatLast30Days}" />
+                <TextBlock Classes="muted" FontSize="11" Text="Lizenzen (30 Tage)" />
+              </StackPanel>
+            </Border>
+          </Grid>
+        </StackPanel>
+      </Border>
+
+      <!-- ══ MODUL-LISTE (eingeloggt) ══════════════════════════════════════════ -->
+      <Border Classes="card" IsVisible="{Binding IsLoggedIn}">
+        <StackPanel Spacing="10">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Classes="h2" Text="Meine Marketplace-Module" />
+            <Button Grid.Column="1" Classes="accent" Content="＋ Neues Modul einreichen"
+                    Command="{Binding ToggleUploadFormCommand}" />
+          </Grid>
+
+          <!-- Ladeindikator -->
+          <StackPanel Orientation="Horizontal" Spacing="8"
+                      IsVisible="{Binding IsLoadingModules}">
+            <TextBlock Text="⏳" />
+            <TextBlock Classes="muted" Text="Lade Module..." VerticalAlignment="Center" />
+          </StackPanel>
+
+          <!-- Keine Module -->
+          <TextBlock Classes="muted"
+                     Text="Noch keine Module eingereicht."
+                     IsVisible="{Binding !HasModules}" />
+
+          <!-- Modul-Liste -->
+          <ItemsControl ItemsSource="{Binding Modules}" IsVisible="{Binding HasModules}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:MarketplaceModuleItem">
+                <Border Margin="0,0,0,6" Background="#1a1f2e" CornerRadius="6" Padding="12,8">
+                  <Grid ColumnDefinitions="*,Auto,Auto,Auto,Auto">
+                    <StackPanel Grid.Column="0" Spacing="2">
+                      <StackPanel Orientation="Horizontal" Spacing="8">
+                        <TextBlock Text="{Binding Type}" />
+                        <TextBlock FontWeight="SemiBold" Text="{Binding Title}" />
+                        <TextBlock Classes="muted" Text="{Binding Version, StringFormat='v{0}'}" FontSize="11" />
+                      </StackPanel>
+                      <TextBlock Text="{Binding StatusBadge}" FontSize="11" />
+                    </StackPanel>
+                    <TextBlock Grid.Column="1" Classes="muted" FontSize="12"
+                               Text="{Binding LicenseCount, StringFormat='🔑 {0}'}"
+                               VerticalAlignment="Center" Margin="12,0" />
+                    <TextBlock Grid.Column="2" FontSize="12" FontWeight="SemiBold"
+                               Text="{Binding PriceDisplay}"
+                               VerticalAlignment="Center" Margin="0,0,12,0" />
+                  </Grid>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </StackPanel>
+      </Border>
+
+      <!-- ══ UPLOAD-FORMULAR (eingeloggt + aufgeklappt) ════════════════════════ -->
+      <Border Classes="card" IsVisible="{Binding ShowUploadForm}">
+        <StackPanel Spacing="12">
+          <TextBlock Classes="h2" Text="Neues Modul einreichen" />
+          <TextBlock Classes="muted"
+                     Text="Dein Modul wird nach dem Upload geprüft und dann im Marketplace veröffentlicht." />
+
+          <Grid ColumnDefinitions="140,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto,Auto,Auto" >
+
+            <!-- Titel -->
+            <TextBlock Grid.Row="0" Grid.Column="0" VerticalAlignment="Center" Text="Titel" />
+            <TextBox   Grid.Row="0" Grid.Column="1" Text="{Binding UploadTitle}"
+                       Watermark="Mein tolles Plugin" Margin="0,0,0,6" />
+
+            <!-- Version -->
+            <TextBlock Grid.Row="1" Grid.Column="0" VerticalAlignment="Center" Text="Version" />
+            <TextBox   Grid.Row="1" Grid.Column="1" Text="{Binding UploadVersion}"
+                       Watermark="1.0.0" Margin="0,0,0,6" />
+
+            <!-- Typ -->
+            <TextBlock Grid.Row="2" Grid.Column="0" VerticalAlignment="Center" Text="Typ" />
+            <ComboBox  Grid.Row="2" Grid.Column="1"
+                       SelectedValue="{Binding UploadType}"
+                       HorizontalAlignment="Left" MinWidth="200" Margin="0,0,0,6">
+              <ComboBoxItem Content="🔌 Plugin"       Tag="plugin" />
+              <ComboBoxItem Content="📦 Modul"        Tag="module" />
+              <ComboBoxItem Content="🌐 Sprachpaket"  Tag="languagepack" />
+            </ComboBox>
+
+            <!-- Preis -->
+            <TextBlock Grid.Row="3" Grid.Column="0" VerticalAlignment="Center" Text="Preis (€)" />
+            <TextBox   Grid.Row="3" Grid.Column="1" Text="{Binding UploadPrice}"
+                       Watermark="0.00  (0 = kostenlos)" Margin="0,0,0,6" />
+
+            <!-- Min AAIA Version -->
+            <TextBlock Grid.Row="4" Grid.Column="0" VerticalAlignment="Center" Text="Min. AAIA-Version" />
+            <TextBox   Grid.Row="4" Grid.Column="1" Text="{Binding UploadMinVersion}"
+                       Watermark="1.0.0" Margin="0,0,0,6" />
+
+            <!-- Beschreibung -->
+            <TextBlock Grid.Row="5" Grid.Column="0" VerticalAlignment="Top" Margin="0,4,0,0" Text="Beschreibung" />
+            <TextBox   Grid.Row="5" Grid.Column="1" Text="{Binding UploadDescription}"
+                       Watermark="Was macht dein Modul?" AcceptsReturn="True"
+                       MinHeight="80" TextWrapping="Wrap" Margin="0,0,0,6" />
+
+            <!-- ZIP-Datei -->
+            <TextBlock Grid.Row="6" Grid.Column="0" VerticalAlignment="Center" Text="ZIP-Datei" />
+            <Grid      Grid.Row="6" Grid.Column="1" ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0" Text="{Binding UploadFilePath}"
+                       Watermark="Pfad zur ZIP-Datei..."
+                       IsReadOnly="True" Margin="0,0,8,0" />
+              <Button  Grid.Column="1" Content="Durchsuchen…"
+                       Command="{Binding BrowseZipFileCommand}" />
+            </Grid>
+
+          </Grid>
+
+          <!-- Aktions-Buttons -->
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <Button Classes="accent"
+                    Content="📤 Modul einreichen"
+                    Command="{Binding SubmitModuleCommand}"
+                    IsEnabled="{Binding !IsBusy}" />
+            <Button Classes="ghost"
+                    Content="Abbrechen"
+                    Command="{Binding ToggleUploadFormCommand}" />
+          </StackPanel>
+        </StackPanel>
+      </Border>
+
+      <!-- ══ PUBLISHER-SCHLÜSSEL (eingeloggt) ══════════════════════════════════ -->
       <Border Classes="card" IsVisible="{Binding IsLoggedIn}">
         <StackPanel Spacing="10">
           <TextBlock Classes="h2" Text="Publisher-Schlüssel" />
           <TextBlock Classes="muted"
                      Text="Dein privater Schlüssel bleibt lokal. Nur der Public Key wird registriert." />
 
-          <!-- Vorhandener Key -->
           <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding HasPublisherKey}">
             <TextBlock Classes="success" Text="✅" VerticalAlignment="Center" />
             <TextBlock Text="{Binding KeyId, StringFormat='Registrierter Key: {0}'}"
                        VerticalAlignment="Center"/>
           </StackPanel>
 
-          <!-- Kein Key -->
           <TextBlock Classes="muted warning"
                      Text="⚠ Kein Publisher-Schlüssel hinterlegt. Signierung nicht möglich."
                      IsVisible="{Binding !HasPublisherKey}" />
@@ -110,7 +273,7 @@
         </StackPanel>
       </Border>
 
-      <!-- Status + Log -->
+      <!-- ══ STATUS + LOG ═══════════════════════════════════════════════════════ -->
       <Border Classes="card">
         <StackPanel Spacing="8">
           <TextBlock Classes="h2" Text="Status" />

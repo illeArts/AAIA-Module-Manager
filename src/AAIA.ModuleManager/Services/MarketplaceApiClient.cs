@@ -1,5 +1,6 @@
 using AAIA.Shared.Contracts.Marketplace;
 using AAIA.Shared.Contracts.Publisher;
+using AAIA.Shared.Contracts.Routes;
 using System.Net.Http.Headers;
 using System.Net.Http.Json;
 using System.Text.Json;
@@ -7,15 +8,13 @@ using System.Text.Json;
 namespace AAIA.ModuleManager.Services;
 
 /// <summary>
-/// HTTP-Client gegen die AAIA Marketplace API (WordPress REST: /wp-json/aaia/v1/).
-/// MarketplaceApiUrl in AppConfig muss auf den Namespace-Root zeigen,
-/// z.B. "https://aaiagent.de/wp-json/aaia/v1" oder
-/// "https://aaiagent.de/index.php?rest_route=/aaia/v1".
+/// HTTP-Client gegen die AAIA Marketplace Backend-API (ASP.NET Core).
+/// Basis-URL: AppConfig.MarketplaceBackendApiUrl, z.B. "https://api.marketplace.aaia.app".
+/// Alle Routen werden aus AaiaApiRoutes-Konstanten gebaut (/api/...).
 /// </summary>
 public sealed class MarketplaceApiClient : IDisposable
 {
     private readonly HttpClient _http;
-    private readonly string? _restRouteBase;
 
     private static readonly JsonSerializerOptions _json = new()
     {
@@ -25,10 +24,9 @@ public sealed class MarketplaceApiClient : IDisposable
 
     public MarketplaceApiClient(string baseUrl)
     {
-        var trimmedBaseUrl = baseUrl.TrimEnd('/');
-        var uri = new Uri(trimmedBaseUrl + (trimmedBaseUrl.Contains('?') ? "" : "/"));
+        var uri = new Uri(baseUrl.TrimEnd('/') + "/");
 
-        // Für localhost/127.0.0.1 SSL-Zertifikatsfehler ignorieren (Entwicklungsumgebung / XAMPP).
+        // SSL-Fehler auf localhost ignorieren (Entwicklungsumgebung).
         var handler = new HttpClientHandler();
         if (uri.Host is "localhost" or "127.0.0.1" or "::1")
         {
@@ -36,28 +34,13 @@ public sealed class MarketplaceApiClient : IDisposable
                 HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
         }
 
-        _restRouteBase = uri.Query.Contains("rest_route=", StringComparison.OrdinalIgnoreCase)
-            ? trimmedBaseUrl
-            : null;
-
-        _http = new HttpClient(handler)
-        {
-            BaseAddress = _restRouteBase is null
-                ? uri
-                : new Uri($"{uri.Scheme}://{uri.Authority}/")
-        };
+        _http = new HttpClient(handler) { BaseAddress = uri };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("AAIA-ModuleManager/1.0");
         _http.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
-    private string Url(string relative)
-    {
-        relative = relative.TrimStart('/');
-        return _restRouteBase is null
-            ? relative
-            : $"{_restRouteBase}/{relative}";
-    }
+
 
     // ── Developer Auth ─────────────────────────────────────────────────────────
 
@@ -65,7 +48,7 @@ public sealed class MarketplaceApiClient : IDisposable
         DeveloperRegisterRequest req,
         CancellationToken ct = default)
     {
-        var resp = await _http.PostAsJsonAsync(Url("developers/register"), req, ct);
+        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.Register, req, ct);
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<DeveloperRegisterResponse>(_json, ct)
                ?? throw new InvalidOperationException("Leere Antwort vom Server.");
@@ -75,7 +58,7 @@ public sealed class MarketplaceApiClient : IDisposable
         DeveloperLoginRequest req,
         CancellationToken ct = default)
     {
-        var resp = await _http.PostAsJsonAsync(Url("developers/login"), req, ct);
+        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.Login, req, ct);
         await EnsureSuccessAsync(resp, ct);
         var result = await resp.Content.ReadFromJsonAsync<DeveloperLoginResponse>(_json, ct)
                      ?? throw new InvalidOperationException("Leere Antwort vom Server.");
@@ -93,7 +76,7 @@ public sealed class MarketplaceApiClient : IDisposable
         CancellationToken ct = default)
     {
         var body = new { etwId, totpCode };
-        var resp = await _http.PostAsJsonAsync(Url("developers/verify-totp"), body, ct);
+        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.VerifyTotp, body, ct);
         await EnsureSuccessAsync(resp, ct);
         var result = await resp.Content.ReadFromJsonAsync<DeveloperLoginResponse>(_json, ct)
                      ?? throw new InvalidOperationException("Leere Antwort vom Server.");
@@ -105,7 +88,8 @@ public sealed class MarketplaceApiClient : IDisposable
         string etwId,
         CancellationToken ct = default)
     {
-        var resp = await _http.GetAsync(Url($"developers/{Uri.EscapeDataString(etwId)}"), ct);
+        var url  = AaiaApiRoutes.Developers.GetById.Replace("{etwId}", Uri.EscapeDataString(etwId));
+        var resp = await _http.GetAsync(url, ct);
         if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<DeveloperAccountDto>(_json, ct);
@@ -114,7 +98,7 @@ public sealed class MarketplaceApiClient : IDisposable
     public async Task<DeveloperAccountDto?> GetMyProfileAsync(
         CancellationToken ct = default)
     {
-        var resp = await _http.GetAsync(Url("developers/me"), ct);
+        var resp = await _http.GetAsync(AaiaApiRoutes.Developers.Me, ct);
         if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<DeveloperAccountDto>(_json, ct);
@@ -124,7 +108,7 @@ public sealed class MarketplaceApiClient : IDisposable
         RegisterPublisherKeyRequest req,
         CancellationToken ct = default)
     {
-        var resp = await _http.PostAsJsonAsync(Url("admin/publisher-keys"), req, ct);
+        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.RegisterKey, req, ct);
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<RegisterPublisherKeyResponse>(_json, ct)
                ?? throw new InvalidOperationException("Leere Antwort vom Server.");
@@ -137,7 +121,8 @@ public sealed class MarketplaceApiClient : IDisposable
         ModulePublishRequest req,
         CancellationToken ct = default)
     {
-        var url  = Url($"modules/{Uri.EscapeDataString(moduleId)}/publish");
+        var url  = AaiaApiRoutes.Marketplace.Publish
+                       .Replace("{id}", Uri.EscapeDataString(moduleId));
         var resp = await _http.PostAsJsonAsync(url, req, ct);
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<ModulePublishResponse>(_json, ct)
@@ -147,17 +132,17 @@ public sealed class MarketplaceApiClient : IDisposable
     // ── Account löschen ───────────────────────────────────────────────────────
 
     /// <summary>
-    /// Pending-Account: nur etw_id + email nötig (kein Bearer).
-    /// Aktiver Account: SetBearer() vorher aufrufen.
+    /// Pending-Account löschen (nur E-Mail als Credential — kein Bearer nötig).
     /// </summary>
     public async Task DeleteAccountAsync(
         string etwId,
         string email,
         CancellationToken ct = default)
     {
-        var body = new { etwId, email };
-        var resp = await _http.PostAsJsonAsync(
-            Url($"developers/{Uri.EscapeDataString(etwId)}/delete"), body, ct);
+        var url  = AaiaApiRoutes.Developers.Delete
+                       .Replace("{etwId}", Uri.EscapeDataString(etwId));
+        var body = new { email };
+        var resp = await _http.PostAsJsonAsync(url, body, ct);
         await EnsureSuccessAsync(resp, ct);
     }
 
@@ -168,7 +153,9 @@ public sealed class MarketplaceApiClient : IDisposable
         string email,
         CancellationToken ct = default)
     {
-        var url  = Url($"licenses/check?moduleId={Uri.EscapeDataString(moduleId)}&email={Uri.EscapeDataString(email)}");
+        var url  = $"{AaiaApiRoutes.Marketplace.LicenseCheck}" +
+                   $"?moduleId={Uri.EscapeDataString(moduleId)}" +
+                   $"&email={Uri.EscapeDataString(email)}";
         var resp = await _http.GetAsync(url, ct);
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<LicenseCheckResult>(_json, ct)
