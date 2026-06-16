@@ -119,6 +119,11 @@
         <tabs:LicensesTab DataContext="{Binding LicensesTab}"/>
       </TabItem>
 
+      <!-- Tab 8: Marketplace Browse — für alle sichtbar -->
+      <TabItem Header="🛒  Marketplace">
+        <tabs:MarketplaceBrowseTab DataContext="{Binding BrowseTab}"/>
+      </TabItem>
+
       <!-- ── Owner-only Tabs (am Ende — werden bei ETW nie ausgewählt) ── -->
 
       <!-- Tab 8: SDK / Contracts (nur Owner) -->

@@ -4,7 +4,7 @@ setlocal EnableDelayedExpansion
 :: ============================================================
 ::  AAIA Module Manager - Build + Installer
 ::  Aufruf: build-installer.bat
-::  Erzeugt: installer\dist\AAIA_ModuleManager_v2.3.0_Setup.exe
+::  Erzeugt: installer\dist\AAIA_ModuleManager_v2.3.1_Setup.exe
 :: ============================================================
 
 set PROJECT=..\src\AAIA.ModuleManager\AAIA.ModuleManager.csproj
@@ -64,7 +64,7 @@ if errorlevel 1 (
 echo.
 echo  ================================================
 echo   Installer fertig:
-echo   installer\dist\AAIA_ModuleManager_v2.3.0_Setup.exe
+echo   installer\dist\AAIA_ModuleManager_v2.3.1_Setup.exe
 echo  ================================================
 echo.
 pause

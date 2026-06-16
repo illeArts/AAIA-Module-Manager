@@ -75,13 +75,23 @@ public class AppConfig
     /// <summary>Pfad zum privaten Publisher-Schlüssel (lokal, nie auf Server).</summary>
     public string? PublisherPrivateKeyPath { get; set; }
 
-    // ── Marketplace Backend (ASP.NET Core — aaia-marketplace-api) ─────────────
+    // ── Marketplace Backend (jetzt: WordPress REST API) ──────────────────────
     /// <summary>
-    /// Basis-URL der AAIA Marketplace Backend-API (ASP.NET Core).
-    /// Verschieden von MarketplaceApiUrl (WordPress).
-    /// Beispiel: "https://api.marketplace.aaia.app"
+    /// Basis-URL der Marketplace-Backend-API.
+    /// Nach der Migration zur WordPress REST API ist das identisch mit MarketplaceApiUrl.
+    /// Diese Property bleibt für Rückwärtskompatibilität erhalten — existierende
+    /// config.json-Werte werden beim Laden ignoriert (Setter ist no-op).
+    /// Aufrufer, die MarketplaceBackendApiUrl setzen oder lesen, nutzen fortan
+    /// automatisch die WordPress-URL.
     /// </summary>
-    public string MarketplaceBackendApiUrl { get; set; } = "https://api.marketplace.aaia.app";
+    [System.Text.Json.Serialization.JsonIgnore]
+    public string MarketplaceBackendApiUrl
+    {
+        get => MarketplaceApiUrl;
+        // Setter: no-op — Wert aus config.json ("https://api.marketplace.aaia.app") wird ignoriert.
+        // Die URL wird aus MarketplaceApiUrl abgeleitet.
+        set { /* deliberately empty — rückwärtskompatibel, kein Effekt */ }
+    }
 
     /// <summary>Set after LoadAsync() — allows services to access config without DI.</summary>
     public static AppConfig? Current { get; internal set; }

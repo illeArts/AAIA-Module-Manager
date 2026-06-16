@@ -93,7 +93,7 @@ public sealed partial class LoginWindowViewModel : ObservableObject
 
     public record LoginSucceededArgs(string EtwId, string DisplayName, string AccessToken, DeveloperRole Role);
 
-    public string MarketplaceApiUrl => _config.MarketplaceBackendApiUrl;
+    public string MarketplaceApiUrl => _config.MarketplaceApiUrl;
 
     // ── Konstruktor ────────────────────────────────────────────────────────────
 

@@ -1,0 +1,126 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.MarketplaceBrowseTab"
+             x:DataType="vm:MarketplaceBrowseViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- ── Header + Suche ── -->
+    <StackPanel Grid.Row="0" Margin="20,20,20,12" Spacing="12">
+
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Classes="h1" Text="🛒  Marketplace" />
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Classes="muted" FontSize="12"
+                       Text="{Binding TotalCount, StringFormat='{}{0} Module verfügbar'}" />
+            <TextBlock Classes="muted" FontSize="12" Text="·"
+                       IsVisible="{Binding IsLoading}"/>
+            <TextBlock Classes="muted" FontSize="12" Text="Lädt..."
+                       IsVisible="{Binding IsLoading}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <Button Grid.Column="1" Classes="ghost" Content="↻ Aktualisieren"
+                Command="{Binding LoadCommand}"
+                IsEnabled="{Binding !IsLoading}"
+                VerticalAlignment="Center"/>
+      </Grid>
+
+      <!-- Suchfeld -->
+      <TextBox Text="{Binding SearchText}"
+               Watermark="Module suchen..."
+               Padding="10,8"
+               CornerRadius="6"
+               Background="#1e1e3a"
+               Foreground="#e0e0e0"
+               BorderBrush="#2a2a4a"
+               BorderThickness="1"/>
+
+      <!-- Fehler / Leer-Hinweis -->
+      <TextBlock Classes="muted" FontSize="12"
+                 Text="{Binding StatusMessage}"
+                 IsVisible="{Binding StatusMessage,
+                     Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                 HorizontalAlignment="Center"/>
+    </StackPanel>
+
+    <!-- ── Modul-Grid ── -->
+    <ScrollViewer Grid.Row="1" Padding="20,0,20,20">
+      <ItemsControl ItemsSource="{Binding Modules}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:ModuleFeedItemVm">
+
+            <!-- Modul-Karte -->
+            <Border Width="260" Margin="0,0,12,12"
+                    CornerRadius="8"
+                    Background="#1e1e3a"
+                    BorderBrush="#2a2a4a"
+                    BorderThickness="1"
+                    Padding="16">
+              <StackPanel Spacing="10">
+
+                <!-- Typ-Badge + Version -->
+                <Grid ColumnDefinitions="*,Auto">
+                  <Border Grid.Column="0"
+                          CornerRadius="4" Padding="6,2"
+                          HorizontalAlignment="Left">
+                    <Border.Background>
+                      <SolidColorBrush Color="#12122a"/>
+                    </Border.Background>
+                    <TextBlock Text="{Binding TypeLabel}"
+                               FontSize="10" FontWeight="SemiBold"
+                               Foreground="{Binding TypeColor}"/>
+                  </Border>
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding Version, StringFormat='v{0}'}"
+                             Classes="muted" FontSize="10"
+                             VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Name -->
+                <TextBlock Text="{Binding Name}"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="#e0e0e0"
+                           TextWrapping="Wrap"
+                           MaxLines="2"
+                           TextTrimming="CharacterEllipsis"/>
+
+                <!-- Code -->
+                <TextBlock Text="{Binding Code}"
+                           FontFamily="Consolas,Menlo,monospace"
+                           FontSize="10" Foreground="#5a607a"/>
+
+                <!-- Preis + Button -->
+                <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
+                  <TextBlock Grid.Column="0"
+                             Text="{Binding PriceDisplay}"
+                             FontSize="13" FontWeight="Bold"
+                             Foreground="#06d6a0"
+                             VerticalAlignment="Center"/>
+                  <Button Grid.Column="1"
+                          Classes="primary"
+                          Content="→ Öffnen"
+                          FontSize="11"
+                          Padding="10,5"
+                          Command="{Binding $parent[UserControl].((vm:MarketplaceBrowseViewModel)DataContext).OpenInBrowserCommand}"
+                          CommandParameter="{Binding}"/>
+                </Grid>
+
+              </StackPanel>
+            </Border>
+
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+  </Grid>
+
+</UserControl>

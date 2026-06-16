@@ -12,9 +12,10 @@ public partial class MainWindowViewModel : ObservableObject
     public RegistryTabViewModel  RegistryTab  { get; }
     public TesterTabViewModel    TesterTab    { get; }
     public SetupTabViewModel     SetupTab     { get; }
-    public DeveloperTabViewModel DeveloperTab { get; }
-    public PublishTabViewModel   PublishTab   { get; }
-    public LicensesTabViewModel  LicensesTab  { get; }
+    public DeveloperTabViewModel      DeveloperTab { get; }
+    public PublishTabViewModel        PublishTab   { get; }
+    public LicensesTabViewModel       LicensesTab  { get; }
+    public MarketplaceBrowseViewModel BrowseTab    { get; }
 
     // ── Developer-Identität (Titelleiste) ─────────────────────────────────────
 
@@ -52,6 +53,7 @@ public partial class MainWindowViewModel : ObservableObject
         DeveloperTab = new DeveloperTabViewModel(config, marketplaceClient, wpMarketplace, certSvc);
         PublishTab   = new PublishTabViewModel(config, publishSvc, marketplaceClient);
         LicensesTab  = new LicensesTabViewModel(config, TesterTab.AaiasConn);
+        BrowseTab    = new MarketplaceBrowseViewModel(wpMarketplace);
 
         _ = TesterTab.InitAsync(config);
 

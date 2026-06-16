@@ -18,10 +18,19 @@
                 Command="{Binding OpenActivateDialogCommand}" />
         <Button Classes="ghost" Content="↻ Aktualisieren"
                 Command="{Binding RefreshCommand}" />
+        <Button Classes="ghost" Content="⬇ Herunterladen"
+                Command="{Binding DownloadLicenseCommand}"
+                IsVisible="{Binding CanDownloadSelected}"
+                IsEnabled="{Binding !IsDownloading}" />
         <Button Classes="danger" Content="🗑 Entfernen"
                 Command="{Binding RemoveLicenseCommand}"
                 IsVisible="{Binding Selected, Converter={x:Static ObjectConverters.IsNotNull}}" />
       </StackPanel>
+
+      <!-- Download-Status -->
+      <TextBlock Classes="muted" FontSize="11"
+                 Text="{Binding StatusMessage}"
+                 IsVisible="{Binding IsDownloading}" />
 
       <!-- Leer-Hinweis -->
       <Border Classes="card"

@@ -150,6 +150,8 @@ public sealed partial class DeveloperTabViewModel : ObservableObject
             EtwId       = _config.DeveloperEtwId ?? "";
             DisplayName = _config.DeveloperDisplayName ?? "";
             IsLoggedIn  = true;
+            // Account-Link sicherstellen (falls beim letzten Login verpasst)
+            _ = TryLinkAccountAsync();
         }
     }
 
@@ -176,6 +178,7 @@ public sealed partial class DeveloperTabViewModel : ObservableObject
             IsLoggedIn  = true;
             StatusMessage = $"Eingeloggt als {result.EtwId}";
 
+            _ = TryLinkAccountAsync();
             await LoadProfileAsync(ct);
             await LoadModulesAndStatsAsync(ct);
         }
@@ -391,6 +394,15 @@ public sealed partial class DeveloperTabViewModel : ObservableObject
         !string.IsNullOrWhiteSpace(UploadVersion);
 
     // ── Helpers ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Verknüpft ETW-Account mit WordPress-User. Non-fatal, fire-and-forget geeignet.
+    /// </summary>
+    private async Task TryLinkAccountAsync()
+    {
+        try { await _wpApi.LinkAccountAsync(); }
+        catch { /* bewusst ignoriert — non-critical */ }
+    }
 
     private async Task LoadProfileAsync(CancellationToken ct)
     {

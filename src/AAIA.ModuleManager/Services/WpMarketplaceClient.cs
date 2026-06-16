@@ -35,6 +35,22 @@ public sealed record DeveloperStatsDto(
     [property: JsonPropertyName("revenueShare")]       decimal RevenueShare
 );
 
+public sealed record ModuleFeedItem(
+    [property: JsonPropertyName("product_id")] int     ProductId,
+    [property: JsonPropertyName("code")]       string  Code,
+    [property: JsonPropertyName("type")]       string  Type,
+    [property: JsonPropertyName("name")]       string  Name,
+    [property: JsonPropertyName("version")]    string  Version,
+    [property: JsonPropertyName("price")]      decimal Price,
+    [property: JsonPropertyName("currency")]   string  Currency,
+    [property: JsonPropertyName("url")]        string  Url
+);
+
+public sealed record ModuleFeedResponse(
+    [property: JsonPropertyName("count")] int                  Count,
+    [property: JsonPropertyName("items")] List<ModuleFeedItem> Items
+);
+
 public sealed class ModuleUploadRequest
 {
     public string Title         { get; init; } = "";
@@ -171,7 +187,206 @@ public sealed class WpMarketplaceClient : IDisposable
         return JsonDocument.Parse(body);
     }
 
-    // ── Fehler-Hilfsmethode ───────────────────────────────────────────────────
+    /// <summary>
+    /// POST /aaia/v1/developers/link
+    /// Verknüpft den ETW-Account (aus dem Bearer-JWT) mit dem WordPress-User.
+    /// Legt den WP-User bei Bedarf automatisch an.
+    /// JWT erforderlich. Non-fatal — Fehler werden still ignoriert.
+    /// </summary>
+    public async Task<bool> LinkAccountAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.PostAsync(Url("/developers/link"),
+                new StringContent("{}", System.Text.Encoding.UTF8, "application/json"), ct);
+            return resp.IsSuccessStatusCode;
+        }
+        catch
+        {
+            return false;
+        }
+    }
+
+    // ── Auth-Methoden (Migration von ASP.NET Core → WordPress) ───────────────
+
+    /// <summary>
+    /// POST /aaia/v1/auth/register
+    /// Registriert einen neuen ETW-Developer-Account im WordPress-Plugin.
+    /// </summary>
+    public async Task<DeveloperRegisterResponse> RegisterDeveloperAsync(
+        DeveloperRegisterRequest req,
+        CancellationToken ct = default)
+    {
+        var body = new
+        {
+            displayName   = req.DisplayName,
+            email         = req.Email,
+            password      = req.Password,
+            gitHubAccount = req.GitHubAccount,
+        };
+        var resp = await _http.PostAsJsonAsync(Url("/auth/register"), body, ct);
+        await EnsureSuccessAsync(resp, ct);
+        return await resp.Content.ReadFromJsonAsync<DeveloperRegisterResponse>(_json, ct)
+               ?? throw new InvalidOperationException("Leere Antwort vom Server.");
+    }
+
+    /// <summary>
+    /// POST /aaia/v1/auth/login
+    /// Login mit E-Mail + Passwort, optional TOTP-Code.
+    /// </summary>
+    public async Task<DeveloperLoginResponse> LoginDeveloperAsync(
+        DeveloperLoginRequest req,
+        CancellationToken ct = default)
+    {
+        var body = new
+        {
+            email    = req.Email,
+            password = req.Password,
+            totpCode = req.TotpCode,
+        };
+        var resp = await _http.PostAsJsonAsync(Url("/auth/login"), body, ct);
+        await EnsureSuccessAsync(resp, ct);
+        var result = await resp.Content.ReadFromJsonAsync<DeveloperLoginResponse>(_json, ct)
+                     ?? throw new InvalidOperationException("Leere Antwort vom Server.");
+        SetBearer(result.AccessToken);
+        return result;
+    }
+
+    /// <summary>
+    /// POST /aaia/v1/auth/verify-totp
+    /// TOTP nach Registrierung bestätigen, Account aktivieren, JWT erhalten.
+    /// </summary>
+    public async Task<DeveloperLoginResponse> VerifyTotpAsync(
+        string etwId,
+        string totpCode,
+        CancellationToken ct = default)
+    {
+        var body = new { etwId, totpCode };
+        var resp = await _http.PostAsJsonAsync(Url("/auth/verify-totp"), body, ct);
+        await EnsureSuccessAsync(resp, ct);
+        var result = await resp.Content.ReadFromJsonAsync<DeveloperLoginResponse>(_json, ct)
+                     ?? throw new InvalidOperationException("Leere Antwort vom Server.");
+        SetBearer(result.AccessToken);
+        return result;
+    }
+
+    /// <summary>
+    /// DELETE /aaia/v1/auth/account
+    /// Pending-Account löschen (Registrierung abbrechen — kein JWT nötig).
+    /// </summary>
+    public async Task DeleteAccountAsync(
+        string etwId,
+        string email,
+        CancellationToken ct = default)
+    {
+        var body    = new { etwId, email };
+        var json    = System.Text.Json.JsonSerializer.Serialize(body);
+        var content = new StringContent(json, System.Text.Encoding.UTF8, "application/json");
+        var request = new HttpRequestMessage(HttpMethod.Delete, Url("/auth/account"))
+        {
+            Content = content,
+        };
+        var resp = await _http.SendAsync(request, ct);
+        await EnsureSuccessAsync(resp, ct);
+    }
+
+    /// <summary>
+    /// GET /aaia/v1/developers/{etwId}
+    /// Öffentliches Entwickler-Profil abrufen (JWT erforderlich).
+    /// </summary>
+    public async Task<DeveloperAccountDto?> GetDeveloperProfileAsync(
+        string etwId,
+        CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync(Url($"/developers/{Uri.EscapeDataString(etwId)}"), ct);
+        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
+        await EnsureSuccessAsync(resp, ct);
+        var raw = await resp.Content.ReadFromJsonAsync<WpDeveloperProfileDto>(_json, ct);
+        if (raw is null) return null;
+        return raw.ToAccountDto();
+    }
+
+    /// <summary>
+    /// GET /aaia/v1/developers/me — Eigenes Profil abrufen.
+    /// Da WP keinen /me-Alias hat, nutzen wir /developers/me (link) wenn vorhanden.
+    /// Fällt zurück auf GetDeveloperProfileAsync mit der ETW-ID aus dem JWT.
+    /// </summary>
+    public async Task<DeveloperAccountDto?> GetMyProfileAsync(
+        CancellationToken ct = default)
+    {
+        // Versuche zuerst den /developers/me Endpunkt (AAIA_Developer_Auth)
+        var resp = await _http.GetAsync(Url("/developers/me"), ct);
+        if (resp.IsSuccessStatusCode)
+        {
+            var raw = await resp.Content.ReadFromJsonAsync<WpDeveloperProfileDto>(_json, ct);
+            return raw?.ToAccountDto();
+        }
+        return null;
+    }
+
+    /// <summary>
+    /// POST /aaia/v1/publishers/keys
+    /// Registriert den öffentlichen Publisher-Schlüssel (PEM) beim WordPress-Plugin.
+    /// JWT erforderlich.
+    /// </summary>
+    public async Task<RegisterPublisherKeyResponse> RegisterPublisherKeyAsync(
+        RegisterPublisherKeyRequest req,
+        CancellationToken ct = default)
+    {
+        var body = new
+        {
+            keyId     = req.KeyId,
+            publicKey = req.PublicKeyPem,
+        };
+        var resp = await _http.PostAsJsonAsync(Url("/publishers/keys"), body, ct);
+        await EnsureSuccessAsync(resp, ct);
+        var raw = await resp.Content.ReadFromJsonAsync<WpPublisherKeyResponseDto>(_json, ct)
+                  ?? throw new InvalidOperationException("Leere Antwort vom Server.");
+        return new RegisterPublisherKeyResponse(
+            KeyId:        raw.KeyId,
+            EtwId:        raw.EtwId,
+            RegisteredAt: DateTimeOffset.TryParse(raw.RegisteredAt, out var dt) ? dt : DateTimeOffset.UtcNow);
+    }
+
+    // ── Interne DTOs für WordPress-JSON-Mapping ────────────────────────────────
+
+    private sealed record WpDeveloperProfileDto(
+        [property: System.Text.Json.Serialization.JsonPropertyName("etwId")]       string  EtwId,
+        [property: System.Text.Json.Serialization.JsonPropertyName("displayName")] string  DisplayName,
+        [property: System.Text.Json.Serialization.JsonPropertyName("email")]       string  Email,
+        [property: System.Text.Json.Serialization.JsonPropertyName("role")]        string  Role,
+        [property: System.Text.Json.Serialization.JsonPropertyName("reputation")]  float   Reputation,
+        [property: System.Text.Json.Serialization.JsonPropertyName("moduleCount")] int     ModuleCount,
+        [property: System.Text.Json.Serialization.JsonPropertyName("keyId")]       string? KeyId,
+        [property: System.Text.Json.Serialization.JsonPropertyName("status")]      string  Status,
+        [property: System.Text.Json.Serialization.JsonPropertyName("verified")]    bool    Verified)
+    {
+        public DeveloperAccountDto ToAccountDto()
+        {
+            var role   = Enum.TryParse<DeveloperRole>(Role, true, out var r)   ? r : DeveloperRole.Community;
+            var status = Enum.TryParse<DeveloperStatus>(Status, true, out var s) ? s : DeveloperStatus.Active;
+            return new DeveloperAccountDto(
+                EtwId:        EtwId,
+                DisplayName:  DisplayName,
+                Email:        Email,
+                GitHubAccount: null,
+                NuGetProfile:  null,
+                Role:         role,
+                Status:       status,
+                Verified:     Verified,
+                KeyId:        KeyId,
+                Reputation:   Reputation,
+                CreatedAt:    DateTimeOffset.UtcNow,
+                ModuleCount:  ModuleCount);
+        }
+    }
+
+    private sealed record WpPublisherKeyResponseDto(
+        [property: System.Text.Json.Serialization.JsonPropertyName("keyId")]        string KeyId,
+        [property: System.Text.Json.Serialization.JsonPropertyName("etwId")]        string EtwId,
+        [property: System.Text.Json.Serialization.JsonPropertyName("registeredAt")] string RegisteredAt);
+
+    // ── Fehler-Hilfsmethode ────────────────────────────────────────────────────
 
     private static async Task EnsureSuccessAsync(HttpResponseMessage resp, CancellationToken ct)
     {
@@ -180,18 +395,23 @@ public sealed class WpMarketplaceClient : IDisposable
         string detail = string.Empty;
         try
         {
+            var contentType = resp.Content.Headers.ContentType?.MediaType ?? string.Empty;
             var body = await resp.Content.ReadAsStringAsync(ct);
-            if (!string.IsNullOrWhiteSpace(body))
+
+            if (!string.IsNullOrWhiteSpace(body) && contentType.Contains("application/json"))
             {
-                using var doc = JsonDocument.Parse(body);
+                using var doc = System.Text.Json.JsonDocument.Parse(body);
                 var root = doc.RootElement;
-                // WordPress gibt Fehler als {"code":"...", "message":"...", "data":{...}}
-                if (root.TryGetProperty("message", out var m)) detail = m.GetString() ?? string.Empty;
-                else if (root.TryGetProperty("error", out var e)) detail = e.GetString() ?? string.Empty;
+                if (root.TryGetProperty("error",   out var e)) detail = e.GetString() ?? string.Empty;
+                else if (root.TryGetProperty("message", out var m)) detail = m.GetString() ?? string.Empty;
                 else detail = body;
             }
+            else if (!string.IsNullOrWhiteSpace(body))
+            {
+                detail = $"HTTP {(int)resp.StatusCode}: Server antwortete kein JSON. Möglicherweise Cloudflare-Block oder falsche API-URL.";
+            }
         }
-        catch { /* Fallback */ }
+        catch { /* Fallback auf Status */ }
 
         var msg = string.IsNullOrWhiteSpace(detail)
             ? $"HTTP {(int)resp.StatusCode} {resp.ReasonPhrase}"

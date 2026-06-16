@@ -8,13 +8,30 @@ using System.Text.Json;
 namespace AAIA.ModuleManager.Services;
 
 /// <summary>
-/// HTTP-Client gegen die AAIA Marketplace Backend-API (ASP.NET Core).
-/// Basis-URL: AppConfig.MarketplaceBackendApiUrl, z.B. "https://api.marketplace.aaia.app".
-/// Alle Routen werden aus AaiaApiRoutes-Konstanten gebaut (/api/...).
+/// Fasade für alle Marketplace-API-Aufrufe.
+///
+/// Auth-Methoden (Register, Login, VerifyTotp, DeleteAccount, GetProfile, UploadPublicKey)
+/// leiten intern an <see cref="WpMarketplaceClient"/> weiter — sie landen jetzt direkt
+/// bei der WordPress REST API (aaiagent.de/wp-json/aaia/v1/...).
+///
+/// Nicht-Auth-Methoden (Publish, CheckLicense) verwenden weiterhin den internen
+/// HttpClient gegen die konfigurierte Basis-URL (Rückwärtskompatibilität).
+///
+/// Die öffentliche Signatur aller Methoden bleibt identisch — keine Änderungen
+/// an Viewmodels oder aufrufenden Services nötig.
 /// </summary>
 public sealed class MarketplaceApiClient : IDisposable
 {
+    /// <summary>
+    /// Interner HttpClient für Nicht-Auth-Aufrufe (Publish, LicenseCheck).
+    /// Wird nur noch für Methoden genutzt, die noch keine WP-REST-Route haben.
+    /// </summary>
     private readonly HttpClient _http;
+
+    /// <summary>
+    /// Delegiert alle Auth-Methoden an die WordPress REST API.
+    /// </summary>
+    private readonly WpMarketplaceClient _wp;
 
     private static readonly JsonSerializerOptions _json = new()
     {
@@ -22,128 +39,132 @@ public sealed class MarketplaceApiClient : IDisposable
         Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() }
     };
 
-    public MarketplaceApiClient(string baseUrl)
+    /// <param name="wpApiUrl">
+    ///   WordPress REST Basis-URL, z.B.
+    ///   "https://aaiagent.de/index.php?rest_route=/aaia/v1".
+    ///   Wird für Auth-Methoden an WpMarketplaceClient übergeben.
+    ///   Der interne HttpClient nutzt dieselbe URL als Fallback-Basis.
+    /// </param>
+    public MarketplaceApiClient(string wpApiUrl)
     {
-        var uri = new Uri(baseUrl.TrimEnd('/') + "/");
+        // WpMarketplaceClient übernimmt alle Auth-Routen
+        _wp = new WpMarketplaceClient(wpApiUrl);
 
-        // SSL-Fehler auf localhost ignorieren (Entwicklungsumgebung).
+        // Interner HttpClient für verbleibende Routen (Publish etc.)
+        // Basis-URL: Host aus der WP-URL ohne Query-String
+        var wpUri    = new Uri(wpApiUrl);
+        var baseUri  = new Uri($"{wpUri.Scheme}://{wpUri.Authority}/");
+
         var handler = new HttpClientHandler();
-        if (uri.Host is "localhost" or "127.0.0.1" or "::1")
+        if (wpUri.Host is "localhost" or "127.0.0.1" or "::1")
         {
             handler.ServerCertificateCustomValidationCallback =
                 HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
         }
 
-        _http = new HttpClient(handler) { BaseAddress = uri };
+        _http = new HttpClient(handler) { BaseAddress = baseUri };
         _http.DefaultRequestHeaders.UserAgent.ParseAdd("AAIA-ModuleManager/1.0");
         _http.DefaultRequestHeaders.Accept.Add(
             new MediaTypeWithQualityHeaderValue("application/json"));
     }
 
+    // ── Developer Auth — delegiert an WpMarketplaceClient ────────────────────
 
-
-    // ── Developer Auth ─────────────────────────────────────────────────────────
-
+    /// <summary>
+    /// Registriert einen neuen ETW-Developer-Account.
+    /// POST /aaia/v1/auth/register (WordPress REST API)
+    /// </summary>
     public async Task<DeveloperRegisterResponse> RegisterAsync(
         DeveloperRegisterRequest req,
         CancellationToken ct = default)
-    {
-        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.Register, req, ct);
-        await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<DeveloperRegisterResponse>(_json, ct)
-               ?? throw new InvalidOperationException("Leere Antwort vom Server.");
-    }
+        => await _wp.RegisterDeveloperAsync(req, ct);
 
+    /// <summary>
+    /// Login mit E-Mail + Passwort, optional TOTP-Code.
+    /// POST /aaia/v1/auth/login (WordPress REST API)
+    /// Setzt den Bearer-Token intern nach erfolgreichem Login.
+    /// </summary>
     public async Task<DeveloperLoginResponse> LoginAsync(
         DeveloperLoginRequest req,
         CancellationToken ct = default)
     {
-        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.Login, req, ct);
-        await EnsureSuccessAsync(resp, ct);
-        var result = await resp.Content.ReadFromJsonAsync<DeveloperLoginResponse>(_json, ct)
-                     ?? throw new InvalidOperationException("Leere Antwort vom Server.");
-        SetBearer(result.AccessToken);
+        var result = await _wp.LoginDeveloperAsync(req, ct);
+        // Bearer auch im internen HttpClient setzen (für verbleibende Nicht-Auth-Routen)
+        _http.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", result.AccessToken);
         return result;
     }
 
     /// <summary>
-    /// TOTP nach Registrierung bestätigen.
-    /// Server aktiviert den Account und stellt direkt einen JWT aus.
+    /// TOTP nach Registrierung bestätigen, Account aktivieren, JWT erhalten.
+    /// POST /aaia/v1/auth/verify-totp (WordPress REST API)
     /// </summary>
     public async Task<DeveloperLoginResponse> VerifyTotpAsync(
         string etwId,
         string totpCode,
         CancellationToken ct = default)
     {
-        var body = new { etwId, totpCode };
-        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.VerifyTotp, body, ct);
-        await EnsureSuccessAsync(resp, ct);
-        var result = await resp.Content.ReadFromJsonAsync<DeveloperLoginResponse>(_json, ct)
-                     ?? throw new InvalidOperationException("Leere Antwort vom Server.");
-        SetBearer(result.AccessToken);
+        var result = await _wp.VerifyTotpAsync(etwId, totpCode, ct);
+        _http.DefaultRequestHeaders.Authorization =
+            new AuthenticationHeaderValue("Bearer", result.AccessToken);
         return result;
     }
 
+    /// <summary>
+    /// Entwickler-Profil abrufen.
+    /// GET /aaia/v1/developers/{etwId} (WordPress REST API)
+    /// </summary>
     public async Task<DeveloperAccountDto?> GetProfileAsync(
         string etwId,
         CancellationToken ct = default)
-    {
-        var url  = AaiaApiRoutes.Developers.GetById.Replace("{etwId}", Uri.EscapeDataString(etwId));
-        var resp = await _http.GetAsync(url, ct);
-        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
-        await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<DeveloperAccountDto>(_json, ct);
-    }
+        => await _wp.GetDeveloperProfileAsync(etwId, ct);
 
+    /// <summary>
+    /// Eigenes Profil abrufen (/developers/me — WP: via JWT aus Token).
+    /// Fällt zurück auf GetProfileAsync mit der gespeicherten ETW-ID.
+    /// </summary>
     public async Task<DeveloperAccountDto?> GetMyProfileAsync(
         CancellationToken ct = default)
-    {
-        var resp = await _http.GetAsync(AaiaApiRoutes.Developers.Me, ct);
-        if (resp.StatusCode == System.Net.HttpStatusCode.NotFound) return null;
-        await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<DeveloperAccountDto>(_json, ct);
-    }
+        => await _wp.GetMyProfileAsync(ct);
 
+    /// <summary>
+    /// Publisher-Schlüssel registrieren.
+    /// POST /aaia/v1/publishers/keys (WordPress REST API)
+    /// </summary>
     public async Task<RegisterPublisherKeyResponse> RegisterKeyAsync(
         RegisterPublisherKeyRequest req,
         CancellationToken ct = default)
-    {
-        var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.RegisterKey, req, ct);
-        await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<RegisterPublisherKeyResponse>(_json, ct)
-               ?? throw new InvalidOperationException("Leere Antwort vom Server.");
-    }
-
-    // ── Publish ────────────────────────────────────────────────────────────────
-
-    public async Task<ModulePublishResponse> PublishModuleAsync(
-        string moduleId,
-        ModulePublishRequest req,
-        CancellationToken ct = default)
-    {
-        var url  = AaiaApiRoutes.Marketplace.Publish
-                       .Replace("{id}", Uri.EscapeDataString(moduleId));
-        var resp = await _http.PostAsJsonAsync(url, req, ct);
-        await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<ModulePublishResponse>(_json, ct)
-               ?? throw new InvalidOperationException("Leere Antwort vom Server.");
-    }
-
-    // ── Account löschen ───────────────────────────────────────────────────────
+        => await _wp.RegisterPublisherKeyAsync(req, ct);
 
     /// <summary>
-    /// Pending-Account löschen (nur E-Mail als Credential — kein Bearer nötig).
+    /// Pending-Account löschen (Registrierung abbrechen).
+    /// DELETE /aaia/v1/auth/account (WordPress REST API)
     /// </summary>
     public async Task DeleteAccountAsync(
         string etwId,
         string email,
         CancellationToken ct = default)
+        => await _wp.DeleteAccountAsync(etwId, email, ct);
+
+    // ── Publish ────────────────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Modul veröffentlichen — noch über WordPress WpMarketplaceClient (SubmitModuleAsync).
+    /// Die Signatur bleibt identisch für Rückwärtskompatibilität.
+    /// </summary>
+    public async Task<ModulePublishResponse> PublishModuleAsync(
+        string moduleId,
+        ModulePublishRequest req,
+        CancellationToken ct = default)
     {
-        var url  = AaiaApiRoutes.Developers.Delete
-                       .Replace("{etwId}", Uri.EscapeDataString(etwId));
-        var body = new { email };
-        var resp = await _http.PostAsJsonAsync(url, body, ct);
+        // Wird über WpMarketplaceClient geleitet sobald WP-Route vorhanden
+        // Bis dahin: Direkt über internen HttpClient (Marketplace-API-Route)
+        var url  = BuildWpRestUrl(AaiaApiRoutes.Marketplace.Publish
+                       .Replace("{id}", Uri.EscapeDataString(moduleId)));
+        var resp = await _http.PostAsJsonAsync(url, req, ct);
         await EnsureSuccessAsync(resp, ct);
+        return await resp.Content.ReadFromJsonAsync<ModulePublishResponse>(_json, ct)
+               ?? throw new InvalidOperationException("Leere Antwort vom Server.");
     }
 
     // ── License ────────────────────────────────────────────────────────────────
@@ -153,21 +174,29 @@ public sealed class MarketplaceApiClient : IDisposable
         string email,
         CancellationToken ct = default)
     {
-        var url  = $"{AaiaApiRoutes.Marketplace.LicenseCheck}" +
-                   $"?moduleId={Uri.EscapeDataString(moduleId)}" +
-                   $"&email={Uri.EscapeDataString(email)}";
+        var url = BuildWpRestUrl(AaiaApiRoutes.Marketplace.LicenseCheck) +
+                  $"&moduleId={Uri.EscapeDataString(moduleId)}" +
+                  $"&email={Uri.EscapeDataString(email)}";
         var resp = await _http.GetAsync(url, ct);
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<LicenseCheckResult>(_json, ct)
                ?? throw new InvalidOperationException("Leere Antwort vom Server.");
     }
 
-    // ── Fehler-Hilfsmethode ────────────────────────────────────────────────────
+    // ── URL-Hilfsmethode ──────────────────────────────────────────────────────
 
     /// <summary>
-    /// Liest bei HTTP-Fehler den JSON-Body aus und wirft eine Exception
-    /// mit dem "error"- oder "message"-Feld des Servers — statt des generischen Statuscodes.
+    /// Baut eine WP-REST-URL aus dem Basis-Host des internen HttpClients.
+    /// Beispiel: "/aaia/v1/marketplace/..." → "https://host/index.php?rest_route=/aaia/v1/..."
     /// </summary>
+    private string BuildWpRestUrl(string routePath)
+    {
+        var host = _http.BaseAddress?.ToString().TrimEnd('/') ?? "";
+        return $"{host}/index.php?rest_route={Uri.EscapeDataString(routePath)}";
+    }
+
+    // ── Fehler-Hilfsmethode ────────────────────────────────────────────────────
+
     private static async Task EnsureSuccessAsync(HttpResponseMessage resp, CancellationToken ct)
     {
         if (resp.IsSuccessStatusCode) return;
@@ -188,7 +217,6 @@ public sealed class MarketplaceApiClient : IDisposable
             }
             else if (!string.IsNullOrWhiteSpace(body))
             {
-                // Kein JSON — wahrscheinlich Cloudflare-Block (HTML-Fehlerseite)
                 detail = $"HTTP {(int)resp.StatusCode}: Server antwortete kein JSON. Möglicherweise Cloudflare-Block oder falsche API-URL.";
             }
         }
@@ -205,12 +233,20 @@ public sealed class MarketplaceApiClient : IDisposable
 
     public void SetBearer(string token)
     {
+        _wp.SetBearer(token);
         _http.DefaultRequestHeaders.Authorization =
             new AuthenticationHeaderValue("Bearer", token);
     }
 
-    public void ClearBearer() =>
+    public void ClearBearer()
+    {
+        _wp.ClearBearer();
         _http.DefaultRequestHeaders.Authorization = null;
+    }
 
-    public void Dispose() => _http.Dispose();
+    public void Dispose()
+    {
+        _wp.Dispose();
+        _http.Dispose();
+    }
 }
