@@ -154,6 +154,18 @@ public sealed class WpMarketplaceClient : IDisposable
     }
 
     /// <summary>
+    /// GET /aaia/v1/modules/feed
+    /// Öffentlicher Marketplace-Feed — alle verfügbaren Module (kein JWT nötig).
+    /// </summary>
+    public async Task<ModuleFeedResponse> GetModulesFeedAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync(Url("/modules/feed"), ct);
+        await EnsureSuccessAsync(resp, ct);
+        return await resp.Content.ReadFromJsonAsync<ModuleFeedResponse>(_json, ct)
+               ?? new ModuleFeedResponse(0, new List<ModuleFeedItem>());
+    }
+
+    /// <summary>
     /// POST /aaia/v1/developers/modules  (multipart/form-data)
     /// Lädt ein neues Modul als ZIP hoch. Erstellt ein WooCommerce-Produkt (status=pending).
     /// JWT erforderlich.
