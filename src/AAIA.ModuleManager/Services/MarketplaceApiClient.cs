@@ -260,4 +260,3 @@ public sealed class MarketplaceApiClient : IDisposable
         _http.Dispose();
     }
 }
-                                                                                                   
