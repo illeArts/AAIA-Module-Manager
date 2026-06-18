@@ -149,50 +149,60 @@ public sealed class MarketplaceApiClient : IDisposable
     // ── Publish ────────────────────────────────────────────────────────────────
 
     /// <summary>
-    /// Modul veröffentlichen — noch über WordPress WpMarketplaceClient (SubmitModuleAsync).
-    /// Die Signatur bleibt identisch für Rückwärtskompatibilität.
+    /// Modul veröffentlichen über WordPress REST API (POST /aaia/v1/developers/modules).
+    /// <paramref name="filePath"/> muss auf die .aaix-Datei zeigen (multipart upload).
+    /// Ist kein Pfad angegeben, schlägt die Operation mit einem klaren Fehler fehl.
     /// </summary>
     public async Task<ModulePublishResponse> PublishModuleAsync(
         string moduleId,
         ModulePublishRequest req,
-        CancellationToken ct = default)
+        CancellationToken ct = default,
+        string? filePath = null)
     {
-        // Wird über WpMarketplaceClient geleitet sobald WP-Route vorhanden
-        // Bis dahin: Direkt über internen HttpClient (Marketplace-API-Route)
-        var url  = BuildWpRestUrl(AaiaApiRoutes.Marketplace.Publish
-                       .Replace("{id}", Uri.EscapeDataString(moduleId)));
-        var resp = await _http.PostAsJsonAsync(url, req, ct);
-        await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<ModulePublishResponse>(_json, ct)
-               ?? throw new InvalidOperationException("Leere Antwort vom Server.");
-    }
+        if (string.IsNullOrWhiteSpace(filePath) || !System.IO.File.Exists(filePath))
+        {
+            return new ModulePublishResponse(
+                Success:        false,
+                ModuleId:       moduleId,
+                Version:        req.Version,
+                DownloadUrl:    null,
+                MarketplaceUrl: null,
+                Error:          "Kein gültiger Dateipfad angegeben. Marketplace-Upload erfordert die .aaix-Datei.");
+        }
 
-    // ── License ────────────────────────────────────────────────────────────────
+        try
+        {
+            using var resultDoc = await _wp.SubmitModuleAsync(new ModuleUploadRequest
+            {
+                Title          = moduleId,
+                Version        = req.Version,
+                Type           = "module",
+                Description    = req.Changelog ?? string.Empty,
+                FilePath       = filePath,
+            }, ct);
 
-    public async Task<LicenseCheckResult> CheckLicenseAsync(
-        string moduleId,
-        string email,
-        CancellationToken ct = default)
-    {
-        var url = BuildWpRestUrl(AaiaApiRoutes.Marketplace.LicenseCheck) +
-                  $"&moduleId={Uri.EscapeDataString(moduleId)}" +
-                  $"&email={Uri.EscapeDataString(email)}";
-        var resp = await _http.GetAsync(url, ct);
-        await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<LicenseCheckResult>(_json, ct)
-               ?? throw new InvalidOperationException("Leere Antwort vom Server.");
-    }
+            var root      = resultDoc.RootElement;
+            var productId = root.TryGetProperty("productId", out var pid) ? pid.GetInt32() : 0;
+            var url       = root.TryGetProperty("url",       out var u)   ? u.GetString()  : null;
 
-    // ── URL-Hilfsmethode ──────────────────────────────────────────────────────
-
-    /// <summary>
-    /// Baut eine WP-REST-URL aus dem Basis-Host des internen HttpClients.
-    /// Beispiel: "/aaia/v1/marketplace/..." → "https://host/index.php?rest_route=/aaia/v1/..."
-    /// </summary>
-    private string BuildWpRestUrl(string routePath)
-    {
-        var host = _http.BaseAddress?.ToString().TrimEnd('/') ?? "";
-        return $"{host}/index.php?rest_route={Uri.EscapeDataString(routePath)}";
+            return new ModulePublishResponse(
+                Success:        productId > 0,
+                ModuleId:       moduleId,
+                Version:        req.Version,
+                DownloadUrl:    null,
+                MarketplaceUrl: url,
+                Error:          productId == 0 ? "Server lieferte keine Produkt-ID." : null);
+        }
+        catch (Exception ex)
+        {
+            return new ModulePublishResponse(
+                Success:        false,
+                ModuleId:       moduleId,
+                Version:        req.Version,
+                DownloadUrl:    null,
+                MarketplaceUrl: null,
+                Error:          ex.Message);
+        }
     }
 
     // ── Fehler-Hilfsmethode ────────────────────────────────────────────────────
@@ -250,3 +260,4 @@ public sealed class MarketplaceApiClient : IDisposable
         _http.Dispose();
     }
 }
+                                                                                                   

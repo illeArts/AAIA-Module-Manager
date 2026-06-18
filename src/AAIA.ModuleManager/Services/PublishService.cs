@@ -118,7 +118,8 @@ public sealed class PublishService(
                         Changelog:     opts.Changelog,
                         NuGetVersion:  opts.PublishNuGet  ? opts.Version : null,
                         GitHubRelease: githubUrl),
-                    ct);
+                    ct,
+                    filePath: aaixPath);
 
                 if (!pubResult.Success)
                     return Fail($"Marketplace-Publish fehlgeschlagen: {pubResult.Error}");
@@ -142,5 +143,4 @@ public sealed class PublishService(
     }
 
     private static PublishResult Fail(string error) =>
-        new(false, null, null, null, null, error);
-}
+        new(f
