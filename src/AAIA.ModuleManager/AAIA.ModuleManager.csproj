@@ -14,7 +14,7 @@
     <AvaloniaUseCompiledBindingsByDefault>true</AvaloniaUseCompiledBindingsByDefault>
     <RootNamespace>AAIA.ModuleManager</RootNamespace>
     <AssemblyName>AAIA.ModuleManager</AssemblyName>
-    <Version>2.3.1</Version>
+    <Version>2.4.0</Version>
     <Authors>André Iljaschow / IleArts</Authors>
     <Description>AAIA Module Manager — Dev-Tool für AAIA Module- und Plugin-Entwickler</Description>
     <ApplicationIcon Condition="'$(TargetFramework)' == 'net8.0-windows'">Assets\AAIA_Module_Manager.ico</ApplicationIcon>

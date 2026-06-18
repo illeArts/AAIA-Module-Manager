@@ -7,7 +7,7 @@
 ; ============================================================
 
 #define AppName      "AAIA Module Manager"
-#define AppVersion   "2.3.1"
+#define AppVersion   "2.4.0"
 #define AppPublisher "André Iljaschow / IleArts"
 #define AppURL       "https://aaia.dev"
 #define AppExeName   "AAIA.ModuleManager.exe"
