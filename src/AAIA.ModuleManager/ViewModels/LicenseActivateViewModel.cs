@@ -52,20 +52,9 @@ public partial class LicenseActivateViewModel : ObservableObject
 
         try
         {
-            var backendUrl = _cfg.MarketplaceBackendApiUrl.TrimEnd('/');
+            using var wpClient = new WpMarketplaceClient(_cfg.MarketplaceApiUrl);
 
-            // Für localhost SSL überspringen (Dev-Umgebung)
-            var handler = new HttpClientHandler();
-            if (new Uri(backendUrl).Host is "localhost" or "127.0.0.1")
-                handler.ServerCertificateCustomValidationCallback =
-                    HttpClientHandler.DangerousAcceptAnyServerCertificateValidator;
-
-            using var http = new HttpClient(handler) { BaseAddress = new Uri(backendUrl + "/") };
-            http.DefaultRequestHeaders.UserAgent.ParseAdd("AAIA-ModuleManager/2.0");
-
-            var client = new MarketplaceLicenseClient(http);
-
-            var response = await client.ActivateAsync(new LicenseActivationRequest(
+            var response = await wpClient.ActivateLicenseAsync(new LicenseActivationRequest(
                 LicenseKey: LicenseKey.Trim(),
                 BuyerEmail: Email.Trim(),
                 DeviceId:   DeviceId.Trim(),
@@ -92,19 +81,18 @@ public partial class LicenseActivateViewModel : ObservableObject
 
             IsSuccess = true;
         }
-        catch (LicenseActivationApiException ex) when (ex.IsUserError)
+        catch (HttpRequestException ex) when (
+            ex.StatusCode is System.Net.HttpStatusCode.BadRequest
+                          or System.Net.HttpStatusCode.Unauthorized
+                          or System.Net.HttpStatusCode.Forbidden
+                          or System.Net.HttpStatusCode.NotFound)
         {
             StatusMessage = $"❌ {ex.Message}";
             IsError       = true;
         }
-        catch (LicenseActivationApiException ex) when (ex.IsRateLimited)
+        catch (HttpRequestException ex) when (ex.StatusCode == System.Net.HttpStatusCode.TooManyRequests)
         {
             StatusMessage = "⏳ Rate-Limit erreicht — bitte 60 Sekunden warten.";
-            IsError       = true;
-        }
-        catch (LicenseActivationApiException ex)
-        {
-            StatusMessage = $"❌ Server-Fehler: {ex.Message}";
             IsError       = true;
         }
         catch (HttpRequestException ex)

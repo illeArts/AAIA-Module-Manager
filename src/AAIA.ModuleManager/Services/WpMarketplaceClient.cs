@@ -8,6 +8,7 @@ using System.Text.Json;
 using System.Text.Json.Serialization;
 using System.Threading;
 using System.Threading.Tasks;
+using AAIA.Shared.Contracts.Marketplace;
 using AAIA.Shared.Contracts.Publisher;
 
 namespace AAIA.ModuleManager.Services;
@@ -37,14 +38,15 @@ public sealed record DeveloperStatsDto(
 );
 
 public sealed record ModuleFeedItem(
-    [property: JsonPropertyName("product_id")] int     ProductId,
-    [property: JsonPropertyName("code")]       string  Code,
-    [property: JsonPropertyName("type")]       string  Type,
-    [property: JsonPropertyName("name")]       string  Name,
-    [property: JsonPropertyName("version")]    string  Version,
-    [property: JsonPropertyName("price")]      decimal Price,
-    [property: JsonPropertyName("currency")]   string  Currency,
-    [property: JsonPropertyName("url")]        string  Url
+    [property: JsonPropertyName("product_id")]  int          ProductId,
+    [property: JsonPropertyName("code")]        string       Code,
+    [property: JsonPropertyName("type")]        string       Type,
+    [property: JsonPropertyName("name")]        string       Name,
+    [property: JsonPropertyName("version")]     string       Version,
+    [property: JsonPropertyName("price")]       decimal      Price,
+    [property: JsonPropertyName("currency")]    string       Currency,
+    [property: JsonPropertyName("url")]         string       Url,
+    [property: JsonPropertyName("permissions")] JsonElement? Permissions = null
 );
 
 public sealed record ModuleFeedResponse(
@@ -163,6 +165,29 @@ public sealed class WpMarketplaceClient : IDisposable
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<ModuleFeedResponse>(_json, ct)
                ?? new ModuleFeedResponse(0, new List<ModuleFeedItem>());
+    }
+
+    /// <summary>
+    /// POST /aaia/v1/licenses/activate
+    /// Aktiviert eine WooCommerce-Lizenz im Module Manager.
+    /// Kein JWT erforderlich — LicenseKey + BuyerEmail sind das Credential.
+    /// Gibt LicenseJwt (Module/Plugin) oder DownloadUrl (LanguagePack) zurück.
+    /// </summary>
+    public async Task<LicenseActivationResponse> ActivateLicenseAsync(
+        LicenseActivationRequest req,
+        CancellationToken ct = default)
+    {
+        var body = new
+        {
+            licenseKey = req.LicenseKey,
+            buyerEmail = req.BuyerEmail,
+            deviceId   = req.DeviceId,
+            moduleId   = req.ModuleId,
+        };
+        var resp = await _http.PostAsJsonAsync(Url("/licenses/activate"), body, _json, ct);
+        await EnsureSuccessAsync(resp, ct);
+        return await resp.Content.ReadFromJsonAsync<LicenseActivationResponse>(_json, ct)
+               ?? throw new InvalidOperationException("Leere Antwort vom Marketplace-Server.");
     }
 
     /// <summary>
