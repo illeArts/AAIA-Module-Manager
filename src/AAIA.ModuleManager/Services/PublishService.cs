@@ -143,4 +143,5 @@ public sealed class PublishService(
     }
 
     private static PublishResult Fail(string error) =>
-        new(f
+        new(false, null, null, null, null, error);
+}
