@@ -7,14 +7,19 @@
 ; ============================================================
 
 #define AppName      "AAIA Module Manager"
-#define AppVersion   "2.4.0"
+; AppVersion + PublishDir per CI überschreibbar: /DAppVersion="2.4.0" /DPublishDir="C:\..."
+#ifndef AppVersion
+  #define AppVersion   "2.4.0"
+#endif
 #define AppPublisher "André Iljaschow / IleArts"
 #define AppURL       "https://aaia.dev"
 #define AppExeName   "AAIA.ModuleManager.exe"
 #define AppGUID      "{{A1B2C3D4-E5F6-4A7B-8C9D-E0F1A2B3C4D5}"
 
-; Pfad zur publizierten App (relativ zu dieser .iss Datei)
-#define PublishDir   "..\publish\win-x64"
+; Lokal: relativ zu dieser .iss — in CI: per /DPublishDir=... überschrieben
+#ifndef PublishDir
+  #define PublishDir   "..\publish\win-x64"
+#endif
 
 [Setup]
 AppId={#AppGUID}

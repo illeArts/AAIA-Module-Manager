@@ -10,7 +10,7 @@ env:
 
 jobs:
 
-  # ── Windows x64 ────────────────────────────────────────────────────────────
+  # ── Windows x64 + Installer ───────────────────────────────────────────────
   build-windows:
     runs-on: windows-latest
     steps:
@@ -42,11 +42,35 @@ jobs:
           /p:Version=${{ steps.version.outputs.VERSION }}
           -o ./publish-win
 
-      - name: Upload Windows artifact
+      - name: Install Inno Setup
+        run: choco install innosetup -y --no-progress
+
+      - name: Build Installer
+        shell: cmd
+        run: |
+          mkdir aaia-module-manager\installer\dist 2>nul
+          "C:\Program Files (x86)\Inno Setup 6\ISCC.exe" ^
+            /DPublishDir="${{ github.workspace }}\publish-win" ^
+            /DAppVersion="${{ steps.version.outputs.VERSION }}" ^
+            aaia-module-manager\installer\setup.iss
+
+      - name: Rename installer to fixed filename
+        shell: bash
+        run: |
+          mv aaia-module-manager/installer/dist/AAIA_ModuleManager_v*.exe \
+             aaia-module-manager/installer/dist/AAIA_ModuleManager_Setup.exe
+
+      - name: Upload Windows exe artifact
         uses: actions/upload-artifact@v4
         with:
           name: win-x64
           path: ./publish-win/AAIA.ModuleManager.exe
+
+      - name: Upload Windows installer artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: win-installer
+          path: aaia-module-manager/installer/dist/AAIA_ModuleManager_Setup.exe
 
   # ── macOS Apple Silicon (arm64) ────────────────────────────────────────────
   build-macos-arm64:
@@ -148,6 +172,7 @@ jobs:
           draft: false
           prerelease: false
           files: |
+            ./artifacts/win-installer/AAIA_ModuleManager_Setup.exe
             ./artifacts/win-x64/AAIA.ModuleManager.exe
             ./artifacts/osx-arm64/AAIA.ModuleManager-osx-arm64
             ./artifacts/osx-x64/AAIA.ModuleManager-osx-x64
@@ -157,12 +182,13 @@ jobs:
             ### Downloads
             | Plattform | Datei |
             |-----------|-------|
-            | Windows x64 | `AAIA.ModuleManager.exe` |
+            | Windows Installer | `AAIA_ModuleManager_Setup.exe` |
+            | Windows portable | `AAIA.ModuleManager.exe` |
             | macOS Apple Silicon | `AAIA.ModuleManager-osx-arm64` |
             | macOS Intel | `AAIA.ModuleManager-osx-x64` |
 
             ### Installation Windows
-            1. `AAIA.ModuleManager.exe` herunterladen und ablegen — kein Installer nötig
+            1. `AAIA_ModuleManager_Setup.exe` herunterladen und ausführen
             2. Beim ersten Start: **Setup**-Tab → Pfade & GitHub Login konfigurieren
 
             ### Installation macOS
