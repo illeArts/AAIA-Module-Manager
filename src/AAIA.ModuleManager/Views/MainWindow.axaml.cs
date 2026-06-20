@@ -50,6 +50,31 @@ public partial class MainWindow : Window
         dlg.ShowDialog(this);
     }
 
+    private void NewProject_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        var config = AppConfig.Current ?? AppConfig.Load();
+        var vm     = new NewProjectWizardViewModel(config);
+        var dlg    = new NewProjectWizardWindow();
+        dlg.SetViewModel(vm);
+        dlg.ShowDialog(this);
+    }
+
+    private void UpdateBanner_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
+    {
+        if (DataContext is MainWindowViewModel vm && !string.IsNullOrEmpty(vm.UpdateUrl))
+        {
+            try
+            {
+                System.Diagnostics.Process.Start(new System.Diagnostics.ProcessStartInfo
+                {
+                    FileName        = vm.UpdateUrl,
+                    UseShellExecute = true
+                });
+            }
+            catch { }
+        }
+    }
+
     private async void Logout_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
         // Config leeren

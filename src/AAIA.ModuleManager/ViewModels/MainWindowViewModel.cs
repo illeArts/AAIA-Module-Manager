@@ -11,12 +11,18 @@ public partial class MainWindowViewModel : ObservableObject
     public ModuleTabViewModel         ModuleTab    { get; }
     public RegistryTabViewModel       RegistryTab  { get; }
     public TesterTabViewModel         TesterTab    { get; }
-    public SetupTabViewModel          SetupTab     { get; }
     public DeveloperTabViewModel      DeveloperTab { get; }
     public PublishTabViewModel        PublishTab   { get; }
     public LicensesTabViewModel       LicensesTab  { get; }
     public MarketplaceBrowseViewModel BrowseTab    { get; }
     public AdminTabViewModel          AdminTab     { get; }
+    public AiPanelViewModel           AiPanel      { get; }
+
+    // ── Update-Banner ─────────────────────────────────────────────────────────
+
+    [ObservableProperty] private bool   _hasUpdate;
+    [ObservableProperty] private string _updateBannerText = "";
+    [ObservableProperty] private string _updateUrl        = "";
 
     // ── Developer-Identität (Titelleiste) ─────────────────────────────────────
 
@@ -50,14 +56,15 @@ public partial class MainWindowViewModel : ObservableObject
         ModuleTab    = new ModuleTabViewModel(config);
         RegistryTab  = new RegistryTabViewModel(config);
         TesterTab    = new TesterTabViewModel();
-        SetupTab     = new SetupTabViewModel(config);
         DeveloperTab = new DeveloperTabViewModel(config, marketplaceClient, wpMarketplace, certSvc);
         PublishTab   = new PublishTabViewModel(config, publishSvc, marketplaceClient);
         LicensesTab  = new LicensesTabViewModel(config, TesterTab.AaiasConn);
         BrowseTab    = new MarketplaceBrowseViewModel(wpMarketplace);
         AdminTab     = new AdminTabViewModel(wpMarketplace);
+        AiPanel      = new AiPanelViewModel(config);
 
         _ = TesterTab.InitAsync(config);
+        _ = CheckForUpdateAsync();
 
         // Gespeicherte Identität in Titelleiste laden
         if (!string.IsNullOrEmpty(config.DeveloperEtwId))
@@ -73,6 +80,17 @@ public partial class MainWindowViewModel : ObservableObject
                 marketplaceClient.SetBearer(config.MarketplaceToken);
                 wpMarketplace.SetBearer(config.MarketplaceToken);
             }
+        }
+    }
+
+    private async System.Threading.Tasks.Task CheckForUpdateAsync()
+    {
+        var info = await GitHubUpdateService.CheckAsync();
+        if (info?.IsUpdateAvailable == true)
+        {
+            HasUpdate         = true;
+            UpdateBannerText  = $"🆕 Update verfügbar: v{info.LatestVersion} (aktuell: v{info.CurrentVersion})";
+            UpdateUrl         = info.ReleaseUrl;
         }
     }
 

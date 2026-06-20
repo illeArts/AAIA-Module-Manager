@@ -1,0 +1,662 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+        x:Class="AAIA.ModuleManager.Views.NewProjectWizardWindow"
+        x:DataType="vm:NewProjectWizardViewModel"
+        Title="🪄  Neues AAIA-Projekt"
+        Width="640" Height="620"
+        MinWidth="540" MinHeight="500"
+        CanResize="True"
+        WindowStartupLocation="CenterOwner"
+        Background="#1a1a2e"
+        Foreground="#e0e0e0"
+        FontFamily="Inter,Segoe UI,sans-serif">
+
+  <!-- Vier Steps als überlappende Grids — nur je eines sichtbar -->
+  <Grid>
+
+    <!-- ═══════════════════════════════ STEP 0: Idee eingeben ══════════════ -->
+    <Grid x:Name="Step0Panel" RowDefinitions="Auto,*,Auto">
+
+      <!-- Header -->
+      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
+        <TextBlock Text="Was möchtest du mit AAIA erweitern?"
+                   FontSize="18" FontWeight="Bold"/>
+        <TextBlock Text="Beschreibe deine Idee — der Module Manager hilft dir, den richtigen Typ zu finden."
+                   FontSize="12" Foreground="#8892a4" TextWrapping="Wrap"/>
+      </StackPanel>
+
+      <!-- Inhalt -->
+      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
+        <StackPanel Spacing="14">
+
+          <!-- Idee-Textfeld -->
+          <TextBox x:Name="IdeaBox"
+                   Text="{Binding IdeaText, Mode=TwoWay}"
+                   Watermark="z. B.: Ich moechte ein Modul bauen, das meine FRITZ!Box ueberwacht."
+                   AcceptsReturn="True"
+                   Height="140"
+                   TextWrapping="Wrap"
+                   Background="#12122a"
+                   Foreground="#e0e0e0"
+                   BorderBrush="#2a2a4a"
+                   BorderThickness="1"
+                   CornerRadius="8"
+                   Padding="12,10"
+                   FontSize="13"/>
+
+          <!-- Kein API-Key → Info -->
+          <Border IsVisible="{Binding HasNoApiKey}"
+                  Background="#1a1a0a"
+                  BorderBrush="#3a3a1a"
+                  BorderThickness="1"
+                  CornerRadius="6"
+                  Padding="12,8">
+            <StackPanel Spacing="3">
+              <TextBlock Text="⚠  Kein Claude API-Schlüssel konfiguriert"
+                         FontSize="12" FontWeight="SemiBold" Foreground="#c8a040"/>
+              <TextBlock Text="Die KI-Analyse ist nicht verfügbar. Du kannst deine Idee trotzdem eingeben — sie wird als Beschreibung übernommen."
+                         FontSize="11" Foreground="#8892a4" TextWrapping="Wrap"/>
+              <TextBlock Text="Einstellungen → KI-Assistent → API-Schlüssel"
+                         FontSize="11" Foreground="#5865f2"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Analyse läuft -->
+          <StackPanel IsVisible="{Binding IsAnalyzing}"
+                      Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="⏳" FontSize="13" VerticalAlignment="Center"/>
+            <TextBlock Text="{Binding AnalyzeStatus}"
+                       FontSize="12" Foreground="#5865f2"
+                       FontStyle="Italic" VerticalAlignment="Center"/>
+          </StackPanel>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Button-Leiste -->
+      <Border Grid.Row="2"
+              BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+              Padding="28,10,28,20">
+        <Grid ColumnDefinitions="*,Auto,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="{Binding PublisherId, StringFormat='Publisher: {0}'}"
+                     Foreground="#3a3f5a" FontSize="11"
+                     VerticalAlignment="Center"/>
+
+          <!-- Ohne KI weiter (immer sichtbar, aber sekundär wenn API-Key vorhanden) -->
+          <Button Grid.Column="1"
+                  Content="Direkt manuell eingeben →"
+                  Classes="ghost"
+                  Margin="0,0,8,0"
+                  Command="{Binding SkipToManualCommand}"
+                  IsEnabled="{Binding !IsAnalyzing}"/>
+
+          <!-- Mit KI analysieren (nur wenn API-Key vorhanden) -->
+          <Button Grid.Column="2"
+                  IsVisible="{Binding HasApiKey}"
+                  Classes="primary"
+                  Command="{Binding AnalyzeIdeaCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="✨" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Text="Idee analysieren" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+
+          <!-- Weiter (kein API-Key) -->
+          <Button Grid.Column="2"
+                  IsVisible="{Binding HasNoApiKey}"
+                  Classes="primary"
+                  Command="{Binding SkipToManualCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="Weiter →" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+
+        </Grid>
+      </Border>
+    </Grid>
+
+
+    <!-- ═══════════════════════════════ STEP 1: Analyse-Ergebnis ═══════════ -->
+    <Grid x:Name="Step1Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
+
+      <!-- Header -->
+      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
+        <TextBlock Text="KI-Vorschlag" FontSize="18" FontWeight="Bold"/>
+        <TextBlock Text="Schau dir den Vorschlag an. Du kannst ihn übernehmen oder manuell einen anderen Typ wählen."
+                   FontSize="12" Foreground="#8892a4" TextWrapping="Wrap"/>
+      </StackPanel>
+
+      <!-- Inhalt -->
+      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
+        <StackPanel Spacing="12">
+
+          <!-- Offline-Fallback -->
+          <Border IsVisible="{Binding AnalysisOffline}"
+                  Background="#1a1a2e"
+                  BorderBrush="#2a2a4a"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="16,14">
+            <StackPanel Spacing="8" HorizontalAlignment="Center">
+              <TextBlock Text="🔌" FontSize="28" HorizontalAlignment="Center"/>
+              <TextBlock Text="KI-Analyse nicht verfügbar"
+                         FontSize="14" FontWeight="SemiBold"
+                         HorizontalAlignment="Center"/>
+              <TextBlock Text="Bitte wähle den Erweiterungstyp manuell."
+                         FontSize="12" Foreground="#8892a4"
+                         HorizontalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Gültiger Vorschlag -->
+          <Border IsVisible="{Binding !AnalysisOffline}"
+                  Background="#151530"
+                  BorderBrush="#3a3a6a"
+                  BorderThickness="1"
+                  CornerRadius="8"
+                  Padding="18,16">
+            <StackPanel Spacing="10">
+
+              <!-- Empfohlener Typ -->
+              <StackPanel Spacing="4">
+                <TextBlock Text="Das klingt nach:"
+                           FontSize="11" Foreground="#8892a4" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding AnalysisResult.DisplayTypeName}"
+                           FontSize="16" FontWeight="Bold" Foreground="#e0e0ff"/>
+                <TextBlock Text="{Binding AnalysisResult.TargetRuntime, StringFormat='Zielsystem: {0}'}"
+                           FontSize="11" Foreground="#5865f2"/>
+              </StackPanel>
+
+              <Rectangle Height="1" Fill="#2a2a4a"/>
+
+              <!-- Begründung -->
+              <StackPanel Spacing="4">
+                <TextBlock Text="Warum?" FontSize="11" Foreground="#8892a4" FontWeight="SemiBold"/>
+                <TextBlock Text="{Binding AnalysisResult.Reason}"
+                           FontSize="12" Foreground="#c8cde4"
+                           TextWrapping="Wrap" LineHeight="18"/>
+              </StackPanel>
+
+              <!-- Risiko -->
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="{Binding AnalysisResult.RiskEmoji}" FontSize="13" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding AnalysisResult.RiskLabel}"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+              </StackPanel>
+
+              <!-- Empfohlene Rechte (optional) -->
+              <StackPanel Spacing="4"
+                          IsVisible="{Binding AnalysisResult.HasSuggestedPermissions}">
+                <TextBlock Text="Empfohlene Rechte:"
+                           FontSize="11" Foreground="#8892a4" FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding AnalysisResult.SuggestedPermissions}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding ., StringFormat='·  {0}'}"
+                                 FontSize="12" Foreground="#7a8099"
+                                 FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+              <!-- Nächste Schritte (optional) -->
+              <StackPanel Spacing="4"
+                          IsVisible="{Binding AnalysisResult.HasNextSteps}">
+                <TextBlock Text="Empfohlene nächste Schritte:"
+                           FontSize="11" Foreground="#8892a4" FontWeight="SemiBold"/>
+                <ItemsControl ItemsSource="{Binding AnalysisResult.NextSteps}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate>
+                      <TextBlock Text="{Binding ., StringFormat='→  {0}'}"
+                                 FontSize="12" Foreground="#7a8099"
+                                 TextWrapping="Wrap"/>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+              </StackPanel>
+
+            </StackPanel>
+          </Border>
+
+          <!-- Hinweis: KI kann sich irren -->
+          <TextBlock Text="Der Vorschlag ist eine Empfehlung. Du kannst im nächsten Schritt jederzeit einen anderen Typ wählen."
+                     FontSize="11" Foreground="#4a5070"
+                     TextWrapping="Wrap" HorizontalAlignment="Center"
+                     IsVisible="{Binding !AnalysisOffline}"/>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Button-Leiste -->
+      <Border Grid.Row="2"
+              BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+              Padding="28,10,28,20">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+          <Button Grid.Column="0"
+                  Content="← Zurück" Classes="ghost"
+                  Command="{Binding BackCommand}"/>
+          <Button Grid.Column="2"
+                  Content="Manuell auswählen"
+                  Classes="ghost" Margin="0,0,8,0"
+                  Command="{Binding GoToManualSelectionCommand}"/>
+          <Button Grid.Column="3"
+                  Classes="primary"
+                  IsVisible="{Binding !AnalysisOffline}"
+                  Command="{Binding UseAnalysisSuggestionCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="✓" FontSize="13" VerticalAlignment="Center"/>
+              <TextBlock Text="Vorschlag übernehmen" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+    </Grid>
+
+
+    <!-- ═══════════════════════════════ STEP 2: Projektdetails ═════════════ -->
+    <Grid x:Name="Step2Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
+
+      <!-- Header -->
+      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
+        <TextBlock Text="Erweiterung konfigurieren"
+                   FontSize="18" FontWeight="Bold"/>
+        <TextBlock Text="Wähle den Typ und fülle die Details aus. Alle Dateien werden automatisch erzeugt."
+                   FontSize="12" Foreground="#8892a4" TextWrapping="Wrap"/>
+      </StackPanel>
+
+      <!-- Inhalt -->
+      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
+        <StackPanel Spacing="16">
+
+          <!-- Projekttyp -->
+          <Border Background="#202042" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="14">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Erweiterungstyp" FontSize="13" FontWeight="SemiBold"/>
+
+              <RadioButton x:Name="RadioServerModule"
+                           IsChecked="True"
+                           GroupName="ProjectType"
+                           Click="RadioServerModule_Click">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="🖥  Server-Modul (AAIAS)" FontWeight="SemiBold" FontSize="13"/>
+                  <TextBlock Text="Läuft auf dem AAIAS-Server · IAaiaModule · ASP.NET Core · Plattformunabhängig"
+                             FontSize="11" Foreground="#8892a4"/>
+                </StackPanel>
+              </RadioButton>
+
+              <RadioButton x:Name="RadioClientPlugin"
+                           GroupName="ProjectType"
+                           Click="RadioClientPlugin_Click">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="📦  Client-Plugin (AAIAC)" FontWeight="SemiBold" FontSize="13"/>
+                  <TextBlock Text="Erweitert den AAIAC-Client · IAaiacPlugin · UI/Logik"
+                             FontSize="11" Foreground="#8892a4"/>
+                </StackPanel>
+              </RadioButton>
+
+              <RadioButton x:Name="RadioHybridModule"
+                           GroupName="ProjectType"
+                           Click="RadioHybridModule_Click">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="🔀  Hybrid-Modul (AAIAS + AAIAC)" FontWeight="SemiBold" FontSize="13"/>
+                  <TextBlock Text="Erstellt Server/ + Client/ im selben Ordner · Braucht beide Laufzeiten"
+                             FontSize="11" Foreground="#8892a4"/>
+                </StackPanel>
+              </RadioButton>
+
+              <RadioButton x:Name="RadioLanguagePack"
+                           GroupName="ProjectType"
+                           Click="RadioLanguagePack_Click">
+                <StackPanel Spacing="1">
+                  <TextBlock Text="🌐  Sprachpaket" FontWeight="SemiBold" FontSize="13"/>
+                  <TextBlock Text="JSON-Übersetzungen · Kein C# erforderlich · Für AAIAS und AAIAC"
+                             FontSize="11" Foreground="#8892a4"/>
+                </StackPanel>
+              </RadioButton>
+
+            </StackPanel>
+          </Border>
+
+          <!-- Details -->
+          <Border Background="#202042" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="14">
+            <StackPanel Spacing="14">
+              <TextBlock Text="Projektdetails" FontSize="13" FontWeight="SemiBold"/>
+
+              <!-- Name -->
+              <StackPanel Spacing="5">
+                <TextBlock Text="Projektname *" Foreground="#8892a4" FontSize="12"/>
+                <TextBox x:Name="NameBox"
+                         Text="{Binding ProjectName, Mode=TwoWay}"
+                         Watermark="z. B. FritzBox Connector"
+                         Background="#12122a" Foreground="#e0e0e0"
+                         BorderBrush="#2a2a4a" BorderThickness="1"
+                         CornerRadius="6" Padding="10,7" FontSize="13"/>
+              </StackPanel>
+
+              <!-- ID (auto) -->
+              <StackPanel Spacing="5">
+                <TextBlock Text="Erweiterungs-ID (automatisch)" Foreground="#8892a4" FontSize="12"/>
+                <TextBox Text="{Binding ProjectId, Mode=TwoWay}"
+                         Watermark="aaia.module.my-extension"
+                         Background="#12122a" Foreground="#5865f2"
+                         BorderBrush="#2a2a4a" BorderThickness="1"
+                         CornerRadius="6" Padding="10,7" FontSize="12"
+                         FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+              </StackPanel>
+
+              <!-- Beschreibung -->
+              <StackPanel Spacing="5">
+                <TextBlock Text="Beschreibung" Foreground="#8892a4" FontSize="12"/>
+                <TextBox Text="{Binding Description, Mode=TwoWay}"
+                         Watermark="Kurze Beschreibung..."
+                         AcceptsReturn="True" Height="60"
+                         TextWrapping="Wrap"
+                         Background="#12122a" Foreground="#e0e0e0"
+                         BorderBrush="#2a2a4a" BorderThickness="1"
+                         CornerRadius="6" Padding="10,7" FontSize="12"/>
+              </StackPanel>
+
+              <!-- Ausgabepfad -->
+              <StackPanel Spacing="5">
+                <TextBlock Text="Ausgabepfad *" Foreground="#8892a4" FontSize="12"/>
+                <Grid ColumnDefinitions="*,Auto">
+                  <TextBox Grid.Column="0"
+                           Text="{Binding OutputPath, Mode=TwoWay}"
+                           Background="#12122a" Foreground="#e0e0e0"
+                           BorderBrush="#2a2a4a" BorderThickness="1"
+                           CornerRadius="6" Padding="10,7" FontSize="12"/>
+                  <Button Grid.Column="1" Content="…" Margin="6,0,0,0"
+                          Classes="ghost"
+                          Command="{Binding PickOutputPathCommand}"/>
+                </Grid>
+                <TextBlock Text="Das Projekt wird als Unterordner hier erstellt."
+                           FontSize="11" Foreground="#4a5070"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Fehler-Anzeige -->
+          <Border x:Name="ErrorBorder"
+                  IsVisible="False"
+                  Background="#2e1a1a"
+                  BorderBrush="#4a2a2a"
+                  BorderThickness="1" CornerRadius="6" Padding="12,10">
+            <TextBlock x:Name="ErrorText"
+                       TextWrapping="Wrap" FontSize="12" Foreground="#e07070"/>
+          </Border>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Button-Leiste -->
+      <Border Grid.Row="2"
+              BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+              Padding="28,10,28,20">
+        <Grid ColumnDefinitions="Auto,*,Auto">
+          <Button Grid.Column="0"
+                  Content="← Zurück" Classes="ghost"
+                  Command="{Binding BackCommand}"/>
+          <TextBlock Grid.Column="1"
+                     Text="{Binding PublisherId, StringFormat='Publisher: {0}'}"
+                     Foreground="#3a3f5a" FontSize="11"
+                     HorizontalAlignment="Center" VerticalAlignment="Center"/>
+          <Button Grid.Column="2"
+                  Classes="primary"
+                  x:Name="CreateBtn"
+                  Command="{Binding CreateCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="✨" FontSize="13" VerticalAlignment="Center"/>
+              <TextBlock x:Name="CreateBtnLabel" Text="Erstellen"
+                         VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+    </Grid>
+
+
+    <!-- ═══════════════════════════════ STEP 3: Erfolg ══════════════════════ -->
+    <Grid x:Name="Step3Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
+
+      <!-- Header -->
+      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="✓" FontSize="22" Foreground="#4ade80" VerticalAlignment="Center"/>
+          <TextBlock Text="Projekt wurde erstellt!"
+                     FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock x:Name="CreatedPathLabel"
+                   Text=""
+                   FontSize="11"
+                   Foreground="#5865f2"
+                   FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                   TextWrapping="Wrap"/>
+      </StackPanel>
+
+      <!-- Inhalt -->
+      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
+        <StackPanel Spacing="14">
+
+          <!-- ── Build-Karte (nur wenn Build moeglich) ── -->
+          <Border Background="#202042" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="16,14"
+                  IsVisible="{Binding CanBuild}">
+            <StackPanel Spacing="10">
+
+              <StackPanel Spacing="3">
+                <TextBlock Text="Naechster sinnvoller Schritt"
+                           FontSize="11" Foreground="#8892a4" FontWeight="SemiBold"/>
+                <TextBlock Text="Baue das Projekt einmal, um zu pruefen ob dein System bereit ist."
+                           FontSize="13" TextWrapping="Wrap"/>
+              </StackPanel>
+
+              <!-- Build-Buttons (nur wenn nicht am laufen) -->
+              <StackPanel Orientation="Horizontal" Spacing="8"
+                          IsVisible="{Binding !IsBuildRunning}">
+                <Button Classes="primary"
+                        Command="{Binding BuildProjectCommand}"
+                        IsEnabled="{Binding !IsBuildRunning}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="🔨" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="Jetzt bauen" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+                <Button Classes="ghost"
+                        Command="{Binding OpenInExplorerCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="📂" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="Im Explorer oeffnen" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+
+              <!-- Build laeuft -->
+              <StackPanel IsVisible="{Binding IsBuildRunning}"
+                          Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="⏳" FontSize="13" VerticalAlignment="Center"/>
+                <TextBlock Text="Build laeuft..." FontSize="12"
+                           Foreground="#5865f2" FontStyle="Italic"
+                           VerticalAlignment="Center"/>
+              </StackPanel>
+
+              <!-- ── Build-Ergebnis: Erfolg ── -->
+              <Border IsVisible="{Binding BuildSuccess}"
+                      Background="#0a1a0a" BorderBrush="#1a4a1a"
+                      BorderThickness="1" CornerRadius="6" Padding="12,8">
+                <StackPanel Spacing="4">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="✓" FontSize="14" Foreground="#4ade80" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding LastBuildResult.SummaryLabel}"
+                               FontSize="12" Foreground="#4ade80" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </StackPanel>
+              </Border>
+
+              <!-- ── Build-Ergebnis: Fehler — uebersetzte Issues ── -->
+              <StackPanel IsVisible="{Binding BuildFailed}" Spacing="8">
+
+                <!-- Zusammenfassung -->
+                <Border Background="#1a0a0a" BorderBrush="#4a1a1a"
+                        BorderThickness="1" CornerRadius="6" Padding="12,8">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="✖" FontSize="14" Foreground="#e05252" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding LastBuildResult.SummaryLabel}"
+                               FontSize="12" Foreground="#e05252" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Border>
+
+                <!-- Fehler-Karten -->
+                <ItemsControl ItemsSource="{Binding BuildIssues}">
+                  <ItemsControl.ItemTemplate>
+                    <DataTemplate x:DataType="vm:BuildIssueViewModel">
+                      <Border Margin="0,0,0,6"
+                              Background="#18100e"
+                              BorderBrush="{Binding BorderBrushColor}"
+                              BorderThickness="1" CornerRadius="6"
+                              Padding="12,10">
+                        <StackPanel Spacing="6">
+
+                          <!-- Titel + Code -->
+                          <StackPanel Orientation="Horizontal" Spacing="8">
+                            <TextBlock Text="{Binding SeverityIcon}"
+                                       FontSize="13" VerticalAlignment="Center"
+                                       Foreground="{Binding SeverityForeground}"/>
+                            <TextBlock Text="{Binding Title}"
+                                       FontSize="13" FontWeight="SemiBold"
+                                       VerticalAlignment="Center"/>
+                            <Border Background="{Binding CodeBackground}" CornerRadius="3" Padding="5,1">
+                              <TextBlock Text="{Binding Code}"
+                                         FontSize="10"
+                                         Foreground="{Binding CodeForeground}"
+                                         FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                            </Border>
+                          </StackPanel>
+
+                          <!-- Menschliche Erklaerung -->
+                          <TextBlock Text="{Binding HumanMessage}"
+                                     FontSize="12" Foreground="#b0b8c4"
+                                     TextWrapping="Wrap" LineHeight="18"/>
+
+                          <!-- Datei + Zeile falls vorhanden -->
+                          <TextBlock IsVisible="{Binding HasLocation}"
+                                     FontSize="10" Foreground="#5865f2"
+                                     Text="{Binding LocationLabel}"
+                                     FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+
+                          <!-- Aktions-Buttons -->
+                          <ItemsControl IsVisible="{Binding HasActions}"
+                                        ItemsSource="{Binding SuggestedActions}">
+                            <ItemsControl.ItemsPanel>
+                              <ItemsPanelTemplate>
+                                <StackPanel Orientation="Horizontal" Spacing="6"/>
+                              </ItemsPanelTemplate>
+                            </ItemsControl.ItemsPanel>
+                            <ItemsControl.ItemTemplate>
+                              <DataTemplate x:DataType="vm:BuildActionViewModel">
+                                <Button Content="{Binding Label}"
+                                        Classes="ghost"
+                                        FontSize="11"
+                                        Command="{Binding ExecuteCommand}"/>
+                              </DataTemplate>
+                            </ItemsControl.ItemTemplate>
+                          </ItemsControl>
+
+                        </StackPanel>
+                      </Border>
+                    </DataTemplate>
+                  </ItemsControl.ItemTemplate>
+                </ItemsControl>
+
+              </StackPanel>
+
+              <!-- Details-Toggle + Roh-Output -->
+              <Border IsVisible="{Binding BuildOutput, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                      Background="#0d0d1a" BorderBrush="#1a1a3a"
+                      BorderThickness="1" CornerRadius="6">
+                <StackPanel>
+                  <!-- Toggle-Button -->
+                  <Button Classes="ghost"
+                          Command="{Binding ToggleRawOutputCommand}"
+                          Padding="10,6" HorizontalAlignment="Stretch"
+                          HorizontalContentAlignment="Left">
+                    <TextBlock Text="{Binding RawOutputToggleLabel}"
+                               FontSize="11" Foreground="#5a607a"/>
+                  </Button>
+                  <!-- Roh-Output -->
+                  <ScrollViewer IsVisible="{Binding ShowRawOutput}" MaxHeight="160">
+                    <TextBox Text="{Binding BuildOutput}"
+                             IsReadOnly="True"
+                             Background="Transparent"
+                             Foreground="#7a8090"
+                             BorderThickness="0"
+                             Padding="10,6"
+                             FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                             FontSize="10"
+                             AcceptsReturn="True"
+                             TextWrapping="Wrap"/>
+                  </ScrollViewer>
+                </StackPanel>
+              </Border>
+
+            </StackPanel>
+          </Border>
+
+          <!-- Explorer-Button fuer Sprachpakete (kein Build) -->
+          <Border Background="#202042" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="16,14"
+                  IsVisible="{Binding !CanBuild}">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Naechster sinnvoller Schritt"
+                         FontSize="11" Foreground="#8892a4" FontWeight="SemiBold"/>
+              <TextBlock Text="Oeffne den Projektordner und fuelle die JSON-Uebersetzungsdateien aus."
+                         FontSize="13" TextWrapping="Wrap"/>
+              <Button Classes="primary"
+                      Command="{Binding OpenInExplorerCommand}">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="📂" FontSize="12" VerticalAlignment="Center"/>
+                  <TextBlock Text="Projektordner oeffnen" VerticalAlignment="Center"/>
+                </StackPanel>
+              </Button>
+            </StackPanel>
+          </Border>
+
+          <!-- In IDE oeffnen -->
+          <Border Background="#202042" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="16,14">
+            <StackPanel Spacing="8">
+              <TextBlock Text="In IDE oeffnen" FontSize="12" FontWeight="SemiBold"/>
+              <StackPanel x:Name="Step3IdePanel" Orientation="Horizontal" Spacing="8">
+                <!-- IDE-Buttons werden per Code-behind befuellt -->
+                <TextBlock x:Name="NoIdeText"
+                           Text="Keine kompatible IDE erkannt."
+                           FontSize="11" Foreground="#4a5070"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Button-Leiste -->
+      <Border Grid.Row="2"
+              BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+              Padding="28,10,28,20">
+        <Grid ColumnDefinitions="*,Auto">
+          <TextBlock Grid.Column="0"
+                     Text="Dein Projekt ist bereit."
+                     Foreground="#3a3f5a" FontSize="11"
+                     VerticalAlignment="Center"/>
+          <Button Grid.Column="1" Classes="primary"
+                  Content="Fertig" Click="Close_Click"/>
+        </Grid>
+      </Border>
+    </Grid>
+
+  </Grid>
+
+</Window>

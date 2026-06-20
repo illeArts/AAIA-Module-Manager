@@ -14,7 +14,7 @@
         ExtendClientAreaTitleBarHeightHint="-1"
         Background="#1a1a2e">
 
-  <Grid RowDefinitions="38,*">
+  <Grid RowDefinitions="38,Auto,*">
 
     <!-- ── Titelzeile ── -->
     <Grid Grid.Row="0"
@@ -41,6 +41,10 @@
       <!-- Menüleiste -->
       <StackPanel Grid.Column="1" Orientation="Horizontal"
                   VerticalAlignment="Center" Margin="16,0,0,0" Spacing="4">
+        <Button Classes="menu-btn" Content="✨ Neues Projekt" Click="NewProject_Click"
+                IsVisible="{Binding IsEtw}"/>
+        <Rectangle Width="1" Height="14" Fill="#2a2a4a" VerticalAlignment="Center"
+                   IsVisible="{Binding IsEtw}" Margin="4,0"/>
         <Button Classes="menu-btn" Content="{DynamicResource Str_Menu_Settings}" Click="Settings_Click"/>
         <Button Classes="menu-btn" Content="{DynamicResource Str_Menu_Help}" Click="Help_Click"/>
         <Button Classes="menu-btn" Content="{DynamicResource Str_Menu_About}" Click="About_Click"/>
@@ -73,8 +77,24 @@
       </StackPanel>
     </Grid>
 
+    <!-- ── Update-Banner ── -->
+    <Border Grid.Row="1"
+            IsVisible="{Binding HasUpdate}"
+            Background="#1a2e1a"
+            BorderBrush="#2a5a2a" BorderThickness="0,0,0,1"
+            Padding="14,6">
+      <Grid ColumnDefinitions="*,Auto">
+        <TextBlock Text="{Binding UpdateBannerText}"
+                   Foreground="#7eff7e" FontSize="12"
+                   VerticalAlignment="Center"/>
+        <Button Grid.Column="1" Content="Zum Release →"
+                Classes="ghost" FontSize="11"
+                Click="UpdateBanner_Click"/>
+      </Grid>
+    </Border>
+
     <!-- ── Hauptinhalt ── -->
-    <TabControl Grid.Row="1" Margin="0">
+    <TabControl Grid.Row="2" Margin="0">
 
       <!-- ── ETW + Owner Tabs (immer zuerst → Tab 0 ist immer sichtbar) ── -->
 
@@ -94,12 +114,6 @@
       <TabItem Header="{DynamicResource Str_Tab_Tester}"
                IsVisible="{Binding IsEtw}">
         <views:TesterTab DataContext="{Binding TesterTab}"/>
-      </TabItem>
-
-      <!-- Tab 4: Setup -->
-      <TabItem Header="{DynamicResource Str_Tab_Setup}"
-               IsVisible="{Binding IsEtw}">
-        <tabs:SetupTab DataContext="{Binding SetupTab}"/>
       </TabItem>
 
       <!-- Tab 5: Developer Account / Marketplace -->
@@ -122,6 +136,11 @@
       <!-- Tab 8: Marketplace Browse — für alle sichtbar -->
       <TabItem Header="🛒  Marketplace">
         <tabs:MarketplaceBrowseTab DataContext="{Binding BrowseTab}"/>
+      </TabItem>
+
+      <!-- Tab 9: KI-Assistent — für alle ETWs -->
+      <TabItem Header="🤖  KI" IsVisible="{Binding IsEtw}">
+        <tabs:AiPanelTab DataContext="{Binding AiPanel}"/>
       </TabItem>
 
       <!-- ── Owner-only Tabs (am Ende — werden bei ETW nie ausgewählt) ── -->

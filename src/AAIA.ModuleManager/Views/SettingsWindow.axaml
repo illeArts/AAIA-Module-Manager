@@ -1,97 +1,324 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:tabs="using:AAIA.ModuleManager.Views.Tabs"
         x:Class="AAIA.ModuleManager.Views.SettingsWindow"
         Title="{DynamicResource Str_Settings_Title}"
-        Width="500" Height="510"
-        CanResize="False"
+        Width="660" Height="600"
+        MinWidth="560" MinHeight="440"
+        CanResize="True"
         WindowStartupLocation="CenterOwner"
         Background="#1a1a2e"
         Foreground="#e0e0e0"
         FontFamily="Inter,Segoe UI,sans-serif">
 
-  <StackPanel Margin="28,24" Spacing="18">
-    <TextBlock Text="{DynamicResource Str_Settings_Title}" FontSize="16" FontWeight="Bold"/>
+  <TabControl Margin="0">
 
-    <!-- Verbindung -->
-    <Border Background="#202042"
-            BorderBrush="#2a2a4a"
-            BorderThickness="1"
-            CornerRadius="8"
-            Padding="14">
-      <StackPanel Spacing="10">
-        <TextBlock Text="Verbindungen" FontSize="13" FontWeight="SemiBold"/>
+    <!-- ── Tab 1: Allgemein ── -->
+    <TabItem Header="⚙  Allgemein">
+      <Grid RowDefinitions="*,Auto">
 
-        <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto">
-          <TextBlock Grid.Row="0" Grid.Column="0" Text="AAIA Konto" Foreground="#8892a4" FontSize="12"/>
-          <TextBlock x:Name="MarketplaceStatusText"
-                     Grid.Row="0" Grid.Column="1"
-                     Text="wird geprüft..."
-                     TextWrapping="Wrap"/>
+        <ScrollViewer Grid.Row="0" Padding="28,24,28,8">
+          <StackPanel Spacing="18">
 
-          <TextBlock Grid.Row="1" Grid.Column="0" Text="GitHub" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
-          <TextBlock x:Name="GithubStatusText"
-                     Grid.Row="1" Grid.Column="1"
-                     Text="wird geprüft..."
-                     TextWrapping="Wrap"
-                     Margin="0,6,0,0"/>
+            <!-- Verbindung -->
+            <Border Background="#202042"
+                    BorderBrush="#2a2a4a"
+                    BorderThickness="1"
+                    CornerRadius="8"
+                    Padding="14">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Verbindungen" FontSize="13" FontWeight="SemiBold"/>
+                <Grid ColumnDefinitions="150,*" RowDefinitions="Auto,Auto,Auto">
+                  <TextBlock Grid.Row="0" Grid.Column="0" Text="AAIA Konto" Foreground="#8892a4" FontSize="12"/>
+                  <TextBlock x:Name="MarketplaceStatusText"
+                             Grid.Row="0" Grid.Column="1"
+                             Text="wird geprüft..."
+                             TextWrapping="Wrap"/>
 
-          <TextBlock Grid.Row="2" Grid.Column="0" Text="AAIAS" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
-          <TextBlock x:Name="AaiasStatusText"
-                     Grid.Row="2" Grid.Column="1"
-                     Text="wird geprüft..."
-                     TextWrapping="Wrap"
-                     Margin="0,6,0,0"/>
-        </Grid>
-      </StackPanel>
-    </Border>
+                  <TextBlock Grid.Row="1" Grid.Column="0" Text="GitHub" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
+                  <TextBlock x:Name="GithubStatusText"
+                             Grid.Row="1" Grid.Column="1"
+                             Text="wird geprüft..."
+                             TextWrapping="Wrap"
+                             Margin="0,6,0,0"/>
 
-    <!-- Sprache -->
-    <StackPanel Spacing="6">
-      <TextBlock Text="{DynamicResource Str_Settings_Language}" Foreground="#8892a4" FontSize="12"/>
-      <StackPanel Orientation="Horizontal" Spacing="16">
-        <RadioButton x:Name="RadioDe"
-                     Content="{DynamicResource Str_Settings_De}"
-                     IsChecked="True"
-                     Foreground="#e0e0e0"/>
-        <RadioButton x:Name="RadioEn"
-                     Content="{DynamicResource Str_Settings_En}"
-                     Foreground="#e0e0e0"/>
-      </StackPanel>
-    </StackPanel>
+                  <TextBlock Grid.Row="2" Grid.Column="0" Text="AAIAS" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
+                  <TextBlock x:Name="AaiasStatusText"
+                             Grid.Row="2" Grid.Column="1"
+                             Text="wird geprüft..."
+                             TextWrapping="Wrap"
+                             Margin="0,6,0,0"/>
+                </Grid>
+              </StackPanel>
+            </Border>
 
-    <!-- Marketplace API URL -->
-    <StackPanel Spacing="6">
-      <TextBlock Text="Marketplace API URL" Foreground="#8892a4" FontSize="12"/>
-      <TextBox x:Name="ApiUrlBox"
-               Watermark="https://aaiagent.de/index.php?rest_route=/aaia/v1"
-               Background="#12122a" Foreground="#e0e0e0"
-               BorderBrush="#2a2a4a" BorderThickness="1"
-               CornerRadius="6" Padding="10,7" FontSize="12"/>
-      <TextBlock Foreground="#5865f2" FontSize="11"
-                 Text="Live: https://aaiagent.de/index.php?rest_route=/aaia/v1"/>
-    </StackPanel>
+            <!-- Sprache -->
+            <StackPanel Spacing="6">
+              <TextBlock Text="{DynamicResource Str_Settings_Language}" Foreground="#8892a4" FontSize="12"/>
+              <StackPanel Orientation="Horizontal" Spacing="16">
+                <RadioButton x:Name="RadioDe"
+                             Content="{DynamicResource Str_Settings_De}"
+                             IsChecked="True"
+                             Foreground="#e0e0e0"/>
+                <RadioButton x:Name="RadioEn"
+                             Content="{DynamicResource Str_Settings_En}"
+                             Foreground="#e0e0e0"/>
+              </StackPanel>
+            </StackPanel>
 
-    <!-- Marketplace Backend API URL (ASP.NET Core) -->
-    <StackPanel Spacing="6">
-      <TextBlock Text="Marketplace Backend API URL" Foreground="#8892a4" FontSize="12"/>
-      <TextBox x:Name="BackendApiUrlBox"
-               Watermark="https://api.marketplace.aaia.app"
-               Background="#12122a" Foreground="#e0e0e0"
-               BorderBrush="#2a2a4a" BorderThickness="1"
-               CornerRadius="6" Padding="10,7" FontSize="12"/>
-      <TextBlock Foreground="#5a607a" FontSize="11"
-                 Text="Wird für Lizenzaktivierung (JWT) verwendet — getrennt vom WooCommerce-Endpunkt."/>
-    </StackPanel>
+            <!-- Marketplace API URL -->
+            <StackPanel Spacing="6">
+              <TextBlock Text="Marketplace API URL" Foreground="#8892a4" FontSize="12"/>
+              <TextBox x:Name="ApiUrlBox"
+                       Watermark="https://aaiagent.de/index.php?rest_route=/aaia/v1"
+                       Background="#12122a" Foreground="#e0e0e0"
+                       BorderBrush="#2a2a4a" BorderThickness="1"
+                       CornerRadius="6" Padding="10,7" FontSize="12"/>
+              <TextBlock Foreground="#5865f2" FontSize="11"
+                         Text="Live: https://aaiagent.de/index.php?rest_route=/aaia/v1"/>
+            </StackPanel>
 
-    <!-- Buttons -->
-    <StackPanel Orientation="Horizontal" HorizontalAlignment="Right" Spacing="8">
-      <Button Classes="ghost"
-              Content="{DynamicResource Str_Cancel}"
-              Click="Cancel_Click"/>
-      <Button Classes="primary"
-              Content="{DynamicResource Str_Save}"
-              Click="Save_Click"/>
-    </StackPanel>
-  </StackPanel>
+            <!-- Marketplace Backend API URL -->
+            <StackPanel Spacing="6">
+              <TextBlock Text="Marketplace Backend API URL" Foreground="#8892a4" FontSize="12"/>
+              <TextBox x:Name="BackendApiUrlBox"
+                       Watermark="https://api.marketplace.aaia.app"
+                       Background="#12122a" Foreground="#e0e0e0"
+                       BorderBrush="#2a2a4a" BorderThickness="1"
+                       CornerRadius="6" Padding="10,7" FontSize="12"/>
+              <TextBlock Foreground="#5a607a" FontSize="11"
+                         Text="Wird für Lizenzaktivierung (JWT) verwendet — getrennt vom WooCommerce-Endpunkt."/>
+            </StackPanel>
+
+          </StackPanel>
+        </ScrollViewer>
+
+        <!-- Buttons -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal" HorizontalAlignment="Right"
+                    Spacing="8" Margin="28,8,28,20">
+          <Button Classes="ghost"
+                  Content="{DynamicResource Str_Cancel}"
+                  Click="Cancel_Click"/>
+          <Button Classes="primary"
+                  Content="{DynamicResource Str_Save}"
+                  Click="Save_Click"/>
+        </StackPanel>
+
+      </Grid>
+    </TabItem>
+
+    <!-- ── Tab 2: Umgebung & Pfade (SetupTab) ── -->
+    <TabItem Header="🛠  Umgebung &amp; Pfade">
+      <tabs:SetupTab x:Name="EmbeddedSetupTab"/>
+    </TabItem>
+
+    <!-- ── Tab 3: KI-Assistent ── -->
+    <TabItem Header="🤖  KI-Assistent">
+      <Grid RowDefinitions="*,Auto">
+        <ScrollViewer Grid.Row="0" Padding="28,24,28,8">
+          <StackPanel Spacing="18">
+
+            <!-- ── Anbieter-Auswahl ── -->
+            <Border Background="#202042" BorderBrush="#2a2a4a"
+                    BorderThickness="1" CornerRadius="8" Padding="14">
+              <StackPanel Spacing="10">
+                <TextBlock Text="KI-Anbieter" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="Waehle den KI-Dienst fuer den Assistenten und die Ideen-Analyse."
+                           FontSize="11" Foreground="#8892a4" TextWrapping="Wrap"/>
+                <StackPanel Orientation="Horizontal" Spacing="24" Margin="0,4,0,0">
+                  <RadioButton x:Name="RadioProviderClaude"
+                               Content="Claude (Anthropic)"
+                               Foreground="#e0e0e0"
+                               Click="RadioProvider_Click"/>
+                  <RadioButton x:Name="RadioProviderOpenAi"
+                               Content="OpenAI / GPT"
+                               Foreground="#e0e0e0"
+                               Click="RadioProvider_Click"/>
+                  <RadioButton x:Name="RadioProviderGemini"
+                               Content="Google Gemini"
+                               Foreground="#e0e0e0"
+                               Click="RadioProvider_Click"/>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- ── Claude-Abschnitt ── -->
+            <Border x:Name="ClaudeSection"
+                    Background="#202042" BorderBrush="#2a2a4a"
+                    BorderThickness="1" CornerRadius="8" Padding="14">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Anthropic Claude" FontSize="13" FontWeight="SemiBold"/>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="API Key" Foreground="#8892a4" FontSize="12"/>
+                  <TextBox x:Name="ClaudeApiKeyBox"
+                           Watermark="sk-ant-api..."
+                           PasswordChar="*"
+                           Background="#12122a" Foreground="#e0e0e0"
+                           BorderBrush="#2a2a4a" BorderThickness="1"
+                           CornerRadius="6" Padding="10,7" FontSize="12"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                  <TextBlock Text="console.anthropic.com  —  wird nur lokal gespeichert."
+                             FontSize="11" Foreground="#5a607a"/>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Modell" Foreground="#8892a4" FontSize="12"/>
+                  <ComboBox x:Name="ClaudeModelBox"
+                            Background="#12122a" Foreground="#e0e0e0"
+                            BorderBrush="#2a2a4a" BorderThickness="1"
+                            CornerRadius="6" Padding="10,7" FontSize="12"
+                            Width="340" HorizontalAlignment="Left">
+                    <ComboBoxItem Content="claude-haiku-4-5-20251001  (schnell, guenstig)"/>
+                    <ComboBoxItem Content="claude-sonnet-4-6           (ausgewogen)"/>
+                    <ComboBoxItem Content="claude-opus-4-8             (leistungsstarkst)"/>
+                  </ComboBox>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- ── OpenAI-Abschnitt ── -->
+            <Border x:Name="OpenAiSection"
+                    Background="#202042" BorderBrush="#2a2a4a"
+                    BorderThickness="1" CornerRadius="8" Padding="14"
+                    IsVisible="False">
+              <StackPanel Spacing="10">
+                <TextBlock Text="OpenAI / GPT" FontSize="13" FontWeight="SemiBold"/>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="API Key" Foreground="#8892a4" FontSize="12"/>
+                  <TextBox x:Name="OpenAiApiKeyBox"
+                           Watermark="sk-..."
+                           PasswordChar="*"
+                           Background="#12122a" Foreground="#e0e0e0"
+                           BorderBrush="#2a2a4a" BorderThickness="1"
+                           CornerRadius="6" Padding="10,7" FontSize="12"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                  <TextBlock Text="platform.openai.com  —  wird nur lokal gespeichert."
+                             FontSize="11" Foreground="#5a607a"/>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Modell" Foreground="#8892a4" FontSize="12"/>
+                  <ComboBox x:Name="OpenAiModelBox"
+                            Background="#12122a" Foreground="#e0e0e0"
+                            BorderBrush="#2a2a4a" BorderThickness="1"
+                            CornerRadius="6" Padding="10,7" FontSize="12"
+                            Width="340" HorizontalAlignment="Left">
+                    <ComboBoxItem Content="gpt-4o-mini   (schnell, guenstig)"/>
+                    <ComboBoxItem Content="gpt-4o        (ausgewogen)"/>
+                    <ComboBoxItem Content="gpt-4-turbo   (leistungsstark)"/>
+                    <ComboBoxItem Content="o1-mini       (Reasoning)"/>
+                  </ComboBox>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- ── Gemini-Abschnitt ── -->
+            <Border x:Name="GeminiSection"
+                    Background="#202042" BorderBrush="#2a2a4a"
+                    BorderThickness="1" CornerRadius="8" Padding="14"
+                    IsVisible="False">
+              <StackPanel Spacing="10">
+                <TextBlock Text="Google Gemini" FontSize="13" FontWeight="SemiBold"/>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="API Key" Foreground="#8892a4" FontSize="12"/>
+                  <TextBox x:Name="GeminiApiKeyBox"
+                           Watermark="AIza..."
+                           PasswordChar="*"
+                           Background="#12122a" Foreground="#e0e0e0"
+                           BorderBrush="#2a2a4a" BorderThickness="1"
+                           CornerRadius="6" Padding="10,7" FontSize="12"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                  <TextBlock Text="aistudio.google.com  —  wird nur lokal gespeichert."
+                             FontSize="11" Foreground="#5a607a"/>
+                </StackPanel>
+                <StackPanel Spacing="6">
+                  <TextBlock Text="Modell" Foreground="#8892a4" FontSize="12"/>
+                  <ComboBox x:Name="GeminiModelBox"
+                            Background="#12122a" Foreground="#e0e0e0"
+                            BorderBrush="#2a2a4a" BorderThickness="1"
+                            CornerRadius="6" Padding="10,7" FontSize="12"
+                            Width="340" HorizontalAlignment="Left">
+                    <ComboBoxItem Content="gemini-2.0-flash   (schnell, guenstig)"/>
+                    <ComboBoxItem Content="gemini-2.5-pro     (leistungsstark)"/>
+                    <ComboBoxItem Content="gemini-1.5-flash   (stabil, guenstig)"/>
+                    <ComboBoxItem Content="gemini-1.5-pro     (stabil, leistungsstark)"/>
+                  </ComboBox>
+                </StackPanel>
+              </StackPanel>
+            </Border>
+
+            <!-- ── Verbindung testen ── -->
+            <StackPanel Orientation="Horizontal" Spacing="12" Margin="0,2,0,0">
+              <Button x:Name="AiTestBtn"
+                      Content="Verbindung testen"
+                      Classes="ghost"
+                      Click="AiTestBtn_Click"/>
+              <TextBlock x:Name="AiTestResult"
+                         VerticalAlignment="Center"
+                         FontSize="12"
+                         Foreground="#8892a4"/>
+            </StackPanel>
+
+            <!-- ── AAIAS-Kontext ── -->
+            <Border Background="#202042" BorderBrush="#2a2a4a"
+                    BorderThickness="1" CornerRadius="8" Padding="14">
+              <StackPanel Spacing="10">
+                <TextBlock Text="AAIAS-Kontext" FontSize="13" FontWeight="SemiBold"/>
+                <TextBlock Text="AAIAS kann dem KI-Assistenten Systemzustand, installierte Module und SDK-Versionen bereitstellen."
+                           FontSize="11" Foreground="#8892a4" TextWrapping="Wrap"/>
+
+                <TextBlock Text="AAIAS-URL" Foreground="#8892a4" FontSize="12"/>
+                <TextBlock x:Name="AaiasUrlLabel"
+                           FontSize="12" Foreground="#5865f2"/>
+
+                <StackPanel Orientation="Horizontal" Spacing="12">
+                  <Button x:Name="AaiasTestBtn"
+                          Content="AAIAS-Verbindung testen"
+                          Classes="ghost"
+                          Click="AaiasTestBtn_Click"/>
+                  <TextBlock x:Name="AaiasTestResult"
+                             VerticalAlignment="Center"
+                             FontSize="12"
+                             Foreground="#8892a4"/>
+                </StackPanel>
+
+                <!-- Kontext-Flags -->
+                <TextBlock Text="Kontextinhalte" Foreground="#8892a4" FontSize="12" Margin="0,6,0,0"/>
+                <StackPanel Spacing="6">
+                  <CheckBox x:Name="CbSendProject"     Content="Aktuelles Projekt (Name, Typ, Ausgabepfad)"/>
+                  <CheckBox x:Name="CbSendBuildErrors" Content="Buildfehler automatisch einbeziehen"/>
+                  <CheckBox x:Name="CbSendManifest"    Content="Manifest und Rechte"/>
+                  <CheckBox x:Name="CbSendAaiasStatus" Content="AAIAS-Status (installierte Module, Version)"/>
+                  <CheckBox x:Name="CbSendSourceFiles" Content="Quellcode-Dateien (standardmaessig aus)"/>
+                </StackPanel>
+
+                <!-- Datenschutz-Hinweis -->
+                <Border Background="#1a1a10" BorderBrush="#3a3a1a"
+                        BorderThickness="1" CornerRadius="6" Padding="10,8"
+                        Margin="0,4,0,0">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="Datenschutz" FontSize="11" FontWeight="SemiBold"
+                               Foreground="#b8a040"/>
+                    <TextBlock FontSize="11" Foreground="#8892a4" TextWrapping="Wrap"
+                               Text="API-Keys werden ausschliesslich lokal gespeichert und nie an Server uebertragen. Quellcode wird nie automatisch an externe KI-Anbieter gesendet — nur wenn die Checkbox oben aktiv ist."/>
+                  </StackPanel>
+                </Border>
+
+              </StackPanel>
+            </Border>
+
+          </StackPanel>
+        </ScrollViewer>
+
+        <!-- Speichern-Leiste -->
+        <StackPanel Grid.Row="1"
+                    Orientation="Horizontal" HorizontalAlignment="Right"
+                    Spacing="8" Margin="28,8,28,20">
+          <Button Classes="ghost" Content="Abbrechen" Click="Cancel_Click"/>
+          <Button Classes="primary" Content="Speichern" Click="SaveAi_Click"/>
+        </StackPanel>
+      </Grid>
+    </TabItem>
+
+  </TabControl>
 
 </Window>

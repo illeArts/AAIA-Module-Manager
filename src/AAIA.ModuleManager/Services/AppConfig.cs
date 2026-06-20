@@ -52,6 +52,48 @@ public class AppConfig
     public string MonorepoPath { get; set; } = DefaultMonorepoPath();
     public string RegistryPath { get; set; } = DefaultRegistryPath();
 
+    /// <summary>Zielordner für neue Projekte aus dem Wizard.</summary>
+    public string NewProjectPath { get; set; } = DefaultNewProjectPath();
+
+    private static string DefaultNewProjectPath() => OperatingSystem.IsWindows()
+        ? @"H:\AAIAGitHub"
+        : Path.Combine(Environment.GetFolderPath(Environment.SpecialFolder.UserProfile), "AAIAGitHub");
+
+    // ── KI-Assistent ─────────────────────────────────────────────────────────
+
+    /// <summary>Aktiver KI-Anbieter: "Claude" | "OpenAI" | "Gemini".</summary>
+    public string AiProvider { get; set; } = "Claude";
+
+    // Claude / Anthropic
+    /// <summary>Anthropic Claude API Key.</summary>
+    public string ClaudeApiKey { get; set; } = "";
+    /// <summary>Claude-Modell.</summary>
+    public string ClaudeModel  { get; set; } = "claude-haiku-4-5-20251001";
+
+    // OpenAI / GPT
+    /// <summary>OpenAI API Key.</summary>
+    public string OpenAiApiKey { get; set; } = "";
+    /// <summary>OpenAI-Modell.</summary>
+    public string OpenAiModel  { get; set; } = "gpt-4o-mini";
+
+    // Google Gemini
+    /// <summary>Google Gemini API Key.</summary>
+    public string GeminiApiKey { get; set; } = "";
+    /// <summary>Gemini-Modell.</summary>
+    public string GeminiModel  { get; set; } = "gemini-2.0-flash";
+
+    // ── AAIAS-KI-Kontext ──────────────────────────────────────────────────────
+    /// <summary>Aktuelles Projekt an KI uebergeben.</summary>
+    public bool AiContextSendProject     { get; set; } = true;
+    /// <summary>Buildfehler an KI uebergeben.</summary>
+    public bool AiContextSendBuildErrors { get; set; } = true;
+    /// <summary>Manifest und Rechte an KI uebergeben.</summary>
+    public bool AiContextSendManifest    { get; set; } = true;
+    /// <summary>AAIAS-Status an KI uebergeben.</summary>
+    public bool AiContextSendAaiasStatus { get; set; } = true;
+    /// <summary>Quellcode-Dateien automatisch einbeziehen (standardmaessig aus).</summary>
+    public bool AiContextSendSourceFiles { get; set; } = false;
+
     // V2 — AAIAS connection
     public string AaiasUrl      { get; set; } = "http://localhost:5174";
     public string AaiasUsername { get; set; } = "";

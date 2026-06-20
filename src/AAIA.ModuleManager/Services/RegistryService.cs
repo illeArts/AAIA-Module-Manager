@@ -17,9 +17,21 @@ public record RegistryEntry(
     [property: JsonPropertyName("repository")]  string Repository
 );
 
+/// <summary>
+/// Neues Index-Format: { "version":"1", "modules":[…], "plugins":[…] }
+/// Löst das alte Flat-Array-Format ab.
+/// </summary>
+file record RegistryIndex(
+    [property: JsonPropertyName("version")]     string?             Version,
+    [property: JsonPropertyName("description")] string?             Description,
+    [property: JsonPropertyName("modules")]     List<RegistryEntry>? Modules,
+    [property: JsonPropertyName("plugins")]     List<RegistryEntry>? Plugins
+);
+
 public class RegistryService
 {
     private readonly string _registryPath;
+    private static readonly JsonSerializerOptions _jsonOpts = new() { WriteIndented = true };
 
     public RegistryService(string registryRoot)
     {
@@ -28,12 +40,22 @@ public class RegistryService
 
     public async Task<List<RegistryEntry>> LoadAsync()
     {
-        if (!File.Exists(_registryPath))
-            return [];
+        if (!File.Exists(_registryPath)) return [];
 
         var json = await File.ReadAllTextAsync(_registryPath);
-        return JsonSerializer.Deserialize<List<RegistryEntry>>(json)
-               ?? [];
+
+        // Neues Format: JSON-Objekt { "modules":[], "plugins":[] }
+        if (json.TrimStart().StartsWith('{'))
+        {
+            var idx = JsonSerializer.Deserialize<RegistryIndex>(json, _jsonOpts);
+            var all = new List<RegistryEntry>();
+            if (idx?.Modules != null) all.AddRange(idx.Modules);
+            if (idx?.Plugins  != null) all.AddRange(idx.Plugins);
+            return all;
+        }
+
+        // Legacy: flaches Array [...]
+        return JsonSerializer.Deserialize<List<RegistryEntry>>(json, _jsonOpts) ?? [];
     }
 
     public async Task<List<RegistryEntry>> SearchAsync(string query)
@@ -50,14 +72,37 @@ public class RegistryService
 
     public async Task AddOrUpdateAsync(RegistryEntry entry)
     {
-        var list = await LoadAsync();
-        var idx  = list.FindIndex(e => e.Name == entry.Name);
+        // Bestehenden Index lesen (neues oder altes Format)
+        RegistryIndex? existingIdx = null;
+        if (File.Exists(_registryPath))
+        {
+            var raw = await File.ReadAllTextAsync(_registryPath);
+            if (raw.TrimStart().StartsWith('{'))
+                existingIdx = JsonSerializer.Deserialize<RegistryIndex>(raw, _jsonOpts);
+        }
 
-        if (idx >= 0) list[idx] = entry;
-        else          list.Add(entry);
+        var modules = new List<RegistryEntry>(existingIdx?.Modules ?? []);
+        var plugins = new List<RegistryEntry>(existingIdx?.Plugins  ?? []);
 
-        var opts = new JsonSerializerOptions { WriteIndented = true };
-        await File.WriteAllTextAsync(_registryPath, JsonSerializer.Serialize(list, opts));
+        // Nach Typ einsortieren
+        if (string.Equals(entry.Type, "plugin", StringComparison.OrdinalIgnoreCase))
+        {
+            var i = plugins.FindIndex(e => e.Name == entry.Name);
+            if (i >= 0) plugins[i] = entry; else plugins.Add(entry);
+        }
+        else
+        {
+            var i = modules.FindIndex(e => e.Name == entry.Name);
+            if (i >= 0) modules[i] = entry; else modules.Add(entry);
+        }
+
+        var newIdx = new RegistryIndex(
+            existingIdx?.Version     ?? "1",
+            existingIdx?.Description ?? "AAIA Extension Registry",
+            modules, plugins);
+
+        Directory.CreateDirectory(Path.GetDirectoryName(_registryPath)!);
+        await File.WriteAllTextAsync(_registryPath, JsonSerializer.Serialize(newIdx, _jsonOpts));
     }
 
     /// <summary>Liest die aktuelle Contracts-Version aus einer .csproj-Datei.</summary>

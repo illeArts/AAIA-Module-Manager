@@ -1,0 +1,159 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.AiPanelTab"
+             x:DataType="vm:AiPanelViewModel"
+             Background="#1a1a2e"
+             Foreground="#e0e0e0"
+             FontFamily="Inter,Segoe UI,sans-serif">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- ── Toolbar ── -->
+    <Border Grid.Row="0"
+            Background="#12122a"
+            BorderBrush="#2a2a4a" BorderThickness="0,0,0,1"
+            Padding="12,8">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="🤖  KI-Assistent" FontSize="14" FontWeight="SemiBold"
+                     VerticalAlignment="Center"/>
+          <Border Background="#202042" CornerRadius="4" Padding="6,2">
+            <TextBlock Text="{Binding ProviderLabel}" FontSize="10" Foreground="#5865f2"/>
+          </Border>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+          <Button Content="🧹 Verlauf löschen" Classes="ghost" FontSize="11"
+                  Command="{Binding ClearHistoryCommand}"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ── Chat-Verlauf ── -->
+    <Border Grid.Row="1" Margin="0">
+      <Panel>
+
+        <!-- Kein Anbieter konfiguriert → Hinweis -->
+        <Border IsVisible="{Binding !HasProvider}"
+                VerticalAlignment="Center" HorizontalAlignment="Center"
+                Background="#202042" CornerRadius="10" Padding="24,20"
+                MaxWidth="400">
+          <StackPanel Spacing="12" HorizontalAlignment="Center">
+            <TextBlock Text="🔑" FontSize="32" HorizontalAlignment="Center"/>
+            <TextBlock Text="Kein KI-Anbieter konfiguriert"
+                       FontSize="14" FontWeight="SemiBold"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="Gehe zu Einstellungen → KI-Assistent und waehle einen Anbieter (Claude, OpenAI oder Gemini)."
+                       FontSize="12" Foreground="#8892a4"
+                       TextWrapping="Wrap" HorizontalAlignment="Center"/>
+            <TextBlock Text="Einstellungen → KI-Assistent → API-Schluessel"
+                       FontSize="11" Foreground="#5865f2"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Chat-Nachrichten -->
+        <ScrollViewer x:Name="ChatScroll"
+                      IsVisible="{Binding HasProvider}"
+                      Padding="16,12">
+          <ItemsControl x:Name="MessageList"
+                        ItemsSource="{Binding Messages}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:AiChatEntry">
+                <StackPanel Margin="0,0,0,12">
+
+                  <!-- Benutzer-Nachricht (rechts) -->
+                  <Border IsVisible="{Binding IsUser}"
+                          HorizontalAlignment="Right"
+                          Background="#1e2c5c"
+                          BorderBrush="#2a3f8f"
+                          BorderThickness="1"
+                          CornerRadius="12,12,2,12"
+                          Padding="12,8"
+                          MaxWidth="480">
+                    <StackPanel Spacing="4">
+                      <TextBlock Text="Du" FontSize="10" Foreground="#8892a4" FontWeight="SemiBold"/>
+                      <TextBlock Text="{Binding Content}"
+                                 TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
+                    </StackPanel>
+                  </Border>
+
+                  <!-- KI-Antwort (links) -->
+                  <Border IsVisible="{Binding !IsUser}"
+                          HorizontalAlignment="Left"
+                          Background="#202042"
+                          BorderBrush="#2a2a6a"
+                          BorderThickness="1"
+                          CornerRadius="12,12,12,2"
+                          Padding="12,8"
+                          MaxWidth="520">
+                    <StackPanel Spacing="4">
+                      <StackPanel Orientation="Horizontal" Spacing="6">
+                        <TextBlock Text="🤖" FontSize="11"/>
+                        <TextBlock Text="KI-Assistent" FontSize="10"
+                                   Foreground="#5865f2" FontWeight="SemiBold"/>
+                      </StackPanel>
+                      <TextBlock Text="{Binding Content}"
+                                 TextWrapping="Wrap" FontSize="13" LineHeight="20"/>
+                    </StackPanel>
+                  </Border>
+
+                </StackPanel>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+        </ScrollViewer>
+
+      </Panel>
+    </Border>
+
+    <!-- ── Eingabebereich ── -->
+    <Border Grid.Row="2"
+            Background="#12122a"
+            BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+            Padding="12,10">
+      <Grid RowDefinitions="Auto,Auto">
+
+        <!-- Statuszeile -->
+        <TextBlock Grid.Row="0"
+                   Text="{Binding StatusText}"
+                   IsVisible="{Binding StatusText, Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                   Foreground="#5865f2" FontSize="11" Margin="2,0,0,6"
+                   FontStyle="Italic"/>
+
+        <!-- Eingabe + Buttons -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+          <TextBox Grid.Column="0"
+                   Text="{Binding InputText, Mode=TwoWay}"
+                   Watermark="Frage an den AAIA-Assistenten..."
+                   AcceptsReturn="True"
+                   MaxHeight="120"
+                   TextWrapping="Wrap"
+                   Background="#1a1a3e"
+                   Foreground="#e0e0e0"
+                   BorderBrush="#2a2a5a"
+                   BorderThickness="1"
+                   CornerRadius="8"
+                   Padding="12,8"
+                   FontSize="13"
+                   KeyDown="Input_KeyDown"/>
+
+          <StackPanel Grid.Column="1" Spacing="6" Margin="8,0,0,0">
+            <Button Content="📎" ToolTip.Tip="Kontext einfügen"
+                    Classes="ghost" Width="36" Height="36"
+                    Command="{Binding InsertContextCommand}"
+                    IsEnabled="{Binding !IsSending}"/>
+            <Button Content="➤"
+                    Classes="primary" Width="36" Height="36"
+                    Command="{Binding SendCommand}"
+                    IsEnabled="{Binding !IsSending}"
+                    ToolTip.Tip="Absenden (Strg+Enter)"/>
+          </StackPanel>
+        </Grid>
+
+      </Grid>
+    </Border>
+
+  </Grid>
+
+</UserControl>
