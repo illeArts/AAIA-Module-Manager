@@ -132,6 +132,12 @@
         <tabs:SdkTab DataContext="{Binding SdkTab}"/>
       </TabItem>
 
+      <!-- Tab 9: Admin / Debug (nur Owner) -->
+      <TabItem Header="🛠  Admin"
+               IsVisible="{Binding IsOwner}">
+        <tabs:AdminTab DataContext="{Binding AdminTab}"/>
+      </TabItem>
+
     </TabControl>
 
   </Grid>

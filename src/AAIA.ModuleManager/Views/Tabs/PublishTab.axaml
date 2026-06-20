@@ -58,6 +58,23 @@
                        Watermark="1.0.0" />
             </Grid>
 
+            <!-- Erweiterungstyp -->
+            <Grid ColumnDefinitions="120,*">
+              <TextBlock VerticalAlignment="Center" Text="Typ" />
+              <ComboBox Grid.Column="1"
+                        ItemsSource="{Binding ExtensionTypeOptions}"
+                        SelectedItem="{Binding SelectedExtensionTypeOption}"
+                        HorizontalAlignment="Stretch" />
+            </Grid>
+
+            <!-- Zielsprache (nur für Sprachpakete) -->
+            <Grid ColumnDefinitions="120,*"
+                  IsVisible="{Binding IsLanguagePack}">
+              <TextBlock VerticalAlignment="Center" Text="Zielsprache" />
+              <TextBox Grid.Column="1" Text="{Binding TargetLocale}"
+                       Watermark="z.B. de-DE, en-US" />
+            </Grid>
+
             <Grid ColumnDefinitions="120,*">
               <TextBlock VerticalAlignment="Center" Text="Changelog" />
               <TextBox Grid.Column="1" Text="{Binding Changelog}"

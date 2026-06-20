@@ -7,15 +7,16 @@ namespace AAIA.ModuleManager.ViewModels;
 
 public partial class MainWindowViewModel : ObservableObject
 {
-    public SdkTabViewModel       SdkTab       { get; }
-    public ModuleTabViewModel    ModuleTab    { get; }
-    public RegistryTabViewModel  RegistryTab  { get; }
-    public TesterTabViewModel    TesterTab    { get; }
-    public SetupTabViewModel     SetupTab     { get; }
+    public SdkTabViewModel            SdkTab       { get; }
+    public ModuleTabViewModel         ModuleTab    { get; }
+    public RegistryTabViewModel       RegistryTab  { get; }
+    public TesterTabViewModel         TesterTab    { get; }
+    public SetupTabViewModel          SetupTab     { get; }
     public DeveloperTabViewModel      DeveloperTab { get; }
     public PublishTabViewModel        PublishTab   { get; }
     public LicensesTabViewModel       LicensesTab  { get; }
     public MarketplaceBrowseViewModel BrowseTab    { get; }
+    public AdminTabViewModel          AdminTab     { get; }
 
     // ── Developer-Identität (Titelleiste) ─────────────────────────────────────
 
@@ -54,6 +55,7 @@ public partial class MainWindowViewModel : ObservableObject
         PublishTab   = new PublishTabViewModel(config, publishSvc, marketplaceClient);
         LicensesTab  = new LicensesTabViewModel(config, TesterTab.AaiasConn);
         BrowseTab    = new MarketplaceBrowseViewModel(wpMarketplace);
+        AdminTab     = new AdminTabViewModel(wpMarketplace);
 
         _ = TesterTab.InitAsync(config);
 
@@ -65,9 +67,12 @@ public partial class MainWindowViewModel : ObservableObject
             DeveloperRole        = config.DeveloperRole;
             IsLoggedIn           = true;
 
-            // Bearer-Token wiederherstellen
+            // Bearer-Token wiederherstellen (beide Clients)
             if (!string.IsNullOrEmpty(config.MarketplaceToken))
+            {
                 marketplaceClient.SetBearer(config.MarketplaceToken);
+                wpMarketplace.SetBearer(config.MarketplaceToken);
+            }
         }
     }
 

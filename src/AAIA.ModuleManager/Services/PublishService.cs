@@ -19,9 +19,13 @@ public sealed class PublishService(
         string  Changelog,
         string? PrivateKeyPath,
         string? KeyId,
-        bool    PublishNuGet   = false,
-        bool    CreateGitHub   = false,
-        bool    PublishToMarketplace = true);
+        bool    PublishNuGet         = false,
+        bool    CreateGitHub         = false,
+        bool    PublishToMarketplace = true,
+        /// <summary>"module" | "plugin" | "languagepack" — aus Manifest oder manuell gesetzt.</summary>
+        string  ExtensionType        = "module",
+        /// <summary>Zielsprache für LanguagePacks, z.B. "de-DE". Null für Module/Plugins.</summary>
+        string? TargetLocale         = null);
 
     public record PublishResult(
         bool    Success,
@@ -45,9 +49,27 @@ public sealed class PublishService(
 
             var manifestJson = await File.ReadAllTextAsync(manifestPath, ct);
             using var doc    = JsonDocument.Parse(manifestJson);
-            var moduleId = doc.RootElement.GetProperty("id").GetString();
+            var root = doc.RootElement;
+
+            var moduleId = root.GetProperty("id").GetString();
             if (moduleId is null)
                 return Fail("Manifest hat kein 'id' Feld.");
+
+            // ExtensionType und TargetLocale aus Manifest lesen (Caller-Wert hat Vorrang)
+            var extensionType = opts.ExtensionType;
+            if (extensionType == "module" &&
+                root.TryGetProperty("extensionType", out var etProp) &&
+                etProp.GetString() is { } etFromManifest)
+            {
+                extensionType = etFromManifest.ToLowerInvariant();
+            }
+
+            var targetLocale = opts.TargetLocale;
+            if (targetLocale is null &&
+                root.TryGetProperty("targetLocale", out var tlProp))
+            {
+                targetLocale = tlProp.GetString();
+            }
 
             // ── Build ──────────────────────────────────────────────────────────
             progress?.Report($"🔨 Build {moduleId} v{opts.Version}...");
@@ -119,7 +141,9 @@ public sealed class PublishService(
                         NuGetVersion:  opts.PublishNuGet  ? opts.Version : null,
                         GitHubRelease: githubUrl),
                     ct,
-                    filePath: aaixPath);
+                    filePath:      aaixPath,
+                    extensionType: extensionType,
+                    targetLocale:  targetLocale);
 
                 if (!pubResult.Success)
                     return Fail($"Marketplace-Publish fehlgeschlagen: {pubResult.Error}");

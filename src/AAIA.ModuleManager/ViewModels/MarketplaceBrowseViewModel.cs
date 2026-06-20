@@ -15,23 +15,43 @@ namespace AAIA.ModuleManager.ViewModels;
 
 public sealed class ModuleFeedItemVm
 {
-    public int     ProductId    { get; init; }
-    public string  Code         { get; init; } = "";
-    public string  Name         { get; init; } = "";
-    public string  TypeLabel    { get; init; } = "";
-    public string  TypeColor    { get; init; } = "#5865f2";
-    public string  Version      { get; init; } = "";
-    public string  PriceDisplay { get; init; } = "";
-    public string  Url          { get; init; } = "";
+    public int     ProductId     { get; init; }
+    public string  Code          { get; init; } = "";
+    public string  Name          { get; init; } = "";
+    public string  TypeLabel     { get; init; } = "";
+    public string  TypeColor     { get; init; } = "#5865f2";
+    public string  Version       { get; init; } = "";
+    public string  PriceDisplay  { get; init; } = "";
+    public string  Url           { get; init; } = "";
+
+    /// <summary>
+    /// Approval Token vom Marketplace-Feed — opakes HMAC-Token, kein Sicherheitsdetail.
+    /// Null wenn das Modul noch nicht vom Admin freigegeben wurde.
+    /// </summary>
+    public string? ApprovalToken { get; init; }
+
+    /// <summary>
+    /// Wurde das Modul vom AAIA-Inspector geprüft und vom Admin freigegeben?
+    /// true  = Parkausweis vorhanden → Installation empfohlen
+    /// false = kein Token (Legacy oder noch in Prüfung) → Warnung anzeigen
+    /// </summary>
+    public bool    IsApproved    => !string.IsNullOrWhiteSpace(ApprovalToken);
+
+    /// <summary>Badge-Text für die UI.</summary>
+    public string  ApprovalBadge => IsApproved ? "✓ AAIA Geprüft" : "⚠ Nicht geprüft";
+
+    /// <summary>Badge-Farbe.</summary>
+    public string  ApprovalColor => IsApproved ? "#06d6a0" : "#f4a261";
 
     public static ModuleFeedItemVm FromDto(ModuleFeedItem dto) => new()
     {
-        ProductId    = dto.ProductId,
-        Code         = dto.Code,
-        Name         = dto.Name,
-        Version      = dto.Version,
-        Url          = dto.Url,
-        TypeLabel    = dto.Type switch
+        ProductId     = dto.ProductId,
+        Code          = dto.Code,
+        Name          = dto.Name,
+        Version       = dto.Version,
+        Url           = dto.Url,
+        ApprovalToken = dto.ApprovalToken,
+        TypeLabel     = dto.Type switch
         {
             "plugin"       => "🔌 Plugin",
             "module"       => "📦 Modul",
@@ -91,9 +111,26 @@ public sealed partial class MarketplaceBrowseViewModel : ObservableObject
     }
 
     [RelayCommand]
-    private void OpenInBrowser(ModuleFeedItemVm? item)
+    private async Task OpenInBrowserAsync(ModuleFeedItemVm? item, CancellationToken ct = default)
     {
         if (item is null || string.IsNullOrWhiteSpace(item.Url)) return;
+
+        // Parkausweis prüfen: Token aus Feed serverseitig verifizieren
+        if (item.IsApproved)
+        {
+            var verified = await _wpApi.VerifyApprovalAsync(item.ProductId, item.ApprovalToken!, ct);
+            if (!verified)
+            {
+                StatusMessage = $"⚠ Warnung: Parkausweis für '{item.Name}' konnte nicht verifiziert werden. Bitte nicht installieren.";
+                return;
+            }
+        }
+        else
+        {
+            // Kein Token: Warnung anzeigen, aber dennoch Öffnen erlauben (Legacy-Module)
+            StatusMessage = $"ℹ '{item.Name}' hat noch keinen AAIA-Prüfstempel (möglicherweise noch in Prüfung).";
+        }
+
         try { Process.Start(new ProcessStartInfo { FileName = item.Url, UseShellExecute = true }); }
         catch { }
     }

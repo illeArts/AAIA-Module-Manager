@@ -12,6 +12,9 @@ publish/
 xcode-build.log
 copy-assets.bat
 
+# Installer-Build-Artefakte
+installer/dist/
+
 # Artefakte / Temp-Dateien
 *.zip
 zi0YwQWv

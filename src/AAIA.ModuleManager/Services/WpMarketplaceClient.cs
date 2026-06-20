@@ -38,15 +38,16 @@ public sealed record DeveloperStatsDto(
 );
 
 public sealed record ModuleFeedItem(
-    [property: JsonPropertyName("product_id")]  int          ProductId,
-    [property: JsonPropertyName("code")]        string       Code,
-    [property: JsonPropertyName("type")]        string       Type,
-    [property: JsonPropertyName("name")]        string       Name,
-    [property: JsonPropertyName("version")]     string       Version,
-    [property: JsonPropertyName("price")]       decimal      Price,
-    [property: JsonPropertyName("currency")]    string       Currency,
-    [property: JsonPropertyName("url")]         string       Url,
-    [property: JsonPropertyName("permissions")] JsonElement? Permissions = null
+    [property: JsonPropertyName("product_id")]    int          ProductId,
+    [property: JsonPropertyName("code")]          string       Code,
+    [property: JsonPropertyName("type")]          string       Type,
+    [property: JsonPropertyName("name")]          string       Name,
+    [property: JsonPropertyName("version")]       string       Version,
+    [property: JsonPropertyName("price")]         decimal      Price,
+    [property: JsonPropertyName("currency")]      string       Currency,
+    [property: JsonPropertyName("url")]           string       Url,
+    [property: JsonPropertyName("permissions")]   JsonElement? Permissions    = null,
+    [property: JsonPropertyName("approvalToken")] string?      ApprovalToken  = null
 );
 
 public sealed record ModuleFeedResponse(
@@ -56,15 +57,75 @@ public sealed record ModuleFeedResponse(
 
 public sealed class ModuleUploadRequest
 {
-    public string Title         { get; init; } = "";
-    public string Version       { get; init; } = "1.0.0";
+    public string Title          { get; init; } = "";
+    public string Version        { get; init; } = "1.0.0";
     /// <summary>plugin | module | languagepack</summary>
-    public string Type          { get; init; } = "plugin";
-    public decimal Price        { get; init; } = 0m;
-    public string Description   { get; init; } = "";
+    public string Type           { get; init; } = "module";
+    public decimal Price         { get; init; } = 0m;
+    public string Description    { get; init; } = "";
     public string MinAaiaVersion { get; init; } = "1.0.0";
     /// <summary>Absolute path to the ZIP file on disk.</summary>
-    public string FilePath      { get; init; } = "";
+    public string FilePath       { get; init; } = "";
+    /// <summary>Zielsprache für LanguagePacks (z.B. "de-DE"). Null für Module/Plugins.</summary>
+    public string? TargetLocale  { get; init; } = null;
+}
+
+// ── Debug DTOs ────────────────────────────────────────────────────────────────
+
+public sealed class DebugSystemInfoDto
+{
+    [JsonPropertyName("php_version")]         public string PhpVersion         { get; init; } = "";
+    [JsonPropertyName("wp_version")]          public string WpVersion          { get; init; } = "";
+    [JsonPropertyName("wc_version")]          public string WcVersion          { get; init; } = "";
+    [JsonPropertyName("aaia_plugin_version")] public string AaiaPluginVersion  { get; init; } = "";
+    [JsonPropertyName("aaia_db_version")]     public string AaiaDbVersion      { get; init; } = "";
+    [JsonPropertyName("aaia_db_expected")]    public string AaiaDbExpected     { get; init; } = "";
+    [JsonPropertyName("db_prefix")]           public string DbPrefix           { get; init; } = "";
+    [JsonPropertyName("php_memory_limit")]    public string PhpMemoryLimit     { get; init; } = "";
+    [JsonPropertyName("memory_peak_mb")]      public double MemoryPeakMb       { get; init; }
+    [JsonPropertyName("upload_max_filesize")] public string UploadMaxFilesize  { get; init; } = "";
+    [JsonPropertyName("post_max_size")]       public string PostMaxSize        { get; init; } = "";
+    [JsonPropertyName("max_execution_time")]  public string MaxExecutionTime   { get; init; } = "";
+    [JsonPropertyName("wp_debug")]            public bool   WpDebug            { get; init; }
+    [JsonPropertyName("wp_debug_log")]        public bool   WpDebugLog         { get; init; }
+    [JsonPropertyName("wp_debug_display")]    public bool   WpDebugDisplay     { get; init; }
+    [JsonPropertyName("rest_url")]            public string RestUrl            { get; init; } = "";
+    [JsonPropertyName("home_url")]            public string HomeUrl            { get; init; } = "";
+    [JsonPropertyName("time_utc")]            public string TimeUtc            { get; init; } = "";
+    [JsonPropertyName("timezone")]            public string Timezone           { get; init; } = "";
+    [JsonPropertyName("active_plugins")]      public List<DebugPluginDto> ActivePlugins { get; init; } = new();
+}
+
+public sealed class DebugPluginDto
+{
+    [JsonPropertyName("file")]    public string File    { get; init; } = "";
+    [JsonPropertyName("name")]    public string Name    { get; init; } = "";
+    [JsonPropertyName("version")] public string Version { get; init; } = "";
+}
+
+public sealed class DebugLogSectionDto
+{
+    [JsonPropertyName("path")]     public string   Path     { get; init; } = "";
+    [JsonPropertyName("size")]     public long     Size     { get; init; }
+    [JsonPropertyName("modified")] public string?  Modified { get; init; }
+    [JsonPropertyName("lines")]    public string[] Lines    { get; init; } = Array.Empty<string>();
+}
+
+public sealed class DebugLogsDto
+{
+    [JsonPropertyName("requested_lines")] public int                 RequestedLines { get; init; }
+    [JsonPropertyName("wp_debug_log")]    public DebugLogSectionDto? WpDebugLog     { get; init; }
+    [JsonPropertyName("php_error_log")]   public DebugLogSectionDto? PhpErrorLog    { get; init; }
+}
+
+public sealed class DebugTableDto
+{
+    [JsonPropertyName("name")]         public string Name        { get; init; } = "";
+    [JsonPropertyName("rows")]         public int    Rows        { get; init; }
+    [JsonPropertyName("data_bytes")]   public long   DataBytes   { get; init; }
+    [JsonPropertyName("index_bytes")]  public long   IndexBytes  { get; init; }
+    [JsonPropertyName("engine")]       public string Engine      { get; init; } = "";
+    [JsonPropertyName("collation")]    public string Collation   { get; init; } = "";
 }
 
 // ── Client ─────────────────────────────────────────────────────────────────────
@@ -75,7 +136,7 @@ public sealed class ModuleUploadRequest
 ///   "https://aaiagent.de/index.php?rest_route=/aaia/v1"
 /// Auth: Bearer JWT (ETW-JWT aus Login).
 /// </summary>
-public sealed class WpMarketplaceClient : IDisposable
+public sealed partial class WpMarketplaceClient : IDisposable
 {
     private readonly HttpClient _http;
 
@@ -88,7 +149,12 @@ public sealed class WpMarketplaceClient : IDisposable
     private static readonly JsonSerializerOptions _json = new()
     {
         PropertyNameCaseInsensitive = true,
+        NumberHandling = System.Text.Json.Serialization.JsonNumberHandling.AllowReadingFromString,
+        Converters = { new System.Text.Json.Serialization.JsonStringEnumConverter() },
     };
+
+    /// <summary>Wiederverwendbare Options-Instanz für indentiertes JSON-Serialisieren.</summary>
+    private static readonly JsonSerializerOptions _jsonIndented = new() { WriteIndented = true };
 
     /// <param name="wpApiUrl">
     ///   Vollständige WP-REST-Basis-URL, z.B.
@@ -133,13 +199,27 @@ public sealed class WpMarketplaceClient : IDisposable
     /// GET /aaia/v1/developers/me/modules
     /// Gibt alle eigenen Marketplace-Module des eingeloggten ETW zurück.
     /// JWT erforderlich.
+    /// Die API gibt ein Wrapper-Objekt zurück: { etwId, count, items: [...] }
     /// </summary>
     public async Task<List<MarketplaceModuleDto>> GetMyModulesAsync(CancellationToken ct = default)
     {
         var resp = await _http.GetAsync(Url("/developers/me/modules"), ct);
         await EnsureSuccessAsync(resp, ct);
-        return await resp.Content.ReadFromJsonAsync<List<MarketplaceModuleDto>>(_json, ct)
-               ?? new List<MarketplaceModuleDto>();
+
+        // API liefert { etwId, count, items: [...] } — kein raw Array
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        var root = doc.RootElement;
+
+        // Wrapper-Format (AAIA_ETW_Modules)
+        if (root.ValueKind == JsonValueKind.Object && root.TryGetProperty("items", out var itemsEl))
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<MarketplaceModuleDto>>(
+                itemsEl.GetRawText(), _json) ?? new List<MarketplaceModuleDto>();
+        }
+
+        // Fallback: direktes Array-Format
+        return System.Text.Json.JsonSerializer.Deserialize<List<MarketplaceModuleDto>>(
+            root.GetRawText(), _json) ?? new List<MarketplaceModuleDto>();
     }
 
     /// <summary>
@@ -165,6 +245,34 @@ public sealed class WpMarketplaceClient : IDisposable
         await EnsureSuccessAsync(resp, ct);
         return await resp.Content.ReadFromJsonAsync<ModuleFeedResponse>(_json, ct)
                ?? new ModuleFeedResponse(0, new List<ModuleFeedItem>());
+    }
+
+    /// <summary>
+    /// GET /aaia/v1/modules/{id}/verify-approval?token={token}
+    /// Prüft ob ein Modul den AAIA Parkausweis (Admin-Freigabe) hat.
+    /// Gibt nur true/false zurück — keine Scan-Details, kein Regelwerk.
+    /// Kein JWT erforderlich (öffentlicher Endpoint).
+    /// </summary>
+    public async Task<bool> VerifyApprovalAsync(
+        int    productId,
+        string approvalToken,
+        CancellationToken ct = default)
+    {
+        if (string.IsNullOrWhiteSpace(approvalToken)) return false;
+        try
+        {
+            var url  = Url($"/modules/{productId}/verify-approval") + "&token=" + Uri.EscapeDataString(approvalToken);
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode) return false;
+
+            using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+            return doc.RootElement.TryGetProperty("approved", out var v) && v.GetBoolean();
+        }
+        catch
+        {
+            // Im Offline-Fall oder Netzwerkfehler: Token aus dem Feed als Vertrauensbasis nutzen
+            return false;
+        }
     }
 
     /// <summary>
@@ -211,6 +319,8 @@ public sealed class WpMarketplaceClient : IDisposable
         form.Add(new StringContent(req.Price.ToString("F2", System.Globalization.CultureInfo.InvariantCulture)), "price");
         form.Add(new StringContent(req.Description),                     "description");
         form.Add(new StringContent(req.MinAaiaVersion),                  "minAaiaVersion");
+        if (!string.IsNullOrWhiteSpace(req.TargetLocale))
+            form.Add(new StringContent(req.TargetLocale),                "targetLocale");
 
         // ZIP-Datei
         var fileBytes  = await File.ReadAllBytesAsync(req.FilePath, ct);
@@ -426,27 +536,52 @@ public sealed class WpMarketplaceClient : IDisposable
 
     // ── Fehler-Hilfsmethode ────────────────────────────────────────────────────
 
+    /// <summary>
+    /// Wirft eine <see cref="HttpRequestException"/> wenn:
+    ///   (a) der HTTP-Status kein 2xx ist, oder
+    ///   (b) der Body HTML enthält (WordPress PHP-Absturz mit 200 OK).
+    /// Letzteres verhindert, dass raw HTML als JSON geparst wird und als
+    /// kryptische JsonException nach oben durchsickert.
+    /// </summary>
     private static async Task EnsureSuccessAsync(HttpResponseMessage resp, CancellationToken ct)
     {
+        var contentType = resp.Content.Headers.ContentType?.MediaType ?? string.Empty;
+        var body        = string.Empty;
+
+        try { body = await resp.Content.ReadAsStringAsync(ct); }
+        catch { /* Fallback: leerer Body */ }
+
+        // ── 200 OK + HTML = WordPress-PHP-Absturz ─────────────────────────────
+        if (resp.IsSuccessStatusCode && IsHtmlBody(contentType, body))
+        {
+            var plain = StripHtml(body);
+            throw new HttpRequestException(
+                $"Server-Fehler (WordPress): {plain}",
+                null,
+                System.Net.HttpStatusCode.InternalServerError);
+        }
+
         if (resp.IsSuccessStatusCode) return;
 
+        // ── Nicht-2xx ─────────────────────────────────────────────────────────
         string detail = string.Empty;
         try
         {
-            var contentType = resp.Content.Headers.ContentType?.MediaType ?? string.Empty;
-            var body = await resp.Content.ReadAsStringAsync(ct);
-
             if (!string.IsNullOrWhiteSpace(body) && contentType.Contains("application/json"))
             {
                 using var doc = System.Text.Json.JsonDocument.Parse(body);
                 var root = doc.RootElement;
-                if (root.TryGetProperty("error",   out var e)) detail = e.GetString() ?? string.Empty;
+                if      (root.TryGetProperty("error",   out var e)) detail = e.GetString() ?? string.Empty;
                 else if (root.TryGetProperty("message", out var m)) detail = m.GetString() ?? string.Empty;
                 else detail = body;
             }
+            else if (IsHtmlBody(contentType, body))
+            {
+                detail = $"HTTP {(int)resp.StatusCode}: {StripHtml(body)}";
+            }
             else if (!string.IsNullOrWhiteSpace(body))
             {
-                detail = $"HTTP {(int)resp.StatusCode}: Server antwortete kein JSON. Möglicherweise Cloudflare-Block oder falsche API-URL.";
+                detail = $"HTTP {(int)resp.StatusCode}: Server antwortete kein JSON.";
             }
         }
         catch { /* Fallback auf Status */ }
@@ -456,6 +591,103 @@ public sealed class WpMarketplaceClient : IDisposable
             : detail;
 
         throw new HttpRequestException(msg, null, resp.StatusCode);
+    }
+
+    private static bool IsHtmlBody(string contentType, string body) =>
+        contentType.Contains("text/html") ||
+        (body.TrimStart().StartsWith('<') && body.Contains("</"));
+
+    [System.Text.RegularExpressions.GeneratedRegex("<[^>]+>")]
+    private static partial System.Text.RegularExpressions.Regex HtmlTagRegex();
+
+    [System.Text.RegularExpressions.GeneratedRegex(@"\s+")]
+    private static partial System.Text.RegularExpressions.Regex WhitespaceRegex();
+
+    /// <summary>Entfernt HTML-Tags und dekodiert die häufigsten HTML-Entities.</summary>
+    private static string StripHtml(string html)
+    {
+        var text = HtmlTagRegex().Replace(html, " ");
+        text = text.Replace("&amp;",  "&")
+                   .Replace("&lt;",   "<")
+                   .Replace("&gt;",   ">")
+                   .Replace("&quot;", "\"")
+                   .Replace("&#039;", "'")
+                   .Replace("&nbsp;", " ");
+        text = WhitespaceRegex().Replace(text, " ").Trim();
+        return text.Length > 200 ? text[..200] + "…" : text;
+    }
+
+    // ── Owner-only Debug-Methoden ─────────────────────────────────────────────
+
+    /// <summary>
+    /// GET /aaia/v1/debug/info  (Owner-JWT erforderlich)
+    /// System-Info: PHP, WP, WC, Plugin-Version, Speicher, aktive Plugins.
+    /// </summary>
+    public async Task<DebugSystemInfoDto> GetDebugInfoAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync(Url("/debug/info"), ct);
+        await EnsureSuccessAsync(resp, ct);
+        return await resp.Content.ReadFromJsonAsync<DebugSystemInfoDto>(_json, ct)
+               ?? new DebugSystemInfoDto();
+    }
+
+    /// <summary>
+    /// GET /aaia/v1/debug/logs?lines=N  (Owner-JWT erforderlich)
+    /// WP-Debug-Log + PHP-Error-Log, letzte N Zeilen.
+    /// </summary>
+    public async Task<DebugLogsDto> GetDebugLogsAsync(int lines = 200, CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync(Url($"/debug/logs") + $"&lines={lines}", ct);
+        await EnsureSuccessAsync(resp, ct);
+        return await resp.Content.ReadFromJsonAsync<DebugLogsDto>(_json, ct)
+               ?? new DebugLogsDto();
+    }
+
+    /// <summary>
+    /// DELETE /aaia/v1/debug/logs  (Owner-JWT erforderlich)
+    /// Leert das WP-Debug-Log.
+    /// </summary>
+    public async Task<string> ClearDebugLogsAsync(CancellationToken ct = default)
+    {
+        var req  = new HttpRequestMessage(HttpMethod.Delete, Url("/debug/logs"));
+        var resp = await _http.SendAsync(req, ct);
+        await EnsureSuccessAsync(resp, ct);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        return doc.RootElement.TryGetProperty("message", out var m) ? m.GetString() ?? "OK" : "OK";
+    }
+
+    /// <summary>
+    /// GET /aaia/v1/debug/last-error  (Owner-JWT erforderlich)
+    /// Letzter vom PHP Fatal-Catcher aufgezeichneter Fehler (Transient).
+    /// Gibt Pretty-Printed JSON zurück.
+    /// </summary>
+    public async Task<string> GetLastRestFatalAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync(Url("/debug/last-error"), ct);
+        var body = await resp.Content.ReadAsStringAsync(ct);
+        try
+        {
+            using var doc = JsonDocument.Parse(body);
+            return System.Text.Json.JsonSerializer.Serialize(doc.RootElement, _jsonIndented);
+        }
+        catch { return body; }
+    }
+
+    /// <summary>
+    /// GET /aaia/v1/debug/tables  (Owner-JWT erforderlich)
+    /// AAIA-Datenbanktabellen mit Zeilenzahlen und Größen.
+    /// </summary>
+    public async Task<List<DebugTableDto>> GetDebugTablesAsync(CancellationToken ct = default)
+    {
+        var resp = await _http.GetAsync(Url("/debug/tables"), ct);
+        await EnsureSuccessAsync(resp, ct);
+        using var doc = JsonDocument.Parse(await resp.Content.ReadAsStringAsync(ct));
+        if (doc.RootElement.TryGetProperty("tables", out var tables))
+        {
+            return System.Text.Json.JsonSerializer.Deserialize<List<DebugTableDto>>(
+                tables.GetRawText(), _json) ?? new List<DebugTableDto>();
+        }
+        return new List<DebugTableDto>();
     }
 
     public void Dispose() => _http.Dispose();

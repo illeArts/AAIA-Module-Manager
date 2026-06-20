@@ -24,7 +24,7 @@ Dev-Tool für AAIA-Modul- und Plugin-Entwickler — alles auf wenige Klicks redu
 
 ## Installation
 
-Die neueste Version ist auf der [Website](https://aaia.dev) oder unter [Releases](https://github.com/illeArts/AI-Module-Manager-/releases/latest) verfügbar.
+Die neueste Version ist auf der [Website](https://aaia.dev) oder unter [Releases](https://github.com/illeArts/AAIA-Module-Manager/releases/latest) verfügbar.
 
 **Windows**
 1. `AAIA.ModuleManager.exe` herunterladen
@@ -69,8 +69,8 @@ Die neueste Version ist auf der [Website](https://aaia.dev) oder unter [Releases
 
 **Windows**
 ```powershell
-git clone https://github.com/illeArts/AI-Module-Manager-.git
-cd AI-Module-Manager-
+git clone https://github.com/illeArts/AAIA-Module-Manager.git
+cd AAIA-Module-Manager
 dotnet publish src/AAIA.ModuleManager/AAIA.ModuleManager.csproj `
     -c Release -r win-x64 --self-contained true `
     /p:PublishSingleFile=true -o ./publish
@@ -78,8 +78,8 @@ dotnet publish src/AAIA.ModuleManager/AAIA.ModuleManager.csproj `
 
 **macOS**
 ```bash
-git clone https://github.com/illeArts/AI-Module-Manager-.git
-cd AI-Module-Manager-
+git clone https://github.com/illeArts/AAIA-Module-Manager.git
+cd AAIA-Module-Manager
 dotnet publish src/AAIA.ModuleManager/AAIA.ModuleManager.csproj \
     -c Release -r osx-arm64 --self-contained true \
     /p:PublishSingleFile=true -o ./publish

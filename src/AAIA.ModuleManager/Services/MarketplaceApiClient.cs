@@ -153,11 +153,15 @@ public sealed class MarketplaceApiClient : IDisposable
     /// <paramref name="filePath"/> muss auf die .aaix-Datei zeigen (multipart upload).
     /// Ist kein Pfad angegeben, schlägt die Operation mit einem klaren Fehler fehl.
     /// </summary>
+    /// <param name="extensionType">"module" | "plugin" | "languagepack" — aus PublishOptions/Manifest.</param>
+    /// <param name="targetLocale">Zielsprache für LanguagePacks (z.B. "de-DE"), sonst null.</param>
     public async Task<ModulePublishResponse> PublishModuleAsync(
         string moduleId,
         ModulePublishRequest req,
         CancellationToken ct = default,
-        string? filePath = null)
+        string? filePath = null,
+        string  extensionType = "module",
+        string? targetLocale  = null)
     {
         if (string.IsNullOrWhiteSpace(filePath) || !System.IO.File.Exists(filePath))
         {
@@ -176,9 +180,10 @@ public sealed class MarketplaceApiClient : IDisposable
             {
                 Title          = moduleId,
                 Version        = req.Version,
-                Type           = "module",
+                Type           = extensionType,
                 Description    = req.Changelog ?? string.Empty,
                 FilePath       = filePath,
+                TargetLocale   = targetLocale,
             }, ct);
 
             var root      = resultDoc.RootElement;

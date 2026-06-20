@@ -1,8 +1,10 @@
 using AAIA.ModuleManager.Services;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
 using System.IO;
+using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -29,9 +31,40 @@ public sealed partial class PublishTabViewModel : ObservableObject
     [ObservableProperty] private string _changelog      = "";
     [ObservableProperty] private string _privateKeyPath = "";
 
+    /// <summary>"module" | "plugin" | "languagepack"</summary>
+    [ObservableProperty] private string _extensionType  = "module";
+
+    /// <summary>Nur relevant wenn ExtensionType == "languagepack", z.B. "de-DE".</summary>
+    [ObservableProperty] private string _targetLocale   = "";
+
+    /// <summary>Steuert Sichtbarkeit des TargetLocale-Feldes in der UI.</summary>
+    public bool IsLanguagePack => ExtensionType == "languagepack";
+
+    /// <summary>Auswahloptionen für den ExtensionType-ComboBox.</summary>
+    public IReadOnlyList<ExtensionTypeOption> ExtensionTypeOptions { get; } =
+    [
+        new("module",       "📦 Modul (Server-Extension)"),
+        new("plugin",       "🔌 Plugin (Client-Extension)"),
+        new("languagepack", "🌐 Sprachpaket (.aalang)"),
+    ];
+
+    /// <summary>
+    /// Gewählte Option in der ComboBox. Synchronisiert <see cref="ExtensionType"/>.
+    /// </summary>
+    public ExtensionTypeOption SelectedExtensionTypeOption
+    {
+        get => ExtensionTypeOptions.FirstOrDefault(o => o.Value == ExtensionType)
+               ?? ExtensionTypeOptions[0];
+        set
+        {
+            ExtensionType = value.Value;
+            OnPropertyChanged();
+        }
+    }
+
     // Optionale Schritte
-    [ObservableProperty] private bool   _publishNuGet     = false;
-    [ObservableProperty] private bool   _createGitHub     = false;
+    [ObservableProperty] private bool   _publishNuGet       = false;
+    [ObservableProperty] private bool   _createGitHub       = false;
     [ObservableProperty] private bool   _publishMarketplace = true;
 
     // ── Status ─────────────────────────────────────────────────────────────────
@@ -68,6 +101,12 @@ public sealed partial class PublishTabViewModel : ObservableObject
 
     // ── Commands ───────────────────────────────────────────────────────────────
 
+    partial void OnExtensionTypeChanged(string value)
+    {
+        OnPropertyChanged(nameof(IsLanguagePack));
+        OnPropertyChanged(nameof(SelectedExtensionTypeOption));
+    }
+
     [RelayCommand(CanExecute = nameof(CanPublish))]
     private async Task PublishAsync(CancellationToken ct)
     {
@@ -87,7 +126,9 @@ public sealed partial class PublishTabViewModel : ObservableObject
                 KeyId:                _config.PublisherKeyId,
                 PublishNuGet:         PublishNuGet,
                 CreateGitHub:         CreateGitHub,
-                PublishToMarketplace: PublishMarketplace);
+                PublishToMarketplace: PublishMarketplace,
+                ExtensionType:        ExtensionType,
+                TargetLocale:         string.IsNullOrWhiteSpace(TargetLocale) ? null : TargetLocale.Trim());
 
             var progress = new Progress<string>(msg =>
             {
@@ -166,15 +207,23 @@ public sealed partial class PublishTabViewModel : ObservableObject
         ProjectPath = path;
         PublishCommand.NotifyCanExecuteChanged();
 
-        // Version aus aaia-extension.json vorausfüllen
+        // Version, ExtensionType und TargetLocale aus aaia-extension.json vorausfüllen
         var manifestPath = Path.Combine(path, "aaia-extension.json");
         if (File.Exists(manifestPath))
         {
             try
             {
-                using var doc = System.Text.Json.JsonDocument.Parse(File.ReadAllText(manifestPath));
-                if (doc.RootElement.TryGetProperty("version", out var v))
+                using var doc  = System.Text.Json.JsonDocument.Parse(File.ReadAllText(manifestPath));
+                var root = doc.RootElement;
+
+                if (root.TryGetProperty("version", out var v))
                     Version = v.GetString() ?? Version;
+
+                if (root.TryGetProperty("extensionType", out var et) && et.GetString() is { } etStr)
+                    ExtensionType = etStr.ToLowerInvariant();
+
+                if (root.TryGetProperty("targetLocale", out var tl) && tl.GetString() is { } tlStr)
+                    TargetLocale = tlStr;
             }
             catch { /* ignorieren */ }
         }
@@ -187,4 +236,10 @@ public sealed partial class PublishTabViewModel : ObservableObject
         _config.PublisherPrivateKeyPath = path;
         _ = _config.SaveAsync();
     }
+}
+
+/// <summary>Eintrag für den ExtensionType-ComboBox im Publish-Tab.</summary>
+public sealed record ExtensionTypeOption(string Value, string Label)
+{
+    public override string ToString() => Label;
 }

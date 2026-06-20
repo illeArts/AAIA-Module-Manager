@@ -97,6 +97,17 @@
                            FontFamily="Consolas,Menlo,monospace"
                            FontSize="10" Foreground="#5a607a"/>
 
+                <!-- Parkausweis-Badge -->
+                <Border CornerRadius="4" Padding="6,2"
+                        HorizontalAlignment="Left">
+                  <Border.Background>
+                    <SolidColorBrush Color="#0d1117"/>
+                  </Border.Background>
+                  <TextBlock Text="{Binding ApprovalBadge}"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{Binding ApprovalColor}"/>
+                </Border>
+
                 <!-- Preis + Button -->
                 <Grid ColumnDefinitions="*,Auto" Margin="0,4,0,0">
                   <TextBlock Grid.Column="0"

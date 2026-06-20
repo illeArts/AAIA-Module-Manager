@@ -1,0 +1,310 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.AdminTab"
+             x:DataType="vm:AdminTabViewModel">
+
+  <UserControl.Styles>
+    <Style Selector="TextBlock.section-header">
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="#5865f2"/>
+      <Setter Property="Margin" Value="0,0,0,6"/>
+    </Style>
+    <!-- Klickbarer Collapse-Header (Button ohne sichtbares Chrome) -->
+    <Style Selector="Button.collapse-header">
+      <Setter Property="Background" Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding" Value="0,0,0,0"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.collapse-header:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#1c1c38"/>
+    </Style>
+    <Style Selector="Button.action-btn">
+      <Setter Property="Background" Value="#5865f2"/>
+      <Setter Property="Foreground" Value="White"/>
+      <Setter Property="Padding" Value="12,6"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.action-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#4752c4"/>
+    </Style>
+    <Style Selector="Button.danger-btn">
+      <Setter Property="Background" Value="#7f1d1d"/>
+      <Setter Property="Foreground" Value="#fca5a5"/>
+      <Setter Property="Padding" Value="10,5"/>
+      <Setter Property="CornerRadius" Value="4"/>
+      <Setter Property="FontSize" Value="12"/>
+      <Setter Property="Cursor" Value="Hand"/>
+    </Style>
+    <Style Selector="Button.danger-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#991b1b"/>
+    </Style>
+    <Style Selector="Border.card">
+      <Setter Property="Background" Value="#12122a"/>
+      <Setter Property="CornerRadius" Value="6"/>
+      <Setter Property="Padding" Value="14"/>
+      <Setter Property="Margin" Value="0,0,0,10"/>
+    </Style>
+    <!-- TextBox: VerticalScrollBarVisibility ist ein attached Property von ScrollViewer -->
+    <Style Selector="TextBox.log-area">
+      <Setter Property="Background" Value="#0d0d1e"/>
+      <Setter Property="Foreground" Value="#a8b0c8"/>
+      <Setter Property="FontFamily" Value="Consolas,Menlo,Courier New,monospace"/>
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="BorderBrush" Value="#1e1e3a"/>
+      <Setter Property="BorderThickness" Value="1"/>
+      <Setter Property="Padding" Value="8"/>
+      <Setter Property="IsReadOnly" Value="True"/>
+      <Setter Property="AcceptsReturn" Value="True"/>
+      <Setter Property="TextWrapping" Value="Wrap"/>
+      <Setter Property="ScrollViewer.VerticalScrollBarVisibility" Value="Auto"/>
+    </Style>
+    <!-- Tabellen-Header-Zelle -->
+    <Style Selector="TextBlock.tbl-header">
+      <Setter Property="FontSize" Value="10"/>
+      <Setter Property="FontWeight" Value="SemiBold"/>
+      <Setter Property="Foreground" Value="#4b5563"/>
+      <Setter Property="Padding" Value="4,2"/>
+    </Style>
+    <!-- Tabellen-Wert-Zelle -->
+    <Style Selector="TextBlock.tbl-cell">
+      <Setter Property="FontSize" Value="11"/>
+      <Setter Property="Foreground" Value="#c8cde4"/>
+      <Setter Property="Padding" Value="4,3"/>
+      <Setter Property="VerticalAlignment" Value="Center"/>
+    </Style>
+  </UserControl.Styles>
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- ── Toolbar ── -->
+    <Border Grid.Row="0" Background="#12122a" Padding="14,10">
+      <StackPanel Orientation="Horizontal" Spacing="8">
+        <Button Classes="action-btn"
+                Content="🔄  Alles laden"
+                Command="{Binding LoadAllCommand}"
+                IsEnabled="{Binding !IsBusy}"/>
+        <Button Classes="action-btn"
+                Content="⚡  Logs aktualisieren"
+                Command="{Binding RefreshLogsCommand}"
+                IsEnabled="{Binding !IsBusy}"/>
+        <Button Classes="action-btn"
+                Content="🪲  Fatal prüfen"
+                Command="{Binding CheckLastFatalCommand}"
+                IsEnabled="{Binding !IsBusy}"/>
+        <Button Classes="danger-btn"
+                Content="🗑  Log leeren"
+                Command="{Binding ClearLogsCommand}"
+                IsEnabled="{Binding !IsBusy}"/>
+
+        <Rectangle Width="1" Fill="#2a2a4a" VerticalAlignment="Stretch" Margin="4,0"/>
+
+        <TextBlock Text="Zeilen:" Foreground="#6b7280"
+                   VerticalAlignment="Center" FontSize="12"/>
+        <NumericUpDown Value="{Binding LogLines}"
+                       Minimum="50" Maximum="1000" Increment="50"
+                       Width="90" FontSize="12"
+                       Background="#1a1a3e" Foreground="#c8cde4"
+                       BorderBrush="#2a2a5a"/>
+
+        <TextBlock Text="{Binding StatusMessage}"
+                   Foreground="#6b7280" FontSize="11"
+                   VerticalAlignment="Center" Margin="12,0,0,0"/>
+        <TextBlock Text="⏳" FontSize="13" VerticalAlignment="Center"
+                   IsVisible="{Binding IsBusy}"/>
+      </StackPanel>
+    </Border>
+
+    <!-- ── Inhalt ── -->
+    <ScrollViewer Grid.Row="1" VerticalScrollBarVisibility="Auto"
+                  Background="#1a1a2e">
+      <StackPanel Margin="14,12" Spacing="0">
+
+        <!-- FATAL ALERT — nur wenn found=true -->
+        <Border Classes="card" Background="#3f0f0f"
+                IsVisible="{Binding FatalFound}"
+                Margin="0,0,0,12">
+          <StackPanel Spacing="6">
+            <TextBlock Text="⚠️  PHP FATAL ERROR — Server-Fehler aufgezeichnet!"
+                       Foreground="#f87171" FontSize="13" FontWeight="Bold"/>
+            <TextBox Classes="log-area" Text="{Binding LastFatalJson}"
+                     MinHeight="100" MaxHeight="200"/>
+          </StackPanel>
+        </Border>
+
+        <!-- 2-Spalten-Layout: System-Info + Tabellen -->
+        <Grid ColumnDefinitions="*,14,*" Margin="0,0,0,10">
+
+          <!-- System-Info -->
+          <Border Grid.Column="0" Classes="card">
+            <StackPanel Spacing="6">
+              <TextBlock Classes="section-header" Text="🖥  System-Info"/>
+              <TextBox Classes="log-area"
+                       Text="{Binding SystemInfo}"
+                       MinHeight="260"
+                       IsVisible="{Binding HasSystemInfo}"/>
+              <TextBlock Text="— noch nicht geladen —"
+                         Foreground="#4b5563" FontSize="11" FontStyle="Italic"
+                         IsVisible="{Binding !HasSystemInfo}"/>
+            </StackPanel>
+          </Border>
+
+          <!-- DB-Tabellen: ItemsControl statt DataGrid (kein separates Paket nötig) -->
+          <Border Grid.Column="2" Classes="card">
+            <StackPanel Spacing="4">
+              <TextBlock Classes="section-header" Text="🗄  Datenbank-Tabellen"/>
+
+              <!-- Header-Zeile -->
+              <Grid ColumnDefinitions="*,56,64,56"
+                    IsVisible="{Binding HasTables}"
+                    Background="#0a0a18">
+                <TextBlock Grid.Column="0" Classes="tbl-header" Text="Tabelle"/>
+                <TextBlock Grid.Column="1" Classes="tbl-header" Text="Zeilen"/>
+                <TextBlock Grid.Column="2" Classes="tbl-header" Text="Größe"/>
+                <TextBlock Grid.Column="3" Classes="tbl-header" Text="Engine"/>
+              </Grid>
+
+              <!-- Daten-Zeilen -->
+              <ItemsControl ItemsSource="{Binding Tables}"
+                            IsVisible="{Binding HasTables}"
+                            Background="#0d0d1e"
+                            MinHeight="220">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:DbTableItem">
+                    <Grid ColumnDefinitions="*,56,64,56"
+                          Background="Transparent">
+                      <Grid.Styles>
+                        <Style Selector="Grid:nth-child(even)">
+                          <Setter Property="Background" Value="#101024"/>
+                        </Style>
+                      </Grid.Styles>
+                      <TextBlock Grid.Column="0" Classes="tbl-cell" Text="{Binding Name}"
+                                 FontFamily="Consolas,monospace" FontSize="10"/>
+                      <TextBlock Grid.Column="1" Classes="tbl-cell" Text="{Binding Rows}"
+                                 HorizontalAlignment="Right"/>
+                      <TextBlock Grid.Column="2" Classes="tbl-cell" Text="{Binding SizeDisplay}"
+                                 HorizontalAlignment="Right"/>
+                      <TextBlock Grid.Column="3" Classes="tbl-cell" Text="{Binding Engine}"
+                                 Foreground="#6b7280"/>
+                    </Grid>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+
+              <TextBlock Text="— noch nicht geladen —"
+                         Foreground="#4b5563" FontSize="11" FontStyle="Italic"
+                         IsVisible="{Binding !HasTables}"/>
+            </StackPanel>
+          </Border>
+        </Grid>
+
+        <!-- WP Debug-Log (kollapsierbar) -->
+        <Border Classes="card">
+          <StackPanel Spacing="0">
+            <!-- Header: klickbar -->
+            <Button Classes="collapse-header"
+                    Command="{Binding ToggleSectionCommand}"
+                    CommandParameter="wplog"
+                    Margin="0,0,0,0">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <!-- Chevron -->
+                <TextBlock Text="▼" FontSize="10" Foreground="#5865f2" VerticalAlignment="Center"
+                           IsVisible="{Binding IsWpLogExpanded}"/>
+                <TextBlock Text="▶" FontSize="10" Foreground="#5865f2" VerticalAlignment="Center"
+                           IsVisible="{Binding !IsWpLogExpanded}"/>
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5865f2"
+                           Text="📋  WP Debug-Log" VerticalAlignment="Center"/>
+                <TextBlock Foreground="#4b5563" FontSize="10" VerticalAlignment="Center"
+                           Text="{Binding WpLogPath}"/>
+                <TextBlock Foreground="#4b5563" FontSize="10" VerticalAlignment="Center"
+                           Text="{Binding WpLogSizeBytes, StringFormat='({0} Bytes)'}"
+                           IsVisible="{Binding HasLogs}"/>
+                <TextBlock Foreground="#374151" FontSize="10" VerticalAlignment="Center"
+                           Text="(leer)"
+                           IsVisible="{Binding !IsWpLogExpanded}"/>
+              </StackPanel>
+            </Button>
+            <!-- Inhalt: nur sichtbar wenn aufgeklappt -->
+            <StackPanel IsVisible="{Binding IsWpLogExpanded}" Spacing="6" Margin="0,8,0,0">
+              <TextBox Classes="log-area"
+                       Text="{Binding WpLogContent}"
+                       MinHeight="200" MaxHeight="400"
+                       IsVisible="{Binding HasLogs}"/>
+              <TextBlock Text="— noch nicht geladen —"
+                         Foreground="#4b5563" FontSize="11" FontStyle="Italic"
+                         IsVisible="{Binding !HasLogs}"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- PHP Error-Log (kollapsierbar) -->
+        <Border Classes="card">
+          <StackPanel Spacing="0">
+            <Button Classes="collapse-header"
+                    Command="{Binding ToggleSectionCommand}"
+                    CommandParameter="phplog">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="▼" FontSize="10" Foreground="#5865f2" VerticalAlignment="Center"
+                           IsVisible="{Binding IsPhpLogExpanded}"/>
+                <TextBlock Text="▶" FontSize="10" Foreground="#5865f2" VerticalAlignment="Center"
+                           IsVisible="{Binding !IsPhpLogExpanded}"/>
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5865f2"
+                           Text="🐘  PHP Error-Log" VerticalAlignment="Center"/>
+                <TextBlock Foreground="#374151" FontSize="10" VerticalAlignment="Center"
+                           Text="(leer / identisch mit WP-Log)"
+                           IsVisible="{Binding !IsPhpLogExpanded}"/>
+              </StackPanel>
+            </Button>
+            <StackPanel IsVisible="{Binding IsPhpLogExpanded}" Spacing="6" Margin="0,8,0,0">
+              <TextBox Classes="log-area"
+                       Text="{Binding PhpLogContent}"
+                       MinHeight="120" MaxHeight="300"
+                       IsVisible="{Binding HasLogs}"/>
+              <TextBlock Text="— noch nicht geladen —"
+                         Foreground="#4b5563" FontSize="11" FontStyle="Italic"
+                         IsVisible="{Binding !HasLogs}"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+        <!-- Letzter Fatal (kollapsierbar; Inhalt oben als roter Alert wenn FatalFound=true) -->
+        <Border Classes="card" IsVisible="{Binding !FatalFound}">
+          <StackPanel Spacing="0">
+            <Button Classes="collapse-header"
+                    Command="{Binding ToggleSectionCommand}"
+                    CommandParameter="fatal">
+              <StackPanel Orientation="Horizontal" Spacing="6">
+                <TextBlock Text="▼" FontSize="10" Foreground="#5865f2" VerticalAlignment="Center"
+                           IsVisible="{Binding IsLastFatalExpanded}"/>
+                <TextBlock Text="▶" FontSize="10" Foreground="#5865f2" VerticalAlignment="Center"
+                           IsVisible="{Binding !IsLastFatalExpanded}"/>
+                <TextBlock FontSize="12" FontWeight="SemiBold" Foreground="#5865f2"
+                           Text="💀  Letzter PHP-Fatal (Transient)" VerticalAlignment="Center"/>
+                <TextBlock Foreground="#374151" FontSize="10" VerticalAlignment="Center"
+                           Text="(kein Fehler aufgezeichnet)"
+                           IsVisible="{Binding !IsLastFatalExpanded}"/>
+              </StackPanel>
+            </Button>
+            <StackPanel IsVisible="{Binding IsLastFatalExpanded}" Spacing="6" Margin="0,8,0,0">
+              <TextBox Classes="log-area"
+                       Text="{Binding LastFatalJson}"
+                       MinHeight="80" MaxHeight="200"
+                       IsVisible="{Binding HasFatal}"/>
+              <TextBlock Text="— 'Fatal prüfen' klicken —"
+                         Foreground="#4b5563" FontSize="11" FontStyle="Italic"
+                         IsVisible="{Binding !HasFatal}"/>
+            </StackPanel>
+          </StackPanel>
+        </Border>
+
+      </StackPanel>
+    </ScrollViewer>
+
+  </Grid>
+</UserControl>
