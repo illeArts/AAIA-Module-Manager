@@ -138,6 +138,10 @@
         <tabs:MarketplaceBrowseTab DataContext="{Binding BrowseTab}"/>
       </TabItem>
 
+      <TabItem Header="✅  Verifiziert">
+        <tabs:VerifiedMarketplaceTab DataContext="{Binding VerifiedTab}"/>
+      </TabItem>
+
       <!-- Tab 9: KI-Assistent — für alle ETWs -->
       <TabItem Header="🤖  KI" IsVisible="{Binding IsEtw}">
         <tabs:AiPanelTab DataContext="{Binding AiPanel}"/>

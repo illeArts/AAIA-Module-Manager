@@ -179,6 +179,53 @@ public sealed class AaiasConnectionService : IDisposable
         return list;
     }
 
+    /// <summary>
+    /// Installiert ein heruntergeladenes .aaiaext-Paket in AAIAS.
+    ///
+    /// Flow:
+    ///   1. POST api/extensions/install-package mit lokalem Dateipfad
+    ///   2. AAIAS öffnet die .aaiaext-ZIP, validiert Manifest + Hash
+    ///   3. AAIAS entpackt in Extensions-Verzeichnis
+    ///   4. AAIAS registriert Extension lokal
+    ///
+    /// Endpoint-Contract (AAIAS-Seite):
+    ///   POST /api/extensions/install-package
+    ///   Body: { "packagePath": "...", "overwrite": true, "allowDowngrade": false }
+    ///   Response: AaiasInstallResult (identisch mit install-from-path)
+    ///
+    /// Sicherheitsprinzip: AAIAS prüft die Datei selbst noch einmal (Hash, Manifest,
+    /// Signatur). Der Module Manager ist nur Transporteur — AAIAS entscheidet selbst.
+    /// </summary>
+    public async Task<(AaiasInstallResult? Result, string? Error)> InstallFromAaiaextAsync(
+        string packageFilePath, bool overwrite = true, bool allowDowngrade = false)
+    {
+        EnsureConnected();
+        var resp = await _http!.PostAsJsonAsync("api/extensions/install-package",
+            new { packagePath = packageFilePath, overwrite, allowDowngrade });
+
+        var body = await resp.Content.ReadAsStringAsync();
+        if (!resp.IsSuccessStatusCode)
+        {
+            if (resp.StatusCode == System.Net.HttpStatusCode.Conflict)
+                return (null, $"Konflikt: {ExtractError(body)} — versuche mit Overwrite=true.");
+            return (null, $"Installation fehlgeschlagen ({(int)resp.StatusCode}): {ExtractError(body)}");
+        }
+
+        using var doc = JsonDocument.Parse(body);
+        var el = doc.RootElement;
+        return (new AaiasInstallResult(
+            Id:              el.GetStringOrEmpty("id"),
+            Installed:       el.TryGetProperty("installed",  out var ins) && ins.GetBoolean(),
+            Updated:         el.TryGetProperty("updated",    out var upd) && upd.GetBoolean(),
+            Enabled:         el.TryGetProperty("enabled",    out var enb) && enb.GetBoolean(),
+            TrustStatus:     el.GetStringOrEmpty("trustStatus"),
+            PackagePath:     el.TryGetProperty("packagePath", out var pp) && pp.ValueKind != JsonValueKind.Null
+                                 ? pp.GetString() : null,
+            RestartRequired: el.TryGetProperty("restartRequired", out var rr) && rr.GetBoolean(),
+            PreviousVersion: el.TryGetProperty("previousVersion", out var pv) && pv.ValueKind != JsonValueKind.Null
+                                 ? pv.GetString() : null), null);
+    }
+
     /// <summary>Install extension from a local build output folder.</summary>
     public async Task<(AaiasInstallResult? Result, string? Error)> InstallFromPathAsync(
         string sourcePath, bool overwrite = true, bool allowDowngrade = false)

@@ -1,0 +1,203 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AAIA.ModuleManager.Views.MarketplaceUploadWindow"
+        Title="🚀 Marketplace Upload"
+        Width="700" Height="580"
+        WindowStartupLocation="CenterOwner"
+        CanResize="False"
+        Background="#111111">
+
+  <Grid RowDefinitions="Auto,*,Auto">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <Border Grid.Row="0" Background="#1a1a1a"
+            BorderBrush="#2a2a2a" BorderThickness="0,0,0,1"
+            Padding="20,14">
+      <StackPanel>
+        <TextBlock Text="🚀  Marketplace Upload"
+                   FontSize="16" FontWeight="Bold" Foreground="#f0f0f0"/>
+        <TextBlock x:Name="HeaderSubLabel"
+                   Margin="0,3,0,0" FontSize="12" Foreground="#9ca3af"/>
+      </StackPanel>
+    </Border>
+
+    <!-- ── Scrollbarer Inhalt ───────────────────────────────────────────────── -->
+    <ScrollViewer Grid.Row="1" Padding="20,16,20,4">
+      <StackPanel>
+
+        <!-- ═══ PREVIEW PANEL ═══════════════════════════════════════════════ -->
+        <StackPanel x:Name="PreviewPanel">
+
+          <!-- Fehler-Banner: Upload nicht möglich -->
+          <Border x:Name="NotReadyBanner"
+                  Background="#2a1010" BorderBrush="#4a1a1a" BorderThickness="1"
+                  CornerRadius="4" Padding="12,8" Margin="0,0,0,12" IsVisible="False">
+            <TextBlock x:Name="NotReadyText"
+                       Foreground="#e05252" FontSize="12" TextWrapping="Wrap"/>
+          </Border>
+
+          <!-- Warnung: Nicht eingeloggt -->
+          <Border x:Name="LoginWarning"
+                  Background="#2a2010" BorderBrush="#4a3010" BorderThickness="1"
+                  CornerRadius="4" Padding="12,8" Margin="0,0,0,12" IsVisible="False">
+            <TextBlock Text="⚠️  Nicht angemeldet. Bitte zuerst im Marketplace-Tab einloggen, damit der Upload authentifiziert werden kann."
+                       Foreground="#c9a227" FontSize="12" TextWrapping="Wrap"/>
+          </Border>
+
+          <!-- Extension-Metadaten -->
+          <Border Background="#1e2030" CornerRadius="4" Padding="14,12" Margin="0,0,0,14">
+            <Grid ColumnDefinitions="110,*" RowDefinitions="Auto,Auto,Auto,Auto,Auto">
+
+              <TextBlock Grid.Row="0" Grid.Column="0"
+                         Text="Extension-ID" Foreground="#6b7280" FontSize="11" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="0" Grid.Column="1" x:Name="ExtIdLabel"
+                         Foreground="#f0f0f0" FontSize="12" FontFamily="Consolas,Courier New,monospace"/>
+
+              <TextBlock Grid.Row="1" Grid.Column="0"
+                         Text="Version" Foreground="#6b7280" FontSize="11" Margin="0,5,0,0" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="1" Grid.Column="1" x:Name="VersionLabel"
+                         Foreground="#f0f0f0" FontSize="12" Margin="0,5,0,0"/>
+
+              <TextBlock Grid.Row="2" Grid.Column="0"
+                         Text="Developer" Foreground="#6b7280" FontSize="11" Margin="0,5,0,0" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="2" Grid.Column="1" x:Name="EtwIdLabel"
+                         Foreground="#f0f0f0" FontSize="12" Margin="0,5,0,0" FontFamily="Consolas,Courier New,monospace"/>
+
+              <TextBlock Grid.Row="3" Grid.Column="0"
+                         Text="Fingerprint" Foreground="#6b7280" FontSize="11" Margin="0,5,0,0" VerticalAlignment="Top"/>
+              <TextBlock Grid.Row="3" Grid.Column="1" x:Name="FingerprintLabel"
+                         Foreground="#5865f2" FontSize="11" Margin="0,5,0,0"
+                         FontFamily="Consolas,Courier New,monospace" TextWrapping="Wrap"/>
+
+              <TextBlock Grid.Row="4" Grid.Column="0"
+                         Text="Trust-Level" Foreground="#6b7280" FontSize="11" Margin="0,5,0,0" VerticalAlignment="Center"/>
+              <TextBlock Grid.Row="4" Grid.Column="1" x:Name="TrustLevelLabel"
+                         Foreground="#4ade80" FontSize="12" Margin="0,5,0,0"/>
+            </Grid>
+          </Border>
+
+          <!-- Dateien die hochgeladen werden -->
+          <TextBlock Text="WIRD HOCHGELADEN"
+                     FontSize="9" Foreground="#5865f2" FontWeight="Bold"
+                     Margin="0,0,0,5" LetterSpacing="1.5"/>
+          <Border Background="#1e2030" CornerRadius="4" Padding="14,10" Margin="0,0,0,14">
+            <StackPanel x:Name="FileListPanel" Spacing="5"/>
+          </Border>
+
+          <!-- Was NICHT hochgeladen wird (Security Notice) -->
+          <TextBlock Text="WIRD NIEMALS HOCHGELADEN"
+                     FontSize="9" Foreground="#4b5563" FontWeight="Bold"
+                     Margin="0,0,0,5" LetterSpacing="1.5"/>
+          <Border Background="#111111" CornerRadius="4" Padding="14,10" Margin="0,0,0,4"
+                  BorderBrush="#1e1e1e" BorderThickness="1">
+            <StackPanel Spacing="3">
+              <TextBlock Text="🔒  Private Key — bleibt ausschließlich lokal (nie übertragen)"
+                         Foreground="#4b5563" FontSize="11"/>
+              <TextBlock Text="🔒  MarketplaceToken / JWT / API-Keys / Secrets"
+                         Foreground="#4b5563" FontSize="11"/>
+              <TextBlock Text="🔒  Quellcode (.cs / .js / .py / .ts Dateien)"
+                         Foreground="#4b5563" FontSize="11"/>
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
+        <!-- END PreviewPanel -->
+
+        <!-- ═══ PROGRESS PANEL ══════════════════════════════════════════════ -->
+        <StackPanel x:Name="ProgressPanel" IsVisible="False"
+                    HorizontalAlignment="Center" Spacing="14" Margin="0,40,0,0">
+          <TextBlock Text="📤  Upload läuft …"
+                     FontSize="18" Foreground="#5865f2"
+                     HorizontalAlignment="Center"/>
+          <TextBlock x:Name="ProgressLabel"
+                     Text="Verbindung wird aufgebaut …"
+                     FontSize="13" Foreground="#9ca3af"
+                     HorizontalAlignment="Center"/>
+        </StackPanel>
+
+        <!-- ═══ RESULT PANEL ════════════════════════════════════════════════ -->
+        <StackPanel x:Name="ResultPanel" IsVisible="False" Spacing="12">
+
+          <!-- Status-Card -->
+          <Border Background="#1e2030" CornerRadius="4" Padding="16,14">
+            <StackPanel Spacing="10">
+
+              <TextBlock x:Name="ResultStatusLabel"
+                         FontSize="20" FontWeight="Bold" Foreground="#4ade80"/>
+
+              <TextBlock x:Name="ResultMessage"
+                         FontSize="13" Foreground="#d1d5db" TextWrapping="Wrap"/>
+
+              <!-- Submission-ID -->
+              <StackPanel x:Name="SubmissionIdRow" IsVisible="False"
+                          Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="Submission-ID:"
+                           Foreground="#6b7280" FontSize="12" VerticalAlignment="Center"/>
+                <TextBlock x:Name="SubmissionIdLabel"
+                           Foreground="#5865f2" FontSize="12"
+                           FontFamily="Consolas,Courier New,monospace" VerticalAlignment="Center"/>
+              </StackPanel>
+
+              <!-- Nächster Schritt (Erfolg) -->
+              <Border x:Name="NextStepRow" IsVisible="False"
+                      Background="#0f2010" CornerRadius="4" Padding="10,8">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="NÄCHSTER SCHRITT"
+                             Foreground="#4ade80" FontSize="9" FontWeight="Bold" LetterSpacing="1"/>
+                  <TextBlock x:Name="NextStepLabel"
+                             Foreground="#d1d5db" FontSize="12" TextWrapping="Wrap"/>
+                </StackPanel>
+              </Border>
+
+              <!-- Fehlerdetail (Misserfolg) -->
+              <Border x:Name="ErrorDetailRow" IsVisible="False"
+                      Background="#2a1010" CornerRadius="4" Padding="10,8">
+                <StackPanel Spacing="3">
+                  <TextBlock Text="FEHLERDETAIL"
+                             Foreground="#e05252" FontSize="9" FontWeight="Bold" LetterSpacing="1"/>
+                  <TextBlock x:Name="ErrorDetailLabel"
+                             Foreground="#e05252" FontSize="12" TextWrapping="Wrap"/>
+                </StackPanel>
+              </Border>
+
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
+        <!-- END ResultPanel -->
+
+      </StackPanel>
+    </ScrollViewer>
+
+    <!-- ── Footer ──────────────────────────────────────────────────────────── -->
+    <Border Grid.Row="2" Background="#151515"
+            BorderBrush="#2a2a2a" BorderThickness="0,1,0,0"
+            Padding="20,10">
+      <Grid ColumnDefinitions="*,Auto,Auto,Auto">
+
+        <TextBlock Grid.Column="0" x:Name="StatusFooter"
+                   Foreground="#6b7280" FontSize="11" VerticalAlignment="Center"/>
+
+        <Button Grid.Column="1" x:Name="UploadBtn"
+                Content="📤  Jetzt hochladen"
+                Click="Upload_Click"
+                IsEnabled="False"
+                Margin="0,0,8,0"/>
+
+        <Button Grid.Column="2" x:Name="OpenMarketplaceBtn"
+                Content="🌐  Im Browser öffnen"
+                Click="OpenMarketplace_Click"
+                IsVisible="False"
+                Margin="0,0,8,0"
+                Classes="ghost"/>
+
+        <Button Grid.Column="3"
+                Content="Schließen"
+                Click="Close_Click"
+                Classes="ghost"/>
+
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

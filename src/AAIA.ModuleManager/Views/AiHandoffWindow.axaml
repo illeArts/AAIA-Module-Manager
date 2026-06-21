@@ -1,0 +1,155 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        x:Class="AAIA.ModuleManager.Views.AiHandoffWindow"
+        Title="🤖  KI-Handoff — AAIA Module Manager"
+        Width="820" Height="680"
+        MinWidth="600" MinHeight="480"
+        WindowStartupLocation="CenterOwner"
+        Background="#0d1117"
+        Foreground="#e0e0e0"
+        FontFamily="Inter,Segoe UI,sans-serif">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto" Margin="0">
+
+    <!-- ── Header ── -->
+    <Border Grid.Row="0" Background="#12122a" Padding="28,18,28,14">
+      <StackPanel Spacing="3">
+        <TextBlock Text="🤖  KI-Handoff"
+                   FontSize="18" FontWeight="Bold" Foreground="#e0e0e0"/>
+        <TextBlock Text="Erzeuge einen strukturierten Prompt für ChatGPT, Claude, Codex oder Gemini."
+                   FontSize="12" Foreground="#8892a4"/>
+      </StackPanel>
+    </Border>
+
+    <!-- ── Steuerleiste ── -->
+    <Border Grid.Row="1" Background="#111827" Padding="24,12,24,12"
+            BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,16,Auto,16,Auto,16,Auto,*,Auto">
+
+        <!-- Ziel -->
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Text="Ziel" FontSize="10" Foreground="#8892a4"/>
+          <ComboBox x:Name="TargetCombo"
+                    Width="200" FontSize="12"
+                    SelectionChanged="Combo_Changed">
+            <ComboBoxItem Tag="ImplementNext"        Content="🔨  Nächste Phase implementieren" IsSelected="True"/>
+            <ComboBoxItem Tag="FixBuildError"        Content="🐛  Build-Fehler beheben"/>
+            <ComboBoxItem Tag="FixValidationError"   Content="⚠️  Validierungsfehler analysieren"/>
+            <ComboBoxItem Tag="FixInspectionBlocker" Content="🚫  Inspection-Blocker beheben"/>
+            <ComboBoxItem Tag="DebugSignature"       Content="🔐  ETW-Signatur debuggen"/>
+            <ComboBoxItem Tag="ArchitectureReview"   Content="🏗️  Architektur-Review"/>
+            <ComboBoxItem Tag="PlanMarketplace"      Content="🚀  Marketplace-Upload planen"/>
+            <ComboBoxItem Tag="FullProjectContext"   Content="📋  Vollständiger Kontext"/>
+          </ComboBox>
+        </StackPanel>
+
+        <!-- KI-Profil -->
+        <StackPanel Grid.Column="2" Spacing="4">
+          <TextBlock Text="KI-Profil" FontSize="10" Foreground="#8892a4"/>
+          <ComboBox x:Name="ProfileCombo"
+                    Width="160" FontSize="12"
+                    SelectionChanged="Combo_Changed">
+            <ComboBoxItem Tag="Claude"  Content="Claude"         IsSelected="True"/>
+            <ComboBoxItem Tag="ChatGpt" Content="ChatGPT / GPT-4o"/>
+            <ComboBoxItem Tag="Codex"   Content="GitHub Copilot"/>
+            <ComboBoxItem Tag="Gemini"  Content="Google Gemini"/>
+          </ComboBox>
+        </StackPanel>
+
+        <!-- Kontext-Stufe -->
+        <StackPanel Grid.Column="4" Spacing="4">
+          <TextBlock Text="Kontext-Stufe" FontSize="10" Foreground="#8892a4"/>
+          <ComboBox x:Name="LevelCombo"
+                    Width="150" FontSize="12"
+                    SelectionChanged="Combo_Changed">
+            <ComboBoxItem Tag="Compact"  Content="Kompakt"/>
+            <ComboBoxItem Tag="Standard" Content="Standard"  IsSelected="True"/>
+            <ComboBoxItem Tag="Full"     Content="Vollständig"/>
+            <ComboBoxItem Tag="Debug"    Content="Debug"/>
+          </ComboBox>
+        </StackPanel>
+
+        <!-- Erzeugen -->
+        <Button Grid.Column="6"
+                Classes="primary"
+                Content="▶  Erzeugen"
+                FontSize="12"
+                VerticalAlignment="Bottom"
+                Click="Generate_Click"/>
+
+        <!-- Zeichen-Zähler -->
+        <TextBlock Grid.Column="8"
+                   x:Name="CharCountLabel"
+                   FontSize="10" Foreground="#8892a4"
+                   VerticalAlignment="Bottom"
+                   HorizontalAlignment="Right"/>
+
+      </Grid>
+    </Border>
+
+    <!-- ── Prompt-Ausgabe ── -->
+    <Grid Grid.Row="2" RowDefinitions="Auto,*">
+
+      <!-- Status-Zeile -->
+      <Border Grid.Row="0"
+              x:Name="StatusBar"
+              IsVisible="False"
+              Background="#1a2020"
+              Padding="24,6">
+        <TextBlock x:Name="StatusLabel"
+                   FontSize="11" Foreground="#6fcf97"/>
+      </Border>
+
+      <!-- TextBox (read-only) -->
+      <TextBox Grid.Row="1"
+               x:Name="PromptOutput"
+               Background="#0a0f16"
+               Foreground="#c8d8e8"
+               FontFamily="Cascadia Code,Consolas,monospace"
+               FontSize="12"
+               TextWrapping="Wrap"
+               IsReadOnly="True"
+               AcceptsReturn="True"
+               Padding="24,18"
+               Watermark="Wähle Ziel, Profil und Kontext-Stufe — dann 'Erzeugen' klicken."
+               ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+               ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+    </Grid>
+
+    <!-- ── Footer ── -->
+    <Border Grid.Row="3" Background="#12122a" Padding="16,10">
+      <Grid ColumnDefinitions="*,Auto,8,Auto,8,Auto">
+
+        <!-- Sicherheitshinweis -->
+        <TextBlock Grid.Column="0"
+                   Text="🔒  Kein Quellcode wird automatisch übertragen. Private Key niemals teilen."
+                   FontSize="10" Foreground="#4a5a6a"
+                   VerticalAlignment="Center"/>
+
+        <!-- Kopieren -->
+        <Button Grid.Column="1"
+                Content="📋  Kopieren"
+                Classes="ghost"
+                FontSize="12"
+                Click="Copy_Click"/>
+
+        <!-- Exportieren -->
+        <Button Grid.Column="3"
+                Content="💾  Als .md exportieren"
+                Classes="ghost"
+                FontSize="12"
+                Click="Export_Click"/>
+
+        <!-- Schließen -->
+        <Button Grid.Column="5"
+                Content="Schließen"
+                Classes="primary"
+                FontSize="12"
+                Click="Close_Click"/>
+
+      </Grid>
+    </Border>
+
+  </Grid>
+
+</Window>

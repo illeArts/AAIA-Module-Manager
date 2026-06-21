@@ -117,6 +117,22 @@ public class AppConfig
     /// <summary>Pfad zum privaten Publisher-Schlüssel (lokal, nie auf Server).</summary>
     public string? PublisherPrivateKeyPath { get; set; }
 
+    /// <summary>
+    /// Basis-URL der AAIA Marketplace API (ASP.NET Core — aaia-marketplace-api).
+    /// Für signierte Uploads (Phase 5.1), Registry (Phase 5.2) und Downloads (Phase 5.3).
+    /// Unabhängig von MarketplaceApiUrl (WordPress REST API).
+    /// </summary>
+    public string EtwMarketplaceApiUrl { get; set; } = "https://marketplace.aaiagent.de";
+
+    /// <summary>
+    /// Lokales Verzeichnis für heruntergeladene .aaiaext-Pakete.
+    /// Wird beim Download angelegt wenn nicht vorhanden.
+    /// </summary>
+    public string DownloadDirectory { get; set; } =
+        Path.Combine(
+            Environment.GetFolderPath(Environment.SpecialFolder.UserProfile),
+            "Downloads", "AAIA");
+
     // ── Marketplace Backend (jetzt: WordPress REST API) ──────────────────────
     /// <summary>
     /// Basis-URL der Marketplace-Backend-API.

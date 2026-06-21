@@ -1,6 +1,7 @@
 <Window xmlns="https://github.com/avaloniaui"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
         xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+        xmlns:services="using:AAIA.ModuleManager.Services"
         x:Class="AAIA.ModuleManager.Views.NewProjectWizardWindow"
         x:DataType="vm:NewProjectWizardViewModel"
         Title="🪄  Neues AAIA-Projekt"
@@ -449,7 +450,7 @@
           <!-- ── Build-Karte (nur wenn Build moeglich) ── -->
           <Border Background="#202042" BorderBrush="#2a2a4a"
                   BorderThickness="1" CornerRadius="8" Padding="16,14"
-                  IsVisible="{Binding CanBuild}">
+                  IsVisible="{Binding IsBuildableType}">
             <StackPanel Spacing="10">
 
               <StackPanel Spacing="3">
@@ -613,7 +614,7 @@
           <!-- Explorer-Button fuer Sprachpakete (kein Build) -->
           <Border Background="#202042" BorderBrush="#2a2a4a"
                   BorderThickness="1" CornerRadius="8" Padding="16,14"
-                  IsVisible="{Binding !CanBuild}">
+                  IsVisible="{Binding !IsBuildableType}">
             <StackPanel Spacing="10">
               <TextBlock Text="Naechster sinnvoller Schritt"
                          FontSize="11" Foreground="#8892a4" FontWeight="SemiBold"/>
@@ -658,10 +659,11 @@
           <Button Grid.Column="1" Classes="ghost" Margin="0,0,8,0"
                   Content="Fertig" Click="Close_Click"/>
           <Button Grid.Column="2" Classes="primary"
+                  IsEnabled="{Binding CanCheckPublishReadiness}"
                   Command="{Binding CheckPublishReadinessCommand}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <TextBlock Text="📦" FontSize="12" VerticalAlignment="Center"/>
-              <TextBlock Text="Veröffentlichung vorbereiten →" VerticalAlignment="Center"/>
+              <TextBlock Text="Paketprüfung →" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
         </Grid>
@@ -673,16 +675,20 @@
     <Grid x:Name="Step4Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
 
       <!-- Header -->
-      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <TextBlock x:Name="ValidationHeaderIcon" Text="🔍"
-                     FontSize="20" VerticalAlignment="Center"/>
-          <TextBlock Text="Projektprüfung"
-                     FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+      <Grid Grid.Row="0" Margin="28,24,28,0" ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock x:Name="ValidationHeaderIcon" Text="🔍"
+                       FontSize="20" VerticalAlignment="Center"/>
+            <TextBlock Text="Projektprüfung"
+                       FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Text="Prüft ob dein Projekt bereit für die Paketierung ist."
+                     FontSize="12" Foreground="#8892a4" TextWrapping="Wrap"/>
         </StackPanel>
-        <TextBlock Text="Prüft ob dein Projekt bereit für die Paketierung ist."
-                   FontSize="12" Foreground="#8892a4" TextWrapping="Wrap"/>
-      </StackPanel>
+        <Button Grid.Column="1" Content="? Hilfe" Classes="ghost" FontSize="11"
+                VerticalAlignment="Top" Click="Help_Click" Margin="8,0,0,0"/>
+      </Grid>
 
       <!-- Inhalt -->
       <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
@@ -796,6 +802,7 @@
                   Content="Fertig" Margin="0,0,8,0"
                   Click="Close_Click"/>
           <Button Grid.Column="4" Classes="primary"
+                  IsEnabled="{Binding CanBuild}"
                   Command="{Binding ProceedToBuildCommand}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <TextBlock Text="🔨" FontSize="12" VerticalAlignment="Center"/>
@@ -807,25 +814,34 @@
     </Grid>
 
 
-    <!-- ═══════════════════════════════ STEP 5: Veröffentlichung ════════════ -->
+    <!-- ═══════════════════════════════ STEP 5: Paketprüfung ════════════════ -->
     <Grid x:Name="Step5Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
 
       <!-- Header -->
-      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
-        <StackPanel Orientation="Horizontal" Spacing="10">
-          <TextBlock Text="{Binding PublishStatusIcon}" FontSize="20" VerticalAlignment="Center"/>
-          <TextBlock Text="Veröffentlichung vorbereiten"
-                     FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+      <Grid Grid.Row="0" Margin="28,24,28,0" ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="{Binding PublishStatusIcon}" FontSize="20" VerticalAlignment="Center"/>
+            <TextBlock Text="Paketprüfung"
+                       FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Text="{Binding PublishStatusLabel}"
+                     FontSize="12" Foreground="#8892a4"/>
+          <!-- Dateiname des erzeugten Pakets -->
+          <TextBlock IsVisible="{Binding IsPackaged}"
+                     Text="{Binding LastPackageResult.PackageName, StringFormat='📦 {0}'}"
+                     FontSize="11" Foreground="#5865f2"
+                     FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
         </StackPanel>
-        <TextBlock Text="{Binding PublishStatusLabel}"
-                   FontSize="12" Foreground="#8892a4"/>
-      </StackPanel>
+        <Button Grid.Column="1" Content="? Hilfe" Classes="ghost" FontSize="11"
+                VerticalAlignment="Top" Click="Help_Click" Margin="8,0,0,0"/>
+      </Grid>
 
       <!-- Inhalt -->
       <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
         <StackPanel Spacing="12">
 
-          <!-- Lädt... -->
+          <!-- Lädt: Readiness-Prüfung -->
           <StackPanel IsVisible="{Binding IsCheckingReadiness}"
                       HorizontalAlignment="Center" Spacing="8" Margin="0,20,0,0">
             <TextBlock Text="⏳" FontSize="28" HorizontalAlignment="Center"/>
@@ -834,7 +850,7 @@
                        FontStyle="Italic" HorizontalAlignment="Center"/>
           </StackPanel>
 
-          <!-- Publish-Issue-Karten -->
+          <!-- Publish-Readiness Issue-Karten -->
           <ItemsControl ItemsSource="{Binding PublishIssues}">
             <ItemsControl.ItemTemplate>
               <DataTemplate x:DataType="vm:ValidationIssueViewModel">
@@ -878,7 +894,104 @@
             </ItemsControl.ItemTemplate>
           </ItemsControl>
 
-          <!-- Paket-Info (nach Paket-Erstellung) -->
+          <!-- ─── Inspection-Blocker-Banner ──────────────────────────────────── -->
+          <Border IsVisible="{Binding HasInspectionBlockers}"
+                  Background="#1a0808" BorderBrush="#5a1a1a"
+                  BorderThickness="2" CornerRadius="8" Padding="14,12">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="⛔" FontSize="20" VerticalAlignment="Center"/>
+              <StackPanel Spacing="3">
+                <TextBlock Text="Dieses Paket darf nicht veröffentlicht werden."
+                           FontSize="13" FontWeight="Bold" Foreground="#e05252"/>
+                <TextBlock FontSize="11" Foreground="#b0b8c4" TextWrapping="Wrap">
+                  Das Paket enthält verbotene Dateien oder Sicherheitsprobleme.
+                  Löse alle Blocker und erstelle das Paket neu.
+                </TextBlock>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Versions-Karte -->
+          <Border Background="#202042" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Version" FontSize="12" FontWeight="SemiBold"/>
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="ghost" FontSize="11"
+                        Command="{Binding IncreasePatchVersionCommand}">
+                  Patch +0.0.1
+                </Button>
+                <Button Classes="ghost" FontSize="11"
+                        Command="{Binding IncreaseMinorVersionCommand}">
+                  Minor +0.1.0
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- ─── Paket-Dateiliste (nach Inspektion) ─────────────────────────── -->
+          <Border IsVisible="{Binding IsInspected}"
+                  Background="#111118" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="0">
+            <StackPanel>
+              <!-- Dateilisten-Header -->
+              <Border Padding="14,10" BorderBrush="#2a2a4a" BorderThickness="0,0,0,1">
+                <Grid ColumnDefinitions="*,Auto">
+                  <StackPanel Orientation="Horizontal" Spacing="8">
+                    <TextBlock Text="📋" FontSize="13" VerticalAlignment="Center"/>
+                    <TextBlock Text="Paketinhalt" FontSize="13" FontWeight="SemiBold"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding InspectionResult.FileCount, StringFormat='{}{0} Dateien'}"
+                               FontSize="11" Foreground="#8892a4" VerticalAlignment="Center"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="10">
+                    <TextBlock Text="{Binding InspectionResult.BlockerCount, StringFormat='⛔ {0}'}"
+                               FontSize="11" Foreground="#e05252" VerticalAlignment="Center"
+                               IsVisible="{Binding HasInspectionBlockers}"/>
+                    <TextBlock Text="{Binding InspectionResult.WarningCount, StringFormat='⚠ {0}'}"
+                               FontSize="11" Foreground="#c9a227" VerticalAlignment="Center"/>
+                    <TextBlock Text="{Binding InspectionResult.PackageSizeLabel}"
+                               FontSize="11" Foreground="#8892a4" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Grid>
+              </Border>
+
+              <!-- Datei-Einträge -->
+              <ItemsControl ItemsSource="{Binding PackageFileEntries}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:PackageFileEntryViewModel">
+                    <Border Padding="14,7" BorderBrush="#1e1e2e" BorderThickness="0,0,0,1">
+                      <Grid ColumnDefinitions="Auto,Auto,*,Auto">
+                        <TextBlock Grid.Column="0"
+                                   Text="{Binding RiskIcon}"
+                                   FontSize="11" VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="1"
+                                   Text="{Binding CategoryIcon}"
+                                   FontSize="11" VerticalAlignment="Center"
+                                   Margin="0,0,8,0"/>
+                        <TextBlock Grid.Column="2"
+                                   Text="{Binding Path}"
+                                   FontSize="11"
+                                   Foreground="{Binding PathColor}"
+                                   FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                                   VerticalAlignment="Center"
+                                   TextTrimming="CharacterEllipsis"/>
+                        <TextBlock Grid.Column="3"
+                                   Text="{Binding SizeLabel}"
+                                   FontSize="10" Foreground="#4a5070"
+                                   VerticalAlignment="Center"
+                                   Margin="12,0,0,0"
+                                   FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                      </Grid>
+                    </Border>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </Border>
+
+          <!-- Paket-Info (Hash + Pfad) -->
           <Border IsVisible="{Binding LastPackageResult, Converter={x:Static ObjectConverters.IsNotNull}}"
                   Background="#0a1a0a" BorderBrush="#1a4a1a"
                   BorderThickness="1" CornerRadius="8" Padding="14,12">
@@ -921,20 +1034,51 @@
             </StackPanel>
           </Border>
 
-          <!-- Versions-Karte -->
-          <Border Background="#202042" BorderBrush="#2a2a4a"
+          <!-- ─── Phase-4-Hinweis: Signierung ──────────────────────────────── -->
+          <Border Background="#1a1400" BorderBrush="#3a2a00"
                   BorderThickness="1" CornerRadius="8" Padding="14,12">
-            <StackPanel Spacing="8">
-              <TextBlock Text="Version" FontSize="12" FontWeight="SemiBold"/>
-              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsCheckingReadiness}">
-                <Button Classes="ghost" FontSize="11"
-                        Command="{Binding IncreasePatchVersionCommand}">
-                  Patch +0.0.1
-                </Button>
-                <Button Classes="ghost" FontSize="11"
-                        Command="{Binding IncreaseMinorVersionCommand}">
-                  Minor +0.1.0
-                </Button>
+            <StackPanel Orientation="Horizontal" Spacing="10">
+              <TextBlock Text="🔏" FontSize="16" VerticalAlignment="Center"/>
+              <StackPanel Spacing="2">
+                <TextBlock Text="Noch nicht signiert" FontSize="12" FontWeight="SemiBold"
+                           Foreground="#c9a227"/>
+                <TextBlock FontSize="11" Foreground="#8892a4" TextWrapping="Wrap">
+                  Signierung folgt in Phase 4. Pakete können jetzt erstellt und lokal getestet werden —
+                  für den Marketplace-Upload wird später eine Signatur benötigt.
+                </TextBlock>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- ─── Release-Status ────────────────────────────────────────────── -->
+          <!-- Wird vorbereitet... -->
+          <StackPanel IsVisible="{Binding IsPreparingRelease}"
+                      HorizontalAlignment="Center" Spacing="8" Margin="0,4,0,0">
+            <TextBlock Text="📁" FontSize="24" HorizontalAlignment="Center"/>
+            <TextBlock Text="Release-Ordner wird vorbereitet..."
+                       FontSize="13" Foreground="#5865f2"
+                       FontStyle="Italic" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Release bereit -->
+          <Border IsVisible="{Binding IsReleasePrepared}"
+                  Background="#0a1a0a" BorderBrush="#1a4a1a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="✅" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="Release vorbereitet" FontSize="13" FontWeight="SemiBold"
+                           Foreground="#4ade80" VerticalAlignment="Center"/>
+              </StackPanel>
+              <TextBlock Text="{Binding ReleaseFolderPath}"
+                         FontSize="11" Foreground="#5865f2"
+                         FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                         TextWrapping="Wrap"/>
+              <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock Text="Signatur: Noch nicht signiert"
+                           FontSize="11" Foreground="#c9a227"/>
+                <TextBlock Text="Marketplace: Noch nicht bereit"
+                           FontSize="11" Foreground="#8892a4"/>
               </StackPanel>
             </StackPanel>
           </Border>
@@ -946,7 +1090,7 @@
       <Border Grid.Row="2"
               BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
               Padding="28,10,28,20">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
           <Button Grid.Column="0"
                   Content="← Zurück" Classes="ghost"
                   Click="PublishBack_Click"/>
@@ -957,12 +1101,463 @@
           <Button Grid.Column="3"
                   Content="📂 Paketordner" Classes="ghost"
                   Margin="0,0,8,0"
+                  IsEnabled="{Binding IsPackaged}"
                   Command="{Binding OpenPackageFolderCommand}"/>
-          <Button Grid.Column="4" Classes="primary"
+          <Button Grid.Column="4"
+                  Content="📁 Release-Ordner" Classes="ghost"
+                  Margin="0,0,8,0"
+                  IsEnabled="{Binding CanOpenReleaseFolder}"
+                  Command="{Binding OpenReleaseFolderCommand}"/>
+          <Button Grid.Column="5" Classes="ghost"
+                  Margin="0,0,8,0"
+                  IsEnabled="{Binding CanPackage}"
                   Command="{Binding CreatePackageCommand}">
             <StackPanel Orientation="Horizontal" Spacing="6">
               <TextBlock Text="📦" FontSize="12" VerticalAlignment="Center"/>
               <TextBlock Text="Paket erstellen" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="6" Classes="ghost"
+                  IsEnabled="{Binding CanPrepareRelease}"
+                  Margin="0,0,8,0"
+                  Command="{Binding PrepareReleaseCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="🚀" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Text="Release vorbereiten" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="7" Classes="primary"
+                  IsEnabled="{Binding CanProceedToSignature}"
+                  Command="{Binding NavigateToSignatureCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="🔏" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Text="Signatur &amp; Vertrauen →" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+    </Grid>
+
+
+    <!-- ═══════════════════════════════ STEP 6: Signatur & Vertrauen ══════════ -->
+    <Grid x:Name="Step6Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
+
+      <!-- Header -->
+      <Grid Grid.Row="0" Margin="28,24,28,0" ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <StackPanel Orientation="Horizontal" Spacing="10">
+            <TextBlock Text="🔏" FontSize="20" VerticalAlignment="Center"/>
+            <TextBlock Text="Signatur &amp; Vertrauen"
+                       FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+          </StackPanel>
+          <TextBlock Text="{Binding SignatureStatusLabel}"
+                     FontSize="12" Foreground="#8892a4"/>
+        </StackPanel>
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6"
+                    VerticalAlignment="Top" Margin="8,0,0,0">
+          <Button Content="? Hilfe" Classes="ghost" FontSize="11"
+                  Click="Help_Click"/>
+          <Button Content="🤖 KI-Handoff" Classes="ghost" FontSize="11"
+                  Click="AiHandoff_Click"/>
+        </StackPanel>
+      </Grid>
+
+      <!-- Inhalt -->
+      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
+        <StackPanel Spacing="12">
+
+          <!-- ── Status-Übersicht ─────────────────────────────────────────── -->
+          <Border Background="#181828" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="10">
+              <TextBlock Text="Pipeline-Status" FontSize="12" FontWeight="SemiBold"/>
+
+              <!-- Release -->
+              <Grid ColumnDefinitions="160,*,Auto">
+                <TextBlock Grid.Column="0" Text="Release-Ordner"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding IsReleasePrepared}"
+                           Text="✅ Vorbereitet"
+                           FontSize="12" Foreground="#4ade80" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding !IsReleasePrepared}"
+                           Text="⏳ Ausstehend"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+              </Grid>
+
+              <!-- Hash-Vorbereitung -->
+              <Grid ColumnDefinitions="160,*,Auto">
+                <TextBlock Grid.Column="0" Text="Hash-Vorbereitung"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding IsSignaturePrepared}"
+                           Text="✅ SHA256 berechnet"
+                           FontSize="12" Foreground="#4ade80" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding !IsSignaturePrepared}"
+                           Text="⏳ Ausstehend"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+              </Grid>
+
+              <!-- ETW-Signatur -->
+              <Grid ColumnDefinitions="160,*,Auto">
+                <TextBlock Grid.Column="0" Text="ETW-Signatur (RSA)"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding IsEtwSigned}"
+                           Text="✅ Kryptografisch signiert"
+                           FontSize="12" Foreground="#4ade80" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding !IsEtwSigned}"
+                           Text="🔑 Ausstehend"
+                           FontSize="12" Foreground="#c9a227" VerticalAlignment="Center"/>
+              </Grid>
+
+              <!-- ETW-Verifikation -->
+              <Grid ColumnDefinitions="160,*,Auto">
+                <TextBlock Grid.Column="0" Text="Signatur-Prüfung"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding IsEtwSignatureVerified}"
+                           Text="✅ Verifiziert"
+                           FontSize="12" Foreground="#4ade80" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding !IsEtwSignatureVerified}"
+                           Text="⏳ Ausstehend"
+                           FontSize="12" Foreground="#4a5070" VerticalAlignment="Center"/>
+              </Grid>
+
+              <!-- Trust-Level -->
+              <Grid ColumnDefinitions="160,*,Auto">
+                <TextBlock Grid.Column="0" Text="Trust-Level"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           Text="{Binding TrustLevel}"
+                           FontSize="12"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                           VerticalAlignment="Center"/>
+              </Grid>
+
+              <!-- Marketplace-Freigabe -->
+              <Grid ColumnDefinitions="160,*,Auto">
+                <TextBlock Grid.Column="0" Text="Marketplace-Freigabe"
+                           FontSize="12" Foreground="#8892a4" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding CanContinueToMarketplace}"
+                           Text="🟢 Bereit"
+                           FontSize="12" Foreground="#4ade80" VerticalAlignment="Center"/>
+                <TextBlock Grid.Column="2"
+                           IsVisible="{Binding !CanContinueToMarketplace}"
+                           Text="⏳ Phase 5"
+                           FontSize="12" Foreground="#4a5070" VerticalAlignment="Center"/>
+              </Grid>
+
+            </StackPanel>
+          </Border>
+
+          <!-- ── Phase 4.0: Hash-Vorbereitung ───────────────────────────── -->
+
+          <!-- Wird vorbereitet... -->
+          <StackPanel IsVisible="{Binding IsPreparingSignature}"
+                      HorizontalAlignment="Center" Spacing="8" Margin="0,4,0,0">
+            <TextBlock Text="🔐" FontSize="24" HorizontalAlignment="Center"/>
+            <TextBlock Text="Hash-Berechnung läuft..."
+                       FontSize="13" Foreground="#5865f2"
+                       FontStyle="Italic" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Hash-Ergebnis (nach Phase 4.0) -->
+          <Border IsVisible="{Binding IsSignaturePrepared}"
+                  Background="#0a140a" BorderBrush="#1a4a1a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="📋 SHA256-Hashes" FontSize="12" FontWeight="SemiBold"
+                         Foreground="#4ade80"/>
+              <StackPanel Spacing="3">
+                <TextBlock Text="{Binding LastSignatureResult.PackageSha256,
+                                  StringFormat='Paket:      {0}'}"
+                           FontSize="10" Foreground="#8892a4"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                <TextBlock Text="{Binding LastSignatureResult.ReleaseInfoSha256,
+                                  StringFormat='Release:    {0}'}"
+                           FontSize="10" Foreground="#8892a4"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                <TextBlock Text="{Binding LastSignatureResult.InspectionReportSha256,
+                                  StringFormat='Inspektion: {0}'}"
+                           FontSize="10" Foreground="#8892a4"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+              </StackPanel>
+
+              <!-- Hash-Prüfung läuft... -->
+              <StackPanel IsVisible="{Binding IsVerifyingSignature}"
+                          Orientation="Horizontal" Spacing="6" Margin="0,4,0,0">
+                <TextBlock Text="🔍" FontSize="11"/>
+                <TextBlock Text="Hash-Integritätsprüfung läuft..."
+                           FontSize="11" Foreground="#5865f2" FontStyle="Italic"/>
+              </StackPanel>
+
+              <!-- Hash-Prüfergebnis -->
+              <Border IsVisible="{Binding LastVerificationResult,
+                                  Converter={x:Static ObjectConverters.IsNotNull}}"
+                      Background="#101020" CornerRadius="4" Padding="8,6">
+                <StackPanel Spacing="4">
+                  <TextBlock Text="{Binding LastVerificationResult.Summary}"
+                             FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                  <ItemsControl ItemsSource="{Binding LastVerificationResult.Issues}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate x:DataType="services:ValidationIssue">
+                        <TextBlock Margin="0,1" FontSize="10" Foreground="#e05252"
+                                   Text="{Binding Title}" TextWrapping="Wrap"/>
+                      </DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </StackPanel>
+              </Border>
+
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <Button Classes="ghost" FontSize="11"
+                        IsEnabled="{Binding CanVerifySignaturePreparation}"
+                        Command="{Binding VerifySignaturePreparationCommand}">
+                  🔍 Hash-Integrität prüfen
+                </Button>
+                <Button Classes="ghost" FontSize="11"
+                        Command="{Binding OpenSignatureInfoCommand}">
+                  signature-info.json öffnen
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- ── Phase 4.1: ETW-Schlüssel ────────────────────────────────── -->
+          <Border Background="#181828" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="8">
+              <TextBlock Text="🔑 ETW-Entwickler-Schlüssel" FontSize="12" FontWeight="SemiBold"/>
+
+              <!-- Schlüssel vorhanden -->
+              <StackPanel IsVisible="{Binding EtwKeyExists}" Spacing="4">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="✅" FontSize="12" VerticalAlignment="Center"/>
+                  <TextBlock Text="RSA-2048-Schlüsselpaar vorhanden"
+                             FontSize="12" Foreground="#4ade80" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock Text="{Binding CurrentEtwKeyInfo.EtwId,
+                                  StringFormat='ETW-ID:      {0}'}"
+                           FontSize="10" Foreground="#8892a4"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                <TextBlock Text="{Binding CurrentEtwKeyInfo.CreatedAtUtc,
+                                  StringFormat='Erzeugt:     {0}'}"
+                           FontSize="10" Foreground="#8892a4"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                <TextBlock Text="{Binding CurrentEtwKeyInfo.FingerprintShort,
+                                  StringFormat='Fingerprint: {0}'}"
+                           FontSize="10" Foreground="#8892a4"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                           ToolTip.Tip="{Binding CurrentEtwKeyInfo.Fingerprint}"/>
+                <TextBlock Text="{Binding CurrentEtwKeyInfo.StorageMode,
+                                  StringFormat='Speicher:    {0}'}"
+                           FontSize="10" Foreground="#8892a4"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                <TextBlock Text="Privater Schlüssel: %APPDATA%/AAIA/Keys/ — NIEMALS in Git einchecken."
+                           FontSize="10" Foreground="#c9a227" TextWrapping="Wrap"
+                           Margin="0,2,0,0"/>
+                <StackPanel Orientation="Horizontal" Spacing="8" Margin="0,4,0,0">
+                  <Button Classes="ghost" FontSize="11"
+                          Command="{Binding CopyPublicKeyCommand}">
+                    📋 Public Key kopieren
+                  </Button>
+                  <Button Classes="ghost" FontSize="11"
+                          Command="{Binding ExportPublicKeyCommand}">
+                    💾 Public Key exportieren
+                  </Button>
+                </StackPanel>
+              </StackPanel>
+
+              <!-- Kein Schlüssel vorhanden -->
+              <StackPanel IsVisible="{Binding !EtwKeyExists}" Spacing="6">
+                <StackPanel Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="⚠️" FontSize="12" VerticalAlignment="Center"/>
+                  <TextBlock Text="Noch kein ETW-Schlüssel vorhanden"
+                             FontSize="12" Foreground="#c9a227" VerticalAlignment="Center"/>
+                </StackPanel>
+                <TextBlock FontSize="11" Foreground="#8892a4" TextWrapping="Wrap">
+                  Ein lokales RSA-2048-Schlüsselpaar ist notwendig, um das Paket
+                  kryptografisch zu signieren. Der Schlüssel wird nur auf diesem
+                  Rechner gespeichert und NIEMALS übertragen.
+                </TextBlock>
+
+                <!-- Schlüssel wird erzeugt... -->
+                <StackPanel IsVisible="{Binding IsGeneratingEtwKey}"
+                            Orientation="Horizontal" Spacing="8">
+                  <TextBlock Text="⏳" FontSize="12"/>
+                  <TextBlock Text="RSA-2048-Schlüsselpaar wird erzeugt..."
+                             FontSize="12" Foreground="#5865f2" FontStyle="Italic"/>
+                </StackPanel>
+
+                <Button Classes="primary" FontSize="12"
+                        IsEnabled="{Binding CanGenerateEtwKey}"
+                        Command="{Binding GenerateEtwKeyCommand}">
+                  <StackPanel Orientation="Horizontal" Spacing="6">
+                    <TextBlock Text="🔑" FontSize="12" VerticalAlignment="Center"/>
+                    <TextBlock Text="ETW-Schlüssel erzeugen" VerticalAlignment="Center"/>
+                  </StackPanel>
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- ── Phase 4.1: ETW-Signatur erstellen ──────────────────────── -->
+
+          <!-- ETW-Signierung läuft... -->
+          <StackPanel IsVisible="{Binding IsCreatingEtwSignature}"
+                      HorizontalAlignment="Center" Spacing="8" Margin="0,4,0,0">
+            <TextBlock Text="🔑" FontSize="24" HorizontalAlignment="Center"/>
+            <TextBlock Text="ETW-Signatur wird erstellt..."
+                       FontSize="13" Foreground="#5865f2"
+                       FontStyle="Italic" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- ETW-Signatur-Ergebnis -->
+          <Border IsVisible="{Binding IsEtwSigned}"
+                  Background="#0a140a" BorderBrush="#1a5a1a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="6">
+              <StackPanel Orientation="Horizontal" Spacing="8">
+                <TextBlock Text="✅" FontSize="14" VerticalAlignment="Center"/>
+                <TextBlock Text="ETW-Signatur erstellt" FontSize="13" FontWeight="SemiBold"
+                           Foreground="#4ade80" VerticalAlignment="Center"/>
+              </StackPanel>
+              <TextBlock Text="{Binding LastEtwSigningResult.EtwId,
+                                StringFormat='Signiert von:  {0}'}"
+                         FontSize="11" Foreground="#8892a4"/>
+              <TextBlock Text="{Binding LastEtwSigningResult.SignedAtUtc,
+                                StringFormat='Zeitstempel:   {0}'}"
+                         FontSize="11" Foreground="#8892a4"/>
+              <TextBlock Text="{Binding LastEtwSigningResult.Algorithm,
+                                StringFormat='Algorithmus:   {0}'}"
+                         FontSize="11" Foreground="#8892a4"/>
+              <TextBlock Text="{Binding CurrentEtwKeyInfo.FingerprintShort,
+                                StringFormat='Fingerprint:   {0}'}"
+                         FontSize="11" Foreground="#8892a4"
+                         FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                         ToolTip.Tip="{Binding CurrentEtwKeyInfo.Fingerprint}"/>
+
+              <!-- ETW-Verifikation -->
+              <StackPanel Spacing="6" Margin="0,4,0,0">
+
+                <!-- ETW-Verifizierung läuft... -->
+                <StackPanel IsVisible="{Binding IsVerifyingEtwSignature}"
+                            Orientation="Horizontal" Spacing="6">
+                  <TextBlock Text="🔍" FontSize="11"/>
+                  <TextBlock Text="ETW-Signaturprüfung läuft..."
+                             FontSize="11" Foreground="#5865f2" FontStyle="Italic"/>
+                </StackPanel>
+
+                <!-- ETW-Prüfergebnis -->
+                <Border IsVisible="{Binding LastEtwVerificationResult,
+                                    Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Background="#101020" CornerRadius="4" Padding="8,6">
+                  <StackPanel Spacing="4">
+                    <TextBlock Text="{Binding LastEtwVerificationResult.Summary}"
+                               FontSize="11" FontWeight="SemiBold" TextWrapping="Wrap"/>
+                    <TextBlock Text="{Binding LastEtwVerificationResult.SignerEtwId,
+                                      StringFormat='ETW-ID:      {0}'}"
+                               FontSize="10" Foreground="#8892a4"
+                               FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                    <TextBlock Text="{Binding LastEtwVerificationResult.KeyFingerprint,
+                                      StringFormat='Fingerprint: {0}'}"
+                               FontSize="10" Foreground="#8892a4"
+                               FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                               TextWrapping="Wrap"/>
+                    <ItemsControl ItemsSource="{Binding LastEtwVerificationResult.Issues}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="services:ValidationIssue">
+                          <TextBlock Margin="0,1" FontSize="10"
+                                     Foreground="#e05252"
+                                     Text="{Binding Title}"
+                                     TextWrapping="Wrap"/>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+
+                <Button Classes="ghost" FontSize="11"
+                        IsEnabled="{Binding CanVerifyEtwSignature}"
+                        Command="{Binding VerifyEtwSignatureCommand}">
+                  🔍 ETW-Signatur prüfen
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Marketplace-Hinweis -->
+          <Border IsVisible="{Binding CanContinueToMarketplace}"
+                  Background="#0a0a1e" BorderBrush="#2a2a6a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="4">
+              <TextBlock Text="🚀 Bereit für Marketplace-Upload (Phase 5)"
+                         FontSize="12" FontWeight="SemiBold" Foreground="#5865f2"/>
+              <TextBlock FontSize="11" Foreground="#8892a4" TextWrapping="Wrap">
+                ETW-Signatur gültig. Das Paket kann jetzt zum AAIA-Marketplace hochgeladen werden.
+                Upload-Funktion wird in Phase 5 implementiert.
+              </TextBlock>
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Button-Leiste -->
+      <Border Grid.Row="2"
+              BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+              Padding="28,10,28,20">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto,Auto,Auto,Auto">
+          <Button Grid.Column="0"
+                  Content="← Zurück" Classes="ghost"
+                  Click="SignatureBack_Click"/>
+          <Button Grid.Column="2"
+                  Content="📁 Release-Ordner" Classes="ghost"
+                  Margin="0,0,8,0"
+                  IsEnabled="{Binding CanOpenReleaseFolder}"
+                  Command="{Binding OpenReleaseFolderCommand}"/>
+          <Button Grid.Column="3"
+                  Content="Fertig" Classes="ghost"
+                  Margin="0,0,8,0"
+                  Click="Close_Click"/>
+          <Button Grid.Column="4" Classes="ghost"
+                  Margin="0,0,8,0"
+                  IsEnabled="{Binding CanPrepareSignature}"
+                  Command="{Binding PrepareSignatureCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <TextBlock Text="🔐" FontSize="11" VerticalAlignment="Center"/>
+              <TextBlock Text="Hash" FontSize="11" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="5" Classes="primary"
+                  Margin="0,0,8,0"
+                  IsEnabled="{Binding CanCreateEtwSignature}"
+                  Command="{Binding CreateEtwSignatureCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <TextBlock Text="🔑" FontSize="11" VerticalAlignment="Center"/>
+              <TextBlock Text="ETW-Signatur" FontSize="11" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="6" Classes="ghost"
+                  Margin="0,0,8,0"
+                  Click="AiHandoff_Click">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <TextBlock Text="🤖" FontSize="11" VerticalAlignment="Center"/>
+              <TextBlock Text="KI-Handoff" FontSize="11" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+          <Button Grid.Column="7" Classes="ghost"
+                  IsEnabled="{Binding CanContinueToMarketplace}"
+                  Click="Marketplace_Click">
+            <StackPanel Orientation="Horizontal" Spacing="5">
+              <TextBlock Text="🚀" FontSize="11" VerticalAlignment="Center"/>
+              <TextBlock Text="Marketplace" FontSize="11" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
         </Grid>

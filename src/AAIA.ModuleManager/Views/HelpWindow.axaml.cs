@@ -81,7 +81,31 @@ public partial class HelpWindow : Window
                 ("Konfiguration speichern","Speichert alle Einstellungen. Windows: %AppData%\\AAIAModuleManager\\config.json | macOS: ~/Library/Application Support/AAIAModuleManager/config.json")
             }),
 
-        Note("💡 Tipp: Im Tester-Tab mit Developer Mode und Log-Stream bekommst du das gleiche Erlebnis wie direkt in der AAIAS-Entwicklungsumgebung — ohne die App zu verlassen.")
+        Note("💡 Tipp: Im Tester-Tab mit Developer Mode und Log-Stream bekommst du das gleiche Erlebnis wie direkt in der AAIAS-Entwicklungsumgebung — ohne die App zu verlassen."),
+
+        Section("📦  Neues Modul / Publish-Wizard",
+            "Führt dich Schritt für Schritt vom Projekt bis zur Marketplace-Bereitschaft.",
+            new[] {
+                ("Schritte 1–2: Idee",      "KI analysiert deine Idee und schlägt Projekttyp, Name und ID vor. Ohne KI-API-Key ist die manuelle Eingabe möglich."),
+                ("Schritt 3: Erstellen",    "Generiert Projektstruktur, .csproj und aaia-extension.json. Build läuft automatisch nach der Erstellung."),
+                ("Schritt 4: Validierung",  "Prüft aaia-extension.json, Pflichtfelder, Kompatibilität und Secret-Muster. Blocker müssen behoben werden, bevor es weitergeht."),
+                ("Schritt 5: Bereitschaft", "Erstellt das .aaiaext-Paket, inspiziert den Inhalt und bereitet den Release-Ordner vor (release-info.json + inspection-report.json)."),
+                ("Schritt 6: Signatur",     "Hash-Vorbereitung → ETW-Schlüssel erzeugen → Signatur erstellen → Signatur prüfen → Marketplace-Freigabe.")
+            }),
+
+        Section("🔐  Signatur & Trust-Level",
+            "Das Trust-Level-Modell steuert, welche Aktionen erlaubt sind. Jede Stufe baut auf der vorherigen auf.",
+            new[] {
+                ("LocalHashPrepared",    "SHA256-Hashes aller Release-Dateien berechnet. Vorbereitung für ETW-Signatur (Phase 4.0)."),
+                ("EtwLocalSigned",       "RSA-2048-Signatur mit dem lokalen ETW-Entwicklerschlüssel erstellt (Phase 4.1). Schlüssel liegt in %APPDATA%\\AAIA\\Keys\\."),
+                ("EtwLocalVerified",     "Signatur wurde lokal geprüft (Phase 4.2). Schaltet den 🚀 Marketplace-Upload-Knopf frei."),
+                ("MarketplaceVerified",  "Wird ausschließlich vom Marketplace-Server gesetzt — nie lokal. Marketplace verifiziert immer unabhängig."),
+                ("Fingerprint",          "SHA256-Hash des DER-kodierten Public Keys. Format: SHA256:XX:XX:... — ermöglicht Schlüssel-Identifikation ohne PEM-Übertragung."),
+                ("Kanonischer Payload",  "Deterministischer UTF-8-String aus Extension-ID, Version, ETW-ID, Datei-Hashes und Zeitstempel. Wird RSA-signiert und bei der Prüfung rekonstruiert."),
+                ("release-info.json",    "Wird von Phase 4.1 selbst modifiziert (trustLevel: EtwLocalSigned etc.) — daher wird dessen Hash nach der Signierung nicht geprüft. Der Vor-Signatur-Snapshot steckt im kanonischen Payload.")
+            }),
+
+        Note("🔒 Sicherheitsregel: Den Private Key (%APPDATA%\\AAIA\\Keys\\*-private.pem) niemals in Git einchecken, per E-Mail versenden oder an den Marketplace hochladen. Nur den Public Key (.pem) darf geteilt werden.")
     };
 
     // ── English ───────────────────────────────────────────────────────────────
@@ -136,7 +160,31 @@ public partial class HelpWindow : Window
                 ("Save configuration",   "Saves all settings. Windows: %AppData%\\AAIAModuleManager\\config.json | macOS: ~/Library/Application Support/AAIAModuleManager/config.json")
             }),
 
-        Note("💡 Tip: In the Tester tab with Developer Mode and log streaming you get the same experience as working directly inside the AAIAS dev environment — without leaving this app.")
+        Note("💡 Tip: In the Tester tab with Developer Mode and log streaming you get the same experience as working directly inside the AAIAS dev environment — without leaving this app."),
+
+        Section("📦  New Module / Publish Wizard",
+            "Guides you step by step from a project idea to marketplace readiness.",
+            new[] {
+                ("Steps 1–2: Idea",        "AI analyses your idea and suggests project type, name and ID. Works without an AI API key — manual input is also possible."),
+                ("Step 3: Create",         "Generates project structure, .csproj and aaia-extension.json. Build runs automatically after creation."),
+                ("Step 4: Validation",     "Checks aaia-extension.json, required fields, compatibility and secret patterns. Blockers must be resolved before proceeding."),
+                ("Step 5: Readiness",      "Creates the .aaiaext package, inspects its contents and prepares the release folder (release-info.json + inspection-report.json)."),
+                ("Step 6: Signature",      "Hash preparation → Generate ETW key → Create signature → Verify signature → Marketplace release.")
+            }),
+
+        Section("🔐  Signature & Trust Level",
+            "The trust level model controls which actions are permitted. Each level builds on the previous one.",
+            new[] {
+                ("LocalHashPrepared",    "SHA256 hashes of all release files computed. Preparation for ETW signature (Phase 4.0)."),
+                ("EtwLocalSigned",       "RSA-2048 signature created with the local ETW developer key (Phase 4.1). Key stored in %APPDATA%\\AAIA\\Keys\\."),
+                ("EtwLocalVerified",     "Signature verified locally (Phase 4.2). Unlocks the 🚀 Marketplace upload button."),
+                ("MarketplaceVerified",  "Set exclusively by the Marketplace server — never locally. The Marketplace always verifies independently."),
+                ("Fingerprint",          "SHA256 hash of the DER-encoded public key. Format: SHA256:XX:XX:... — identifies the key without transmitting the full PEM."),
+                ("Canonical payload",    "Deterministic UTF-8 string of extension ID, version, ETW ID, file hashes and timestamp. RSA-signed and reconstructed during verification."),
+                ("release-info.json",    "Modified by Phase 4.1 itself (trustLevel: EtwLocalSigned etc.) — therefore its hash is NOT verified after signing. The pre-signing snapshot is embedded in the canonical payload.")
+            }),
+
+        Note("🔒 Security rule: Never check the private key (%APPDATA%\\AAIA\\Keys\\*-private.pem) into Git, send it by email or upload it to the Marketplace. Only the public key (.pem) may be shared.")
     };
 
     // ─────────────────────────────────────────────────────────────────────────

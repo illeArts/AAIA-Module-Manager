@@ -5,6 +5,7 @@ using System.IO.Compression;
 using System.Linq;
 using System.Security.Cryptography;
 using System.Text;
+using System.Text.Json;
 using System.Text.Json.Nodes;
 using System.Threading;
 using System.Threading.Tasks;
@@ -16,13 +17,14 @@ namespace AAIA.ModuleManager.Services;
 /// </summary>
 public sealed class PackageResult
 {
-    public bool              Success      { get; set; }
-    public string?           PackagePath  { get; set; }
-    public long              SizeBytes    { get; set; }
-    public string            PackageHash  { get; set; } = "";
-    public string            ManifestHash { get; set; } = "";
+    public bool              Success       { get; set; }
+    public string?           PackagePath   { get; set; }
+    public string            PackageName   { get; set; } = "";
+    public long              SizeBytes     { get; set; }
+    public string            PackageHash   { get; set; } = "";
+    public string            ManifestHash  { get; set; } = "";
     public List<string>      IncludedFiles { get; set; } = [];
-    public List<ValidationIssue> Issues   { get; set; } = [];
+    public List<ValidationIssue> Issues    { get; set; } = [];
 
     public string SizeLabel => SizeBytes switch
     {
@@ -34,46 +36,52 @@ public sealed class PackageResult
 
 /// <summary>
 /// Erstellt aus dem Build-Output eines AAIA-Projekts ein .aaiaext-Paket (ZIP).
-/// Schließt Secrets, Build-Artefakt-Quellen und verbotene Dateien aus.
+///
+/// Finale ZIP-Struktur:
+///   aaia-manifest.json
+///   README.md / LICENSE / icon.png   (Root)
+///   lib/net8.0/*.dll                 (Assemblies aus Build-Output)
+///   package/package-info.json        (Paket-Metadaten, signaturbereit)
+///
+/// Schließt Secrets, IDE-Reste und verbotene Dateien aus.
 /// Paket wird nur erstellt wenn keine Blocker vorhanden sind.
 /// </summary>
 public static class ExtensionPackageService
 {
-    // Dateien/Ordner die NIE ins Paket dürfen (Quell-Ordner)
+    // Verzeichnisse die NIE ins Paket kommen
     private static readonly HashSet<string> ExcludedDirs = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".git", ".vs", ".idea", "obj", "node_modules", ".github"
+        ".git", ".vs", ".idea", "obj", "node_modules", ".github", "packages", "test", "tests"
     };
 
-    // Dateiendungen die nie ins Paket dürfen
+    // Erweiterungen die nie ins Paket dürfen
     private static readonly HashSet<string> ExcludedExtensions = new(StringComparer.OrdinalIgnoreCase)
     {
-        ".pdb",   // Debug-Symbole
-        ".user",  ".suo",           // IDE-Einstellungen
-        ".pfx",   ".pem", ".key",   // Zertifikate/Schlüssel
-        ".p12",   ".cer", ".der",
-        ".env",
-        ".log"
+        ".pdb",                        // Debug-Symbole
+        ".exe",                        // Ausführbare Dateien — BLOCKER
+        ".user", ".suo",               // IDE-Einstellungen
+        ".pfx", ".pem", ".key",        // Zertifikate/Schlüssel
+        ".p12", ".cer", ".der", ".crt",
+        ".env", ".log"
     };
 
-    // Dateien die nie ins Paket dürfen (Dateiname exakt)
+    // Dateinamen die nie ins Paket dürfen
     private static readonly HashSet<string> ExcludedFileNames = new(StringComparer.OrdinalIgnoreCase)
     {
         "appsettings.Development.json",
         "appsettings.Local.json",
-        ".env",
-        ".env.local",
-        ".env.development",
-        "secrets.json",
-        "usersecrets.json"
+        ".env", ".env.local", ".env.development",
+        "secrets.json", "usersecrets.json"
     };
+
+    // ── Haupt-Methode ─────────────────────────────────────────────────────────
 
     /// <summary>
     /// Erstellt ein .aaiaext-Paket aus dem Build-Output.
-    /// packageOutputDir: Zielordner für das Paket (z. B. ein /packages-Unterordner)
     /// </summary>
     public static async Task<PackageResult> CreatePackageAsync(
         string            projectDir,
+        NewProjectType    projectType      = NewProjectType.ServerModule,
         string?           packageOutputDir = null,
         CancellationToken ct               = default)
     {
@@ -90,25 +98,27 @@ public static class ExtensionPackageService
             return result;
         }
 
-        // ── Manifest lesen für Dateinamen ─────────────────────────────────────
+        // ── Manifest lesen ────────────────────────────────────────────────────
 
         var manifestPath = Path.Combine(projectDir, "aaia-manifest.json");
         var (moduleId, version) = ReadManifestIdVersion(manifestPath);
+
+        // Paketname: <id>.<version>.aaiaext  (z.B. aaia.fritzbox.module.1.0.0.aaiaext)
         var safeName    = SanitizeFileName(moduleId);
         var safeVersion = SanitizeFileName(version);
-        var packageName = $"{safeName}-{safeVersion}.aaiaext";
+        var packageName = $"{safeName}.{safeVersion}.aaiaext";
 
-        // ── Ausgabe-Ordner sicherstellen ──────────────────────────────────────
+        // ── Ausgabe-Ordner sicherstellen, alte Pakete für diese ID bereinigen ─
 
         Directory.CreateDirectory(packageOutputDir);
+        CleanOldPackages(packageOutputDir, safeName);
+
         var packagePath = Path.Combine(packageOutputDir, packageName);
 
-        if (File.Exists(packagePath)) File.Delete(packagePath);
-
         // ── Build-Output suchen ───────────────────────────────────────────────
-        // Bevorzugt: bin/Release/net8.0/ oder bin/Debug/net8.0/
+        // Reihenfolge: publish/ → bin/Release → bin/Debug
 
-        var buildOutputDir = FindBuildOutput(projectDir);
+        var buildOutputDir = FindBuildOutput(projectDir, projectType);
         if (buildOutputDir is null)
         {
             result.Success = false;
@@ -117,9 +127,26 @@ public static class ExtensionPackageService
                 Severity = "Error",
                 Category = "Paket",
                 Title    = "Kein Build-Output gefunden",
-                Message  = "Es wurden keine Build-Artefakte in bin/ gefunden.\n" +
+                Message  = "Keine Build-Artefakte in bin/ oder publish/ gefunden.\n" +
                            "Führe zuerst 'dotnet build' aus.",
                 Actions  = [new() { Label = "Projekt bauen", ActionId = "build-project", IsAutomatic = true }]
+            });
+            return result;
+        }
+
+        // ── Verbotene Dateien im Build-Output vorab prüfen ────────────────────
+
+        var exeFiles = Directory.EnumerateFiles(buildOutputDir, "*.exe", SearchOption.AllDirectories).ToList();
+        if (exeFiles.Count > 0)
+        {
+            result.Success = false;
+            result.Issues.Add(new ValidationIssue
+            {
+                Severity = "Error",
+                Category = "Sicherheit",
+                Title    = $"{exeFiles.Count} ausführbare Datei(en) im Build-Output",
+                Message  = ".exe-Dateien dürfen nicht in einem AAIA-Paket enthalten sein.\n" +
+                           "Prüfe das Projektziel — AAIA-Erweiterungen sind Class Library, keine Konsolenanwendungen."
             });
             return result;
         }
@@ -130,12 +157,12 @@ public static class ExtensionPackageService
         {
             using var zip = ZipFile.Open(packagePath, ZipArchiveMode.Create);
 
-            // 1. aaia-manifest.json immer aus Projektroot
+            // 1. aaia-manifest.json (immer zuerst)
             zip.CreateEntryFromFile(manifestPath, "aaia-manifest.json");
             result.IncludedFiles.Add("aaia-manifest.json");
 
-            // 2. README + LICENSE aus Projektroot (optional)
-            foreach (var candidate in new[] { "README.md", "README.txt", "LICENSE", "LICENSE.md" })
+            // 2. Dokumentation aus Projektroot
+            foreach (var candidate in new[] { "README.md", "README.txt", "CHANGELOG.md", "LICENSE", "LICENSE.md", "LICENSE.txt" })
             {
                 var path = Path.Combine(projectDir, candidate);
                 if (File.Exists(path))
@@ -145,7 +172,7 @@ public static class ExtensionPackageService
                 }
             }
 
-            // 3. Icon aus Projektroot
+            // 3. Icon aus Projektroot (maximal eines)
             foreach (var icon in new[] { "icon.png", "icon.svg", "icon.jpg", "Icon.png" })
             {
                 var path = Path.Combine(projectDir, icon);
@@ -157,15 +184,24 @@ public static class ExtensionPackageService
                 }
             }
 
-            // 4. Alle Dateien aus dem Build-Output
+            // 4. Assemblies aus Build-Output → lib/<tfm>/
+            var tfm = Path.GetFileName(buildOutputDir);  // z.B. "net8.0"
             foreach (var file in GetPackageableFiles(buildOutputDir))
             {
                 ct.ThrowIfCancellationRequested();
                 var relativePath = Path.GetRelativePath(buildOutputDir, file);
-                var entryName    = "lib/" + relativePath.Replace('\\', '/');
+                var entryName    = $"lib/{tfm}/{relativePath.Replace('\\', '/')}";
                 zip.CreateEntryFromFile(file, entryName);
                 result.IncludedFiles.Add(entryName);
             }
+
+            // 5. package/package-info.json (Paket-Metadaten für Phase 4)
+            var packageInfo = BuildPackageInfo(moduleId, version, projectType);
+            var infoEntry   = zip.CreateEntry("package/package-info.json",
+                                              CompressionLevel.Optimal);
+            using (var w = new StreamWriter(infoEntry.Open(), Encoding.UTF8))
+                await w.WriteAsync(packageInfo);
+            result.IncludedFiles.Add("package/package-info.json");
         }
         catch (Exception ex)
         {
@@ -184,6 +220,7 @@ public static class ExtensionPackageService
         // ── Hashes berechnen ──────────────────────────────────────────────────
 
         result.PackagePath  = packagePath;
+        result.PackageName  = packageName;
         result.SizeBytes    = new FileInfo(packagePath).Length;
         result.PackageHash  = await ComputeSha256Async(packagePath, ct);
         result.ManifestHash = await ComputeSha256Async(manifestPath, ct);
@@ -192,7 +229,29 @@ public static class ExtensionPackageService
         return result;
     }
 
-    // ── Pre-Checks ─────────────────────────────────────────────────────────────
+    // ── package-info.json ─────────────────────────────────────────────────────
+
+    private static string BuildPackageInfo(string id, string version, NewProjectType projectType)
+    {
+        var info = new
+        {
+            packageFormat        = "aaiaext",
+            packageFormatVersion = "1.0",
+            extensionId          = id,
+            extensionVersion     = version,
+            sourceProjectType    = projectType.ToString(),
+            createdAtUtc         = DateTime.UtcNow.ToString("yyyy-MM-ddTHH:mm:ssZ"),
+            createdBy            = "AAIA Module Manager",
+            moduleManagerVersion = GitHubUpdateService.CurrentVersion,
+            isSigned             = false,
+            signaturePhase       = "Phase4Pending",
+            note                 = "Signatur wird in Phase 4 hinzugefügt. Nicht für Marketplace-Upload verwenden."
+        };
+
+        return JsonSerializer.Serialize(info, new JsonSerializerOptions { WriteIndented = true });
+    }
+
+    // ── Pre-Checks ────────────────────────────────────────────────────────────
 
     private static List<ValidationIssue> RunPreChecks(string projectDir)
     {
@@ -213,25 +272,52 @@ public static class ExtensionPackageService
         return issues;
     }
 
-    // ── Helpers ───────────────────────────────────────────────────────────────
+    // ── Build-Output suchen ───────────────────────────────────────────────────
 
-    private static string? FindBuildOutput(string projectDir)
+    private static string? FindBuildOutput(string projectDir, NewProjectType projectType)
     {
-        // Suche: bin/Release zuerst, dann bin/Debug
-        foreach (var config in new[] { "Release", "Debug" })
+        // Bei HybridModule: Server-Projekt bevorzugen
+        var searchRoot = projectType == NewProjectType.HybridModule
+            ? Path.Combine(projectDir, "Server")
+            : projectDir;
+
+        if (!Directory.Exists(searchRoot)) searchRoot = projectDir;
+
+        // 1. publish/-Output bevorzugen (dotnet publish)
+        var publishDir = Path.Combine(searchRoot, "publish");
+        if (Directory.Exists(publishDir) &&
+            Directory.GetFiles(publishDir, "*.dll").Length > 0)
+            return publishDir;
+
+        // 2. bin/Release/<tfm>/publish/
+        var releasePublish = FindInBin(searchRoot, "Release", subDir: "publish");
+        if (releasePublish is not null) return releasePublish;
+
+        // 3. bin/Release/<tfm>/
+        var release = FindInBin(searchRoot, "Release");
+        if (release is not null) return release;
+
+        // 4. bin/Debug/<tfm>/
+        return FindInBin(searchRoot, "Debug");
+    }
+
+    private static string? FindInBin(string root, string config, string? subDir = null)
+    {
+        var binDir = Path.Combine(root, "bin", config);
+        if (!Directory.Exists(binDir)) return null;
+
+        foreach (var tfmDir in Directory.EnumerateDirectories(binDir)
+                     .Where(d => Path.GetFileName(d).StartsWith("net", StringComparison.OrdinalIgnoreCase)))
         {
-            var binDir = Path.Combine(projectDir, "bin", config);
-            if (!Directory.Exists(binDir)) continue;
-
-            // Ersten net*-Unterordner finden
-            var tfmDir = Directory.EnumerateDirectories(binDir)
-                .FirstOrDefault(d => Path.GetFileName(d).StartsWith("net", StringComparison.OrdinalIgnoreCase));
-
-            if (tfmDir is not null && Directory.GetFiles(tfmDir, "*.dll").Length > 0)
-                return tfmDir;
+            var target = subDir is null ? tfmDir : Path.Combine(tfmDir, subDir);
+            if (Directory.Exists(target) &&
+                Directory.GetFiles(target, "*.dll").Length > 0)
+                return target;
         }
         return null;
     }
+
+    // ── Dateien für Paket auswählen ───────────────────────────────────────────
 
     private static IEnumerable<string> GetPackageableFiles(string dir)
     {
@@ -240,12 +326,27 @@ public static class ExtensionPackageService
             var ext      = Path.GetExtension(file);
             var fileName = Path.GetFileName(file);
 
-            if (ExcludedExtensions.Contains(ext))       continue;
-            if (ExcludedFileNames.Contains(fileName))   continue;
+            if (ExcludedExtensions.Contains(ext))     continue;
+            if (ExcludedFileNames.Contains(fileName)) continue;
 
             yield return file;
         }
     }
+
+    // ── Alte Pakete bereinigen ────────────────────────────────────────────────
+
+    private static void CleanOldPackages(string outputDir, string moduleId)
+    {
+        // Alle .aaiaext-Dateien mit derselben Modul-ID löschen
+        foreach (var old in Directory.EnumerateFiles(outputDir, "*.aaiaext")
+                     .Where(f => Path.GetFileName(f).StartsWith(moduleId,
+                                     StringComparison.OrdinalIgnoreCase)))
+        {
+            try { File.Delete(old); } catch { /* Löschen auf Best-Effort-Basis */ }
+        }
+    }
+
+    // ── Helpers ───────────────────────────────────────────────────────────────
 
     private static (string id, string version) ReadManifestIdVersion(string path)
     {
@@ -264,7 +365,7 @@ public static class ExtensionPackageService
 
     private static async Task<string> ComputeSha256Async(string filePath, CancellationToken ct)
     {
-        using var sha  = SHA256.Create();
+        using var sha    = SHA256.Create();
         using var stream = File.OpenRead(filePath);
         var hash = await sha.ComputeHashAsync(stream, ct);
         return Convert.ToHexString(hash).ToLower();

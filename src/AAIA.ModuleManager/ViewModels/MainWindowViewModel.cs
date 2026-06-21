@@ -14,7 +14,9 @@ public partial class MainWindowViewModel : ObservableObject
     public DeveloperTabViewModel      DeveloperTab { get; }
     public PublishTabViewModel        PublishTab   { get; }
     public LicensesTabViewModel       LicensesTab  { get; }
-    public MarketplaceBrowseViewModel BrowseTab    { get; }
+    public MarketplaceBrowseViewModel BrowseTab       { get; }
+    /// <summary>Phase 5.2: Verifizierter Marketplace aus aaia-marketplace-api Registry.</summary>
+    public VerifiedRegistryViewModel  VerifiedTab  { get; }
     public AdminTabViewModel          AdminTab     { get; }
     public AiPanelViewModel           AiPanel      { get; }
 
@@ -49,6 +51,10 @@ public partial class MainWindowViewModel : ObservableObject
 
         var marketplaceClient = new MarketplaceApiClient(config.MarketplaceBackendApiUrl);
         var wpMarketplace     = new WpMarketplaceClient(config.MarketplaceApiUrl);
+        var registryClient    = new RegistryApiClient(config.EtwMarketplaceApiUrl);
+        var extensionDownload = new ExtensionDownloadService(
+                                    config.EtwMarketplaceApiUrl,
+                                    config.DownloadDirectory);
         var certSvc           = new PublisherCertService(marketplaceClient);
         var publishSvc        = new PublishService(certSvc, marketplaceClient, config);
 
@@ -60,6 +66,9 @@ public partial class MainWindowViewModel : ObservableObject
         PublishTab   = new PublishTabViewModel(config, publishSvc, marketplaceClient);
         LicensesTab  = new LicensesTabViewModel(config, TesterTab.AaiasConn);
         BrowseTab    = new MarketplaceBrowseViewModel(wpMarketplace);
+        // AaiasConn aus TesterTab weitergeben — VerifiedTab nutzt dieselbe AAIAS-Verbindung
+        // für "In AAIAS installieren" (Phase 5.4b). Optional — null wenn nicht verbunden.
+        VerifiedTab  = new VerifiedRegistryViewModel(registryClient, extensionDownload, TesterTab.AaiasConn);
         AdminTab     = new AdminTabViewModel(wpMarketplace);
         AiPanel      = new AiPanelViewModel(config);
 
@@ -74,11 +83,12 @@ public partial class MainWindowViewModel : ObservableObject
             DeveloperRole        = config.DeveloperRole;
             IsLoggedIn           = true;
 
-            // Bearer-Token wiederherstellen (beide Clients)
+            // Bearer-Token wiederherstellen (alle Clients)
             if (!string.IsNullOrEmpty(config.MarketplaceToken))
             {
                 marketplaceClient.SetBearer(config.MarketplaceToken);
                 wpMarketplace.SetBearer(config.MarketplaceToken);
+                registryClient.SetBearer(config.MarketplaceToken);
             }
         }
     }

@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.Linq;
 using System.Diagnostics;
 using System.IO;
 using System.Runtime.InteropServices;
@@ -11,6 +12,8 @@ using Avalonia.Platform.Storage;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AAIA.ModuleManager.Services;
+using AAIA.ModuleManager.Services.Help;
+using AAIA.ModuleManager.Services.Signing;
 
 namespace AAIA.ModuleManager.ViewModels;
 
@@ -21,7 +24,8 @@ public enum WizardStep
     ProjectDetails,
     Success,
     Validation,
-    PublishReadiness
+    PublishReadiness,
+    Signature           // Phase 4.0 — Signatur & Vertrauen
 }
 
 public partial class NewProjectWizardViewModel : ObservableObject
@@ -105,8 +109,102 @@ public partial class NewProjectWizardViewModel : ObservableObject
 
     partial void OnShowRawOutputChanged(bool value) => OnPropertyChanged(nameof(RawOutputToggleLabel));
 
-    public bool   CanBuild             => ProjectType != NewProjectType.LanguagePack;
+    /// <summary>Ob der Projekttyp überhaupt bauen kann (nicht LanguagePack).</summary>
+    public bool IsBuildableType => ProjectType != NewProjectType.LanguagePack;
     public string? CreatedProjectPath  { get; private set; }
+
+    // ── Pipeline-Gate-Flags ───────────────────────────────────────────────────
+    // Jedes Flag wird vom zugehörigen Command gesetzt — Gates verhindern das Überspringen.
+
+    [ObservableProperty] private bool    _isProjectCreated;
+    [ObservableProperty] private bool    _isValidated;
+    [ObservableProperty] private bool    _hasValidationBlockers;
+    [ObservableProperty] private bool    _isBuilt;
+    [ObservableProperty] private bool    _buildSucceeded;
+    [ObservableProperty] private bool    _isPublishReadinessChecked;
+    [ObservableProperty] private bool    _hasPublishBlockers;
+    [ObservableProperty] private bool    _isPackaged;
+    [ObservableProperty] private string? _packageFilePath;
+    [ObservableProperty] private bool    _isInspected;
+    [ObservableProperty] private bool    _hasInspectionBlockers;
+    [ObservableProperty] private bool    _isReleasePrepared;
+    [ObservableProperty] private string? _releaseFolderPath;
+
+    // ── Phase 4.0 Signatur-Flags ──────────────────────────────────────────────
+    [ObservableProperty] private bool    _isSignaturePrepared;
+    [ObservableProperty] private string  _trustLevel          = "Unsigned";
+    [ObservableProperty] private string? _signatureInfoPath;
+
+    // ── Phase 4.1 ETW-Signatur-Flags ─────────────────────────────────────────
+    [ObservableProperty] private bool         _isEtwSigned;
+    [ObservableProperty] private bool         _isEtwSignatureVerified;
+    [ObservableProperty] private bool         _etwKeyExists;
+    [ObservableProperty] private EtwKeyInfo?  _currentEtwKeyInfo;
+
+    // Computed Gates — für IsEnabled-Bindings im AXAML
+    public bool CanValidate                    => IsProjectCreated;
+    public bool CanBuild                       => IsProjectCreated && IsValidated && !HasValidationBlockers;
+    public bool CanCheckPublishReadiness       => CanBuild && IsBuilt && BuildSucceeded;
+    public bool CanPackage                     => CanCheckPublishReadiness && IsPublishReadinessChecked && !HasPublishBlockers;
+    public bool CanInspect                     => IsPackaged && File.Exists(PackageFilePath ?? "");
+    public bool CanPrepareRelease              => IsInspected && !HasInspectionBlockers;
+    public bool CanOpenReleaseFolder           => IsReleasePrepared && Directory.Exists(ReleaseFolderPath ?? "");
+    public bool CanProceedToSignature          => IsReleasePrepared;
+    public bool CanPrepareSignature            => IsReleasePrepared && !HasInspectionBlockers;
+    public bool CanVerifySignaturePreparation  => IsSignaturePrepared && File.Exists(SignatureInfoPath ?? "");
+    // Phase 4.1
+    public bool CanGenerateEtwKey       => !string.IsNullOrWhiteSpace(PublisherId)
+                                           && PublisherId != "ETW"
+                                           && !EtwKeyExists;
+    public bool CanCreateEtwSignature   => IsSignaturePrepared
+                                           && EtwKeyExists
+                                           && !HasInspectionBlockers;
+    public bool CanVerifyEtwSignature   => IsEtwSigned
+                                           && File.Exists(SignatureInfoPath ?? "");
+    public bool CanContinueToMarketplace => IsEtwSignatureVerified
+                                            && !HasInspectionBlockers
+                                            && Services.Signing.TrustLevels.IsAtLeast(
+                                                   TrustLevel,
+                                                   Services.Signing.TrustLevels.EtwLocalVerified);
+
+    // Alle Gates bei jeder Flag-Änderung benachrichtigen
+    partial void OnIsProjectCreatedChanged(bool value)          => NotifyGates();
+    partial void OnIsValidatedChanged(bool value)               => NotifyGates();
+    partial void OnHasValidationBlockersChanged(bool value)     => NotifyGates();
+    partial void OnIsBuiltChanged(bool value)                   => NotifyGates();
+    partial void OnBuildSucceededChanged(bool value)            => NotifyGates();
+    partial void OnIsPublishReadinessCheckedChanged(bool value) => NotifyGates();
+    partial void OnHasPublishBlockersChanged(bool value)        => NotifyGates();
+    partial void OnIsPackagedChanged(bool value)                => NotifyGates();
+    partial void OnPackageFilePathChanged(string? value)        => NotifyGates();
+    partial void OnIsInspectedChanged(bool value)               => NotifyGates();
+    partial void OnHasInspectionBlockersChanged(bool value)     => NotifyGates();
+    partial void OnIsReleasePreparedChanged(bool value)         => NotifyGates();
+    partial void OnReleaseFolderPathChanged(string? value)      => NotifyGates();
+    partial void OnIsSignaturePreparedChanged(bool value)       => NotifyGates();
+    partial void OnSignatureInfoPathChanged(string? value)      => NotifyGates();
+    partial void OnTrustLevelChanged(string value)              { NotifyGates(); OnPropertyChanged(nameof(SignatureStatusLabel)); }
+    partial void OnIsEtwSignedChanged(bool value)               => NotifyGates();
+    partial void OnIsEtwSignatureVerifiedChanged(bool value)    => NotifyGates();
+    partial void OnEtwKeyExistsChanged(bool value)              => NotifyGates();
+
+    private void NotifyGates()
+    {
+        OnPropertyChanged(nameof(CanValidate));
+        OnPropertyChanged(nameof(CanBuild));
+        OnPropertyChanged(nameof(CanCheckPublishReadiness));
+        OnPropertyChanged(nameof(CanPackage));
+        OnPropertyChanged(nameof(CanInspect));
+        OnPropertyChanged(nameof(CanPrepareRelease));
+        OnPropertyChanged(nameof(CanOpenReleaseFolder));
+        OnPropertyChanged(nameof(CanProceedToSignature));
+        OnPropertyChanged(nameof(CanPrepareSignature));
+        OnPropertyChanged(nameof(CanVerifySignaturePreparation));
+        OnPropertyChanged(nameof(CanGenerateEtwKey));
+        OnPropertyChanged(nameof(CanCreateEtwSignature));
+        OnPropertyChanged(nameof(CanVerifyEtwSignature));
+        OnPropertyChanged(nameof(CanContinueToMarketplace));
+    }
 
     /// <summary>Pfad zur .csproj (oder HybridModule Server-.csproj) für Restore/Build.</summary>
     private string? ResolvedCsprojPath()
@@ -127,9 +225,10 @@ public partial class NewProjectWizardViewModel : ObservableObject
     private readonly AppConfig          _config;
     private readonly IAiProviderService? _provider;
 
-    public IStorageProvider? StorageProvider { get; set; }
-    public List<IdeInfo>     InstalledIdes   { get; private set; } = [];
-    public string            PublisherId     => _config.DeveloperEtwId ?? _config.DeveloperDisplayName ?? "ETW";
+    public IStorageProvider?      StorageProvider { get; set; }
+    public Avalonia.Input.Platform.IClipboard? Clipboard { get; set; }
+    public List<IdeInfo>          InstalledIdes   { get; private set; } = [];
+    public string                 PublisherId     => _config.DeveloperEtwId ?? _config.DeveloperDisplayName ?? "ETW";
 
     public NewProjectWizardViewModel(AppConfig config)
     {
@@ -137,6 +236,17 @@ public partial class NewProjectWizardViewModel : ObservableObject
         _outputPath   = config.NewProjectPath;
         InstalledIdes = IdeDetectionService.Detect();
         _provider     = AiServiceFactory.Create(config);
+
+        // ETW-Schlüsselstatus einmalig beim Start prüfen
+        RefreshEtwKeyStatus();
+    }
+
+    private void RefreshEtwKeyStatus()
+    {
+        EtwKeyExists      = EtwKeyStoreService.HasKey(PublisherId);
+        CurrentEtwKeyInfo = EtwKeyExists
+            ? EtwKeyStoreService.GetKeyInfo(PublisherId)
+            : null;
     }
 
     // ── Step 0: Idee analysieren ──────────────────────────────────────────────
@@ -269,6 +379,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
             _ = _config.SaveAsync();
 
             CreatedProjectPath = projectDir;
+            IsProjectCreated   = true;
             // Reihenfolge erzwingen: Validation vor Build
             CurrentStep = WizardStep.Validation;
             using var valCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
@@ -295,7 +406,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
     [RelayCommand]
     private async Task BuildProjectAsync(CancellationToken ct)
     {
-        if (!CanBuild) return;
+        if (!IsBuildableType) return;
         var csproj = ResolvedCsprojPath();
         if (csproj is null) return;
 
@@ -324,6 +435,8 @@ public partial class NewProjectWizardViewModel : ObservableObject
         BuildSuccess    = result.Success;
         BuildFailed     = !result.Success;
         IsBuildRunning  = false;
+        IsBuilt         = true;
+        BuildSucceeded  = result.Success;
     }
 
     /// <summary>Nur dotnet restore ausführen (Repair-Aktion für NU/CS0246 Fehler).</summary>
@@ -411,8 +524,10 @@ public partial class NewProjectWizardViewModel : ObservableObject
         foreach (var vm in ValidationIssueViewModel.From(result, id => ExecuteValidationActionCommand.Execute(id)))
             ValidationIssues.Add(vm);
 
-        ValidationResult = result;
-        IsValidating     = false;
+        ValidationResult       = result;
+        IsValidating           = false;
+        IsValidated            = true;
+        HasValidationBlockers  = result.HasBlockers;
         // Step bleibt Validation — Navigation obliegt dem Aufrufer
     }
 
@@ -502,6 +617,31 @@ public partial class NewProjectWizardViewModel : ObservableObject
 
     // ── Step 5: Veröffentlichung vorbereiten ─────────────────────────────────
 
+    [ObservableProperty] private PackageInspectionResult? _inspectionResult;
+    public ObservableCollection<PackageFileEntryViewModel> PackageFileEntries { get; } = new();
+
+    [RelayCommand]
+    private async Task InspectPackageAsync(CancellationToken ct)
+    {
+        if (PackageFilePath is null || !File.Exists(PackageFilePath)) return;
+
+        await Task.Run(() =>
+        {
+            var result = ExtensionPackageInspectorService.Inspect(PackageFilePath);
+
+            Avalonia.Threading.Dispatcher.UIThread.Post(() =>
+            {
+                PackageFileEntries.Clear();
+                foreach (var vm in PackageFileEntryViewModel.From(result))
+                    PackageFileEntries.Add(vm);
+
+                InspectionResult        = result;
+                IsInspected             = true;
+                HasInspectionBlockers   = result.HasBlockers;
+            });
+        }, ct);
+    }
+
     [ObservableProperty] private ValidationResult? _publishReadinessResult;
     [ObservableProperty] private bool              _isCheckingReadiness = false;
     [ObservableProperty] private PackageResult?    _lastPackageResult;
@@ -559,8 +699,10 @@ public partial class NewProjectWizardViewModel : ObservableObject
         foreach (var vm in ValidationIssueViewModel.From(result, ExecutePublishActionAsync))
             PublishIssues.Add(vm);
 
-        PublishReadinessResult  = result;
-        IsCheckingReadiness     = false;
+        PublishReadinessResult     = result;
+        IsCheckingReadiness        = false;
+        IsPublishReadinessChecked  = true;
+        HasPublishBlockers         = result.HasBlockers;
     }
 
     /// <summary>Erstellt das .aaiaext-Paket.</summary>
@@ -570,13 +712,18 @@ public partial class NewProjectWizardViewModel : ObservableObject
         if (CreatedProjectPath is null) return;
 
         IsCheckingReadiness = true;
-        var pkg = await ExtensionPackageService.CreatePackageAsync(CreatedProjectPath, ct: ct);
+        var pkg = await ExtensionPackageService.CreatePackageAsync(
+            CreatedProjectPath, ProjectType, ct: ct);
         LastPackageResult   = pkg;
         IsCheckingReadiness = false;
 
         if (pkg.Success)
         {
-            // Registry-Preview automatisch generieren
+            IsPackaged      = true;
+            PackageFilePath = pkg.PackagePath;
+            // Automatisch inspizieren
+            await InspectPackageAsync(ct);
+            // Registry-Preview generieren
             await ShowRegistryPreviewAsync(ct);
         }
         else
@@ -595,6 +742,233 @@ public partial class NewProjectWizardViewModel : ObservableObject
         RegistryPreview = await ExtensionRegistryPreviewService.GenerateAsync(
             CreatedProjectPath, _config, LastPackageResult, ct);
         ShowRegistryPreview = true;
+    }
+
+    /// <summary>Bereitet den Release-Ordner vor (Phase 3.3).</summary>
+    [ObservableProperty] private ReleaseResult? _lastReleaseResult;
+    [ObservableProperty] private bool           _isPreparingRelease = false;
+
+    [RelayCommand]
+    private async Task PrepareReleaseAsync(CancellationToken ct)
+    {
+        if (CreatedProjectPath is null)   return;
+        if (LastPackageResult  is null)   return;
+        if (InspectionResult   is null)   return;
+        if (!CanPrepareRelease)           return;
+
+        IsPreparingRelease = true;
+
+        var releaseResult = await ReleasePrepareService.PrepareAsync(
+            projectDir:       CreatedProjectPath,
+            packageResult:    LastPackageResult,
+            inspectionResult: InspectionResult,
+            developerEtwId:   _config.DeveloperEtwId ?? _config.DeveloperDisplayName ?? "",
+            ct:               ct);
+
+        LastReleaseResult = releaseResult;
+
+        if (releaseResult.Success)
+        {
+            IsReleasePrepared = true;
+            ReleaseFolderPath = releaseResult.ReleaseFolderPath;
+        }
+        else
+        {
+            foreach (var issue in releaseResult.Issues)
+                PublishIssues.Insert(0, new ValidationIssueViewModel(issue, ExecutePublishActionAsync));
+        }
+
+        IsPreparingRelease = false;
+    }
+
+    [RelayCommand]
+    private void OpenReleaseFolder()
+    {
+        var dir = ReleaseFolderPath;
+        if (dir is null || !Directory.Exists(dir)) return;
+        OpenFolder(dir);
+    }
+
+    [RelayCommand]
+    private void NavigateToSignature()
+    {
+        RefreshEtwKeyStatus();
+        CurrentStep = WizardStep.Signature;
+    }
+
+    // ── Phase 4.0: Signaturvorbereitung ──────────────────────────────────────
+
+    [ObservableProperty] private bool              _isPreparingSignature    = false;
+    [ObservableProperty] private bool              _isVerifyingSignature    = false;
+    [ObservableProperty] private SignatureResult?  _lastSignatureResult;
+    [ObservableProperty] private VerificationResult? _lastVerificationResult;
+
+    // ── Phase 4.1: ETW-Signatur ───────────────────────────────────────────────
+
+    [ObservableProperty] private bool                   _isGeneratingEtwKey      = false;
+    [ObservableProperty] private bool                   _isCreatingEtwSignature  = false;
+    [ObservableProperty] private bool                   _isVerifyingEtwSignature = false;
+    [ObservableProperty] private EtwSigningResult?      _lastEtwSigningResult;
+    [ObservableProperty] private EtwVerificationResult? _lastEtwVerificationResult;
+
+    public string SignatureStatusLabel => Services.Signing.TrustLevels.ShortLabel(TrustLevel);
+
+    [RelayCommand]
+    private async Task PrepareSignatureAsync(CancellationToken ct)
+    {
+        if (ReleaseFolderPath is null || !Directory.Exists(ReleaseFolderPath)) return;
+        if (!CanPrepareSignature) return;
+
+        IsPreparingSignature = true;
+
+        var result = await ReleaseSignatureService.PrepareSignatureAsync(
+            releaseDir:     ReleaseFolderPath,
+            developerEtwId: _config.DeveloperEtwId ?? _config.DeveloperDisplayName ?? "",
+            ct:             ct);
+
+        LastSignatureResult = result;
+
+        if (result.Success)
+        {
+            IsSignaturePrepared = true;
+            TrustLevel          = result.TrustLevel;
+            SignatureInfoPath   = result.SignatureInfoPath;
+        }
+
+        IsPreparingSignature = false;
+    }
+
+    [RelayCommand]
+    private async Task VerifySignaturePreparationAsync(CancellationToken ct)
+    {
+        if (ReleaseFolderPath is null || !Directory.Exists(ReleaseFolderPath)) return;
+
+        IsVerifyingSignature = true;
+
+        var result = await ReleaseSignatureService.VerifySignaturePreparationAsync(
+            releaseDir: ReleaseFolderPath, ct: ct);
+
+        LastVerificationResult = result;
+        IsVerifyingSignature   = false;
+    }
+
+    [RelayCommand]
+    private void OpenSignatureInfo()
+    {
+        if (SignatureInfoPath is not null && File.Exists(SignatureInfoPath))
+            OpenFile(SignatureInfoPath);
+    }
+
+    // ── Phase 4.1: ETW-Schlüssel erzeugen ────────────────────────────────────
+
+    [RelayCommand]
+    private async Task GenerateEtwKeyAsync(CancellationToken ct)
+    {
+        if (string.IsNullOrWhiteSpace(PublisherId) || PublisherId == "ETW") return;
+
+        IsGeneratingEtwKey = true;
+
+        var keyInfo = await EtwKeyStoreService.GenerateKeyAsync(
+            PublisherId,
+            _config.DeveloperDisplayName ?? PublisherId,
+            ct);
+
+        CurrentEtwKeyInfo = keyInfo;
+        EtwKeyExists      = keyInfo.HasKey;
+
+        IsGeneratingEtwKey = false;
+    }
+
+    // ── Phase 4.1: ETW-Signatur erstellen ─────────────────────────────────────
+
+    [RelayCommand]
+    private async Task CreateEtwSignatureAsync(CancellationToken ct)
+    {
+        if (ReleaseFolderPath is null || !Directory.Exists(ReleaseFolderPath)) return;
+        if (!CanCreateEtwSignature) return;
+
+        IsCreatingEtwSignature = true;
+
+        var result = await EtwSigningService.SignAsync(
+            releaseDir:          ReleaseFolderPath,
+            developerEtwId:      PublisherId,
+            developerDisplayName: _config.DeveloperDisplayName ?? PublisherId,
+            ct:                  ct);
+
+        LastEtwSigningResult = result;
+
+        if (result.Success)
+        {
+            IsEtwSigned       = true;
+            TrustLevel        = result.TrustLevel;
+            SignatureInfoPath  = result.SignatureInfoPath;
+        }
+
+        IsCreatingEtwSignature = false;
+    }
+
+    // ── Phase 4.1: ETW-Signatur prüfen ────────────────────────────────────────
+
+    [RelayCommand]
+    private async Task VerifyEtwSignatureAsync(CancellationToken ct)
+    {
+        if (ReleaseFolderPath is null || !Directory.Exists(ReleaseFolderPath)) return;
+
+        IsVerifyingEtwSignature = true;
+
+        var result = await EtwSignatureVerificationService.VerifyAsync(
+            releaseDir: ReleaseFolderPath,
+            ct:         ct);
+
+        LastEtwVerificationResult = result;
+        IsEtwSignatureVerified    = result.IsValid;
+
+        // Trust-Level auf EtwLocalVerified hochsetzen wenn Prüfung erfolgreich
+        if (result.IsValid)
+            TrustLevel = Services.Signing.TrustLevels.EtwLocalVerified;
+
+        IsVerifyingEtwSignature = false;
+    }
+
+    // ── Phase 4.2: Public-Key-Export ─────────────────────────────────────────
+
+    /// <summary>Kopiert den Public Key PEM in die Zwischenablage.</summary>
+    [RelayCommand]
+    private async Task CopyPublicKeyAsync()
+    {
+        var pem = CurrentEtwKeyInfo?.PublicKeyPem;
+        if (Clipboard is null || string.IsNullOrEmpty(pem)) return;
+        await Clipboard.SetTextAsync(pem);
+    }
+
+    /// <summary>Exportiert den Public Key als .pem-Datei (Datei-Dialog).</summary>
+    [RelayCommand]
+    private async Task ExportPublicKeyAsync()
+    {
+        var pem = CurrentEtwKeyInfo?.PublicKeyPem;
+        if (StorageProvider is null || string.IsNullOrEmpty(pem)) return;
+
+        var safeName = string.Concat(
+            PublisherId.ToLowerInvariant()
+                       .Replace('/', '-')
+                       .Replace(':', '-')
+                       .Split(Path.GetInvalidFileNameChars()));
+
+        var file = await StorageProvider.SaveFilePickerAsync(
+            new Avalonia.Platform.Storage.FilePickerSaveOptions
+            {
+                Title            = "Öffentlichen ETW-Schlüssel exportieren",
+                SuggestedFileName = $"{safeName}-public.pem",
+                DefaultExtension  = "pem",
+                FileTypeChoices   =
+                [
+                    new Avalonia.Platform.Storage.FilePickerFileType("PEM-Schlüssel")
+                        { Patterns = ["*.pem"] }
+                ]
+            });
+
+        if (file?.TryGetLocalPath() is { } path)
+            await File.WriteAllTextAsync(path, pem);
     }
 
     [RelayCommand]
@@ -626,7 +1000,12 @@ public partial class NewProjectWizardViewModel : ObservableObject
                 : null;
 
         if (dir is null || !Directory.Exists(dir)) return;
+        OpenFolder(dir);
+    }
 
+    private static void OpenFolder(string dir)
+    {
+        if (!Directory.Exists(dir)) return;
         if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
             Process.Start(new ProcessStartInfo("explorer.exe", dir) { UseShellExecute = true });
         else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
@@ -705,5 +1084,128 @@ public partial class NewProjectWizardViewModel : ObservableObject
         var ide = InstalledIdes.Find(i => i.Name == ideName);
         if (ide is null || !ide.Installed) return;
         IdeDetectionService.OpenInIde(ide, CreatedProjectPath);
+    }
+
+    // ── Phase 4.5: AI Handoff ─────────────────────────────────────────────────
+
+    /// <summary>
+    /// Baut den aktuellen Projektzustand als <see cref="AiHandoffContext"/> auf.
+    /// Wird vom AiHandoffWindow aufgerufen und enthält KEINE Quelltexte.
+    /// </summary>
+    /// <summary>
+    /// Baut den Upload-Kontext für den Marketplace-Upload-Dialog auf.
+    ///
+    /// Sicherheitsregel (unveränderlich):
+    ///   Enthält NIEMALS Private Key, MarketplaceToken im Klartext im Objekt —
+    ///   BearerToken wird aus _config gezogen und nur für den HTTP-Request verwendet.
+    /// </summary>
+    public Services.Marketplace.MarketplaceSignedUploadContext BuildMarketplaceUploadContext()
+    {
+        var releaseDir = ReleaseFolderPath ?? "";
+
+        // .aaiaext im Release-Ordner suchen (ReleasePrepareService kopiert es dorthin)
+        var packagePath = "";
+        if (!string.IsNullOrEmpty(releaseDir) && Directory.Exists(releaseDir))
+        {
+            packagePath = System.IO.Directory
+                .GetFiles(releaseDir, "*.aaiaext", System.IO.SearchOption.TopDirectoryOnly)
+                .FirstOrDefault() ?? "";
+        }
+
+        return new Services.Marketplace.MarketplaceSignedUploadContext
+        {
+            ExtensionId      = ProjectId,
+            Version          = LastReleaseResult?.Version ?? "",
+            DisplayName      = ProjectName,
+            DeveloperEtwId   = PublisherId,
+            KeyFingerprint   = CurrentEtwKeyInfo?.Fingerprint ?? "",
+            TrustLevel       = TrustLevel,
+            SignatureVersion  = "etw-signature-v1",
+
+            PackagePath          = packagePath,
+            SignatureInfoPath    = SignatureInfoPath ?? "",
+            ReleaseInfoPath      = System.IO.Path.Combine(releaseDir, "release-info.json"),
+            InspectionReportPath = System.IO.Path.Combine(releaseDir, "inspection-report.json"),
+
+            MarketplaceApiUrl = _config.EtwMarketplaceApiUrl,   // ASP.NET Core API, nicht WP REST
+            BearerToken       = _config.MarketplaceToken
+        };
+    }
+
+    public AiHandoffContext BuildAiHandoffContext()
+    {
+        // Fehler aus den aktiven Ergebnissen zusammenstellen
+        var validationErrors = new System.Collections.Generic.List<string>();
+        foreach (var issue in ValidationIssues)
+            if (issue.Severity == "Error")
+                validationErrors.Add($"[{issue.Category}] {issue.Title}: {issue.Message}");
+
+        var inspectionBlockers = new System.Collections.Generic.List<string>();
+        if (InspectionResult is not null)
+            foreach (var issue in InspectionResult.Issues)
+                if (issue.IsError)
+                    inspectionBlockers.Add($"[{issue.Category}] {issue.Title}");
+
+        var signatureErrors = new System.Collections.Generic.List<string>();
+        if (LastEtwVerificationResult is not null && !LastEtwVerificationResult.IsValid)
+            foreach (var issue in LastEtwVerificationResult.Issues)
+                if (issue.IsError)
+                    signatureErrors.Add($"[{issue.Category}] {issue.Title}");
+
+        // Nächsten Schritt ableiten
+        string? nextStep = null;
+        if (!IsProjectCreated)             nextStep = "Projekt erstellen";
+        else if (!IsValidated)             nextStep = "Manifest validieren";
+        else if (HasValidationBlockers)    nextStep = "Validierungsblocker beheben";
+        else if (!IsBuilt)                 nextStep = "Projekt bauen";
+        else if (!IsPackaged)              nextStep = ".aaiaext-Paket erstellen";
+        else if (!IsInspected)             nextStep = "Paket inspizieren";
+        else if (HasInspectionBlockers)    nextStep = "Inspection-Blocker beheben";
+        else if (!IsReleasePrepared)       nextStep = "Release vorbereiten";
+        else if (!IsSignaturePrepared)     nextStep = "Hash-Vorbereitung (Phase 4.0)";
+        else if (!EtwKeyExists)            nextStep = "ETW-Schlüssel erzeugen (Phase 4.1)";
+        else if (!IsEtwSigned)             nextStep = "ETW-Signatur erstellen (Phase 4.1)";
+        else if (!IsEtwSignatureVerified)  nextStep = "ETW-Signatur prüfen (Phase 4.2)";
+        else if (!CanContinueToMarketplace) nextStep = "Marketplace-Freigabe prüfen";
+        else                               nextStep = "Phase 5.0 — Marketplace-Upload";
+
+        return new AiHandoffContext
+        {
+            // Projekt-Identität
+            ExtensionId  = ProjectId,
+            DisplayName  = ProjectName,
+            ProjectType  = ProjectType.ToString(),
+            DeveloperEtwId = PublisherId,
+
+            // Pipeline-Flags
+            IsProjectCreated         = IsProjectCreated,
+            IsValidated              = IsValidated,
+            HasValidationBlockers    = HasValidationBlockers,
+            IsBuilt                  = IsBuilt,
+            IsPackaged               = IsPackaged,
+            IsInspected              = IsInspected,
+            HasInspectionBlockers    = HasInspectionBlockers,
+            IsReleasePrepared        = IsReleasePrepared,
+            IsSignaturePrepared      = IsSignaturePrepared,
+            EtwKeyExists             = EtwKeyExists,
+            IsEtwSigned              = IsEtwSigned,
+            IsEtwSignatureVerified   = IsEtwSignatureVerified,
+            CanContinueToMarketplace = CanContinueToMarketplace,
+
+            // Trust & Signatur
+            TrustLevel      = TrustLevel,
+            KeyFingerprint  = CurrentEtwKeyInfo?.Fingerprint,
+            KeyAlgorithm    = CurrentEtwKeyInfo?.KeyAlgorithm,
+            SignedAtUtc     = LastEtwSigningResult?.SignedAtUtc,
+
+            // Aktueller Schritt
+            CurrentStep = CurrentStep.ToString(),
+            NextStep    = nextStep,
+
+            // Fehler
+            ValidationErrors   = validationErrors,
+            InspectionBlockers = inspectionBlockers,
+            SignatureErrors     = signatureErrors
+        };
     }
 }

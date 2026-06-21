@@ -27,11 +27,12 @@ public sealed class ValidationActionViewModel
 /// </summary>
 public sealed class ValidationIssueViewModel
 {
-    public string  Title    { get; }
-    public string  Message  { get; }
-    public string  Category { get; }
+    public string  Title        { get; }
+    public string  Message      { get; }
+    public string  Category     { get; }
+    public string  Severity     { get; }  // "Error" | "Warning" | "Info"
     public string  SeverityIcon { get; }
-    public bool    HasActions { get; }
+    public bool    HasActions   { get; }
     public List<ValidationActionViewModel> Actions { get; }
 
     // Avalonia-Brushes
@@ -45,6 +46,7 @@ public sealed class ValidationIssueViewModel
         Title        = issue.Title;
         Message      = issue.Message;
         Category     = issue.Category;
+        Severity     = issue.Severity;
         SeverityIcon = issue.SeverityIcon;
         HasActions   = issue.Actions.Count > 0;
         CategoryLabel = issue.Category;

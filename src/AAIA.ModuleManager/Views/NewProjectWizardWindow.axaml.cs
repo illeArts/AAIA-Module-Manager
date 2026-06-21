@@ -20,6 +20,7 @@ public partial class NewProjectWizardWindow : Window
         DataContext = vm;
 
         _vm.StorageProvider = StorageProvider;
+        _vm.Clipboard       = TopLevel.GetTopLevel(this)?.Clipboard;
 
         vm.PropertyChanged += (_, e) =>
         {
@@ -50,6 +51,7 @@ public partial class NewProjectWizardWindow : Window
         Step3Panel.IsVisible = step == WizardStep.Success;
         Step4Panel.IsVisible = step == WizardStep.Validation;
         Step5Panel.IsVisible = step == WizardStep.PublishReadiness;
+        Step6Panel.IsVisible = step == WizardStep.Signature;
 
         if (step == WizardStep.ProjectDetails)
             SyncRadioButtons();
@@ -141,6 +143,44 @@ public partial class NewProjectWizardWindow : Window
     {
         if (_vm is null) return;
         _vm.CurrentStep = WizardStep.Success;
+    }
+
+    // ── Step 6: Zurück zu Step 5 ──────────────────────────────────────────────
+
+    private void SignatureBack_Click(object? s, RoutedEventArgs e)
+    {
+        if (_vm is null) return;
+        _vm.CurrentStep = WizardStep.PublishReadiness;
+    }
+
+    // ── Phase 5.0: Marketplace Upload ────────────────────────────────────────
+
+    private void Marketplace_Click(object? s, RoutedEventArgs e)
+    {
+        if (_vm is null) return;
+        var ctx = _vm.BuildMarketplaceUploadContext();
+        var dlg = new MarketplaceUploadWindow(ctx);
+        dlg.ShowDialog(this);
+    }
+
+    // ── Phase 4.5: AI Handoff ─────────────────────────────────────────────────
+
+    internal void OpenAiHandoff()
+    {
+        if (_vm is null) return;
+        var ctx = _vm.BuildAiHandoffContext();
+        var dlg = new AiHandoffWindow(ctx);
+        dlg.ShowDialog(this);
+    }
+
+    private void AiHandoff_Click(object? s, RoutedEventArgs e) => OpenAiHandoff();
+
+    // ── Phase 4.5: Kontexthilfe ───────────────────────────────────────────────
+
+    private void Help_Click(object? s, RoutedEventArgs e)
+    {
+        var dlg = new HelpWindow();
+        dlg.ShowDialog(this);
     }
 
     // ── Schließen ─────────────────────────────────────────────────────────────
