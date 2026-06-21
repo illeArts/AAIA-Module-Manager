@@ -122,4 +122,17 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Wird von App.axaml.cs aufgerufen nachdem LoginWindow erfolgreich abgesc
+    /// Wird von App.axaml.cs aufgerufen nachdem LoginWindow erfolgreich abgeschlossen wurde.
+    /// Aktualisiert Titelleiste sofort ohne Neustart.
+    /// </summary>
+    public void SetDeveloperIdentity(string etwId, string displayName, DeveloperRole role = DeveloperRole.Community)
+    {
+        DeveloperEtwId       = etwId;
+        DeveloperDisplayName = displayName;
+        DeveloperRole        = role;
+        IsLoggedIn           = true;
+
+        // Phase 5.9: Dashboard nach interaktivem Login laden
+        _ = DashboardTab.LoadAsync();
+    }
+}

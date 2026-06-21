@@ -255,4 +255,17 @@
       </ItemsControl>
     </ScrollViewer>
 
-    <!-- Phase 5.8f: 
+    <!-- Phase 5.8f: Hinweis Käuferlizenzen ──────────────────────────────── -->
+    <Border Grid.Row="2" Margin="12,6,12,10" CornerRadius="5" Padding="10,7"
+            Background="#0d1117" BorderBrush="#30363d" BorderThickness="1">
+      <TextBlock FontSize="10" Foreground="#8892a4" TextWrapping="Wrap">
+        <Run Text="💡 "/>
+        <Run Text="Käuferlizenzen (für Endnutzer deiner Extensions) werden auf"/>
+        <Run Text=" aaiagent.de/account/licenses" Foreground="#4f8ef7"/>
+        <Run Text=" verwaltet — nicht im Module Manager."/>
+      </TextBlock>
+    </Border>
+
+  </Grid>
+
+</UserControl>

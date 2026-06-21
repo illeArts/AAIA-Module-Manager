@@ -201,4 +201,55 @@ public sealed class RegistryApiClient : IDisposable
         catch { return null; }
     }
 
-    /// <summary>Webhook-Events für eine Extension (max. 50, neueste zuerst)
+    /// <summary>Webhook-Events für eine Extension (max. 50, neueste zuerst).</summary>
+    public async Task<IReadOnlyList<DeveloperWebhookEventDto>> GetWebhookEventsAsync(
+        string extensionId, CancellationToken ct = default)
+    {
+        try
+        {
+            var url  = AaiaApiRoutes.Developers.ExtensionWebhookEvents
+                           .Replace("{extensionId}", Uri.EscapeDataString(extensionId));
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode) return Array.Empty<DeveloperWebhookEventDto>();
+            var list = await resp.Content
+                           .ReadFromJsonAsync<List<DeveloperWebhookEventDto>>(JsonOptions, ct);
+            return list ?? (IReadOnlyList<DeveloperWebhookEventDto>)Array.Empty<DeveloperWebhookEventDto>();
+        }
+        catch { return Array.Empty<DeveloperWebhookEventDto>(); }
+    }
+
+    // ── Hilfsmethoden ─────────────────────────────────────────────────────────
+
+    private static string BuildUrl(string baseRoute, int page, int pageSize, string? category, string? search)
+    {
+        var qs = new List<string>
+        {
+            $"page={page}",
+            $"pageSize={pageSize}"
+        };
+        if (!string.IsNullOrWhiteSpace(category)) qs.Add($"category={Uri.EscapeDataString(category)}");
+        if (!string.IsNullOrWhiteSpace(search))   qs.Add($"search={Uri.EscapeDataString(search)}");
+        return $"{baseRoute}?{string.Join("&", qs)}";
+    }
+
+    private static async Task EnsureSuccessAsync(HttpResponseMessage resp, CancellationToken ct)
+    {
+        if (resp.IsSuccessStatusCode) return;
+        string detail = $"HTTP {(int)resp.StatusCode}";
+        try
+        {
+            var body = await resp.Content.ReadAsStringAsync(ct);
+            if (!string.IsNullOrWhiteSpace(body))
+            {
+                using var doc = JsonDocument.Parse(body);
+                var root = doc.RootElement;
+                if (root.TryGetProperty("error",   out var e)) detail = e.GetString() ?? detail;
+                else if (root.TryGetProperty("message", out var m)) detail = m.GetString() ?? detail;
+            }
+        }
+        catch { /* Fallback auf HTTP-Status */ }
+        throw new HttpRequestException(detail, null, resp.StatusCode);
+    }
+
+    public void Dispose() => _http.Dispose();
+}
