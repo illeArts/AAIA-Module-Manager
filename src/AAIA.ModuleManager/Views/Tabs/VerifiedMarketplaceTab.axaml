@@ -4,7 +4,7 @@
              x:Class="AAIA.ModuleManager.Views.Tabs.VerifiedMarketplaceTab"
              x:DataType="vm:VerifiedRegistryViewModel">
 
-  <Grid RowDefinitions="Auto,*">
+  <Grid RowDefinitions="Auto,*,Auto">
 
     <!-- ── Header + Suche ─────────────────────────────────────────────────── -->
     <StackPanel Grid.Row="0" Margin="20,20,20,12" Spacing="12">
@@ -255,6 +255,4 @@
       </ItemsControl>
     </ScrollViewer>
 
-  </Grid>
-
-</UserControl>
+    <!-- Phase 5.8f: 
