@@ -1,0 +1,260 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.VerifiedMarketplaceTab"
+             x:DataType="vm:VerifiedRegistryViewModel">
+
+  <Grid RowDefinitions="Auto,*">
+
+    <!-- ── Header + Suche ─────────────────────────────────────────────────── -->
+    <StackPanel Grid.Row="0" Margin="20,20,20,12" Spacing="12">
+
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Classes="h1" Text="✅  Verifizierter Marketplace"/>
+          <StackPanel Orientation="Horizontal" Spacing="6">
+            <TextBlock Classes="muted" FontSize="12"
+                       Text="{Binding TotalCount,
+                           StringFormat='{}{0} ETW-signierte Extensions'}" />
+            <TextBlock Classes="muted" FontSize="12" Text="·"
+                       IsVisible="{Binding IsLoading}"/>
+            <TextBlock Classes="muted" FontSize="12" Text="Lädt…"
+                       IsVisible="{Binding IsLoading}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <Button Grid.Column="1" Classes="ghost" Content="↻ Aktualisieren"
+                Command="{Binding LoadCommand}"
+                IsEnabled="{Binding !IsLoading}"
+                VerticalAlignment="Center"/>
+      </Grid>
+
+      <!-- Info-Banner -->
+      <Border Background="#0a1f0f" BorderBrush="#06d6a0" BorderThickness="1"
+              CornerRadius="6" Padding="12,8">
+        <TextBlock FontSize="11" Foreground="#06d6a0" TextWrapping="Wrap"
+                   Text="Alle hier gezeigten Extensions wurden mit einem ETW-Developer-Schlüssel signiert und serverseitig kryptographisch verifiziert." />
+      </Border>
+
+      <!-- Suchfeld -->
+      <TextBox Text="{Binding SearchText}"
+               Watermark="Extension suchen (Name, ID, Kategorie, Publisher)…"
+               Padding="10,8" CornerRadius="6"
+               Background="#1e1e3a" Foreground="#e0e0e0"
+               BorderBrush="#2a2a4a" BorderThickness="1"/>
+
+      <!-- Status -->
+      <TextBlock Classes="muted" FontSize="12"
+                 Text="{Binding StatusMessage}"
+                 IsVisible="{Binding StatusMessage,
+                     Converter={x:Static StringConverters.IsNotNullOrEmpty}}"
+                 HorizontalAlignment="Center"/>
+    </StackPanel>
+
+    <!-- ── Extension-Kacheln ───────────────────────────────────────────────── -->
+    <ScrollViewer Grid.Row="1" Padding="20,0,20,20">
+      <ItemsControl ItemsSource="{Binding Extensions}">
+        <ItemsControl.ItemsPanel>
+          <ItemsPanelTemplate>
+            <WrapPanel Orientation="Horizontal"/>
+          </ItemsPanelTemplate>
+        </ItemsControl.ItemsPanel>
+
+        <ItemsControl.ItemTemplate>
+          <DataTemplate x:DataType="vm:VerifiedExtensionVm">
+
+            <Border Width="280" Margin="0,0,12,12" CornerRadius="8"
+                    Background="#1a1a2e" BorderBrush="#2a2a4a" BorderThickness="1"
+                    Padding="16">
+              <StackPanel Spacing="8">
+
+                <!-- Typ-Badge + Version -->
+                <Grid ColumnDefinitions="*,Auto">
+                  <Border Grid.Column="0" CornerRadius="4" Padding="6,2"
+                          Background="#12122a" HorizontalAlignment="Left">
+                    <TextBlock Text="{Binding TypeLabel}"
+                               FontSize="10" FontWeight="SemiBold"
+                               Foreground="{Binding TypeColor}"/>
+                  </Border>
+                  <TextBlock Grid.Column="1"
+                             Text="{Binding LatestVersion, StringFormat='v{0}'}"
+                             Classes="muted" FontSize="10" VerticalAlignment="Center"/>
+                </Grid>
+
+                <!-- Name -->
+                <TextBlock Text="{Binding DisplayName}"
+                           FontSize="14" FontWeight="SemiBold"
+                           Foreground="#e0e0e0" TextWrapping="Wrap"
+                           MaxLines="2" TextTrimming="CharacterEllipsis"/>
+
+                <!-- Extension-ID -->
+                <TextBlock Text="{Binding ExtensionId}"
+                           FontFamily="Consolas,Menlo,monospace"
+                           FontSize="10" Foreground="#5a607a"/>
+
+                <!-- Beschreibung -->
+                <TextBlock Text="{Binding Description}"
+                           FontSize="11" Foreground="#8892a4"
+                           TextWrapping="Wrap" MaxLines="2"
+                           TextTrimming="CharacterEllipsis"
+                           IsVisible="{Binding Description,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                <!-- Trust-Level Badge -->
+                <Border CornerRadius="4" Padding="6,2"
+                        Background="#0d1117" HorizontalAlignment="Left">
+                  <TextBlock Text="{Binding TrustLevelLabel}"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{Binding TrustLevelColor}"/>
+                </Border>
+
+                <!-- Risiko-Badge -->
+                <Border CornerRadius="4" Padding="6,2"
+                        Background="#0d1117" HorizontalAlignment="Left">
+                  <TextBlock Text="{Binding RiskLabel}"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{Binding RiskColor}"/>
+                </Border>
+
+                <!-- Publisher + Veröffentlicht -->
+                <StackPanel Spacing="2">
+                  <TextBlock FontSize="10" Foreground="#5a607a"
+                             Text="{Binding PublisherDisplay,
+                                 StringFormat='von {0}'}"/>
+                  <TextBlock FontSize="10" Foreground="#5a607a"
+                             Text="{Binding PublishedDisplay,
+                                 StringFormat='Veröffentlicht: {0}'}"
+                             IsVisible="{Binding PublishedDisplay,
+                                 Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                  <TextBlock FontSize="10" Foreground="#5a607a"
+                             Text="{Binding MinAaiaVersion}"
+                             IsVisible="{Binding MinAaiaVersion,
+                                 Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+                </StackPanel>
+
+                <!-- Preis -->
+                <TextBlock Text="{Binding PriceDisplay}"
+                           FontSize="13" FontWeight="Bold"
+                           Foreground="#06d6a0"/>
+
+                <!-- Lizenz-Banner (fehlende / abgelaufene Lizenz) -->
+                <Border CornerRadius="4" Padding="8,5"
+                        Background="#1a0a0a" BorderBrush="#ef4444" BorderThickness="1"
+                        IsVisible="{Binding IsLicenseBlocked}">
+                  <TextBlock Text="{Binding DownloadStatusText}"
+                             FontSize="10" Foreground="#ef4444"
+                             TextWrapping="Wrap"/>
+                </Border>
+
+                <!-- Download-Progress (nur sichtbar während Download) -->
+                <ProgressBar Value="{Binding DownloadProgress}"
+                             Minimum="0" Maximum="1"
+                             Height="4" CornerRadius="2"
+                             Background="#2a2a4a" Foreground="#06d6a0"
+                             IsVisible="{Binding IsDownloading}"/>
+
+                <!-- Download-Status-Text (normaler Status, nicht Lizenz-Fehler) -->
+                <TextBlock Text="{Binding DownloadStatusText}"
+                           FontSize="10" Foreground="#8892a4"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding DownloadStatusText,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                <!-- Button-Leiste: Details + Download -->
+                <Grid ColumnDefinitions="*,Auto,Auto" Margin="0,4,0,0">
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Content="Details"
+                          FontSize="11" Padding="8,5"
+                          Margin="0,0,6,0"
+                          Command="{Binding $parent[UserControl].((vm:VerifiedRegistryViewModel)DataContext).OpenDetailsCommand}"
+                          CommandParameter="{Binding}"/>
+
+                  <Button Grid.Column="2"
+                          Classes="primary"
+                          Content="{Binding DownloadButtonLabel}"
+                          FontSize="11" Padding="10,5"
+                          IsEnabled="{Binding !IsDownloading}"
+                          Command="{Binding $parent[UserControl].((vm:VerifiedRegistryViewModel)DataContext).DownloadCommand}"
+                          CommandParameter="{Binding}"/>
+                </Grid>
+
+                <!-- ── Kauf + Lizenz (Phase 5.7b) ─────────────────────────── -->
+                <Grid ColumnDefinitions="*,Auto" Margin="0,2,0,0">
+
+                  <!-- Kaufen-Button (nur sichtbar wenn keine/abgelaufene Lizenz + CheckoutUrl) -->
+                  <Button Grid.Column="0"
+                          Classes="success"
+                          Content="🛒 Kaufen"
+                          FontSize="11" Padding="10,5"
+                          Margin="0,0,6,0"
+                          IsVisible="{Binding ShowBuyButton}"
+                          Command="{Binding $parent[UserControl].((vm:VerifiedRegistryViewModel)DataContext).BuyExtensionCommand}"
+                          CommandParameter="{Binding}"/>
+
+                  <!-- Lizenz prüfen-Button -->
+                  <Button Grid.Column="1"
+                          Classes="ghost"
+                          Content="{Binding LicenseCheckButtonLabel}"
+                          FontSize="11" Padding="8,5"
+                          IsEnabled="{Binding !IsLicenseChecking}"
+                          Command="{Binding $parent[UserControl].((vm:VerifiedRegistryViewModel)DataContext).CheckLicenseCommand}"
+                          CommandParameter="{Binding}"/>
+                </Grid>
+
+                <!-- Lizenzstatus-Badge (nur nach Abfrage sichtbar) -->
+                <Border CornerRadius="4" Padding="8,5"
+                        IsVisible="{Binding LicenseStatusVisible}">
+                  <Border.Background>
+                    <SolidColorBrush Color="#0d1117"/>
+                  </Border.Background>
+                  <TextBlock Text="{Binding LicenseStatusText}"
+                             FontSize="10" FontWeight="SemiBold"
+                             Foreground="{Binding LicenseStatusColor}"
+                             TextWrapping="Wrap"/>
+                </Border>
+
+                <!-- "Im Explorer öffnen"-Link (nur nach Download) -->
+                <Button Classes="ghost"
+                        Content="📁 Im Ordner zeigen"
+                        FontSize="10" Padding="0" HorizontalAlignment="Left"
+                        IsVisible="{Binding LocalFilePath,
+                            Converter={x:Static ObjectConverters.IsNotNull}}"
+                        Command="{Binding $parent[UserControl].((vm:VerifiedRegistryViewModel)DataContext).OpenLocalFileCommand}"
+                        CommandParameter="{Binding}"/>
+
+                <!-- ── In AAIAS installieren (Phase 5.4b) ──────────────────── -->
+                <Button Classes="primary"
+                        Content="{Binding InstallButtonLabel}"
+                        FontSize="11" Padding="10,5"
+                        IsVisible="{Binding CanInstall}"
+                        IsEnabled="{Binding !IsInstalling}"
+                        Command="{Binding $parent[UserControl].((vm:VerifiedRegistryViewModel)DataContext).InstallCommand}"
+                        CommandParameter="{Binding}"/>
+
+                <!-- Installations-Status -->
+                <TextBlock Text="{Binding InstallStatusText}"
+                           FontSize="10" Foreground="#8892a4"
+                           TextWrapping="Wrap"
+                           IsVisible="{Binding InstallStatusText,
+                               Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+
+                <!-- Neustart-Hinweis -->
+                <Border CornerRadius="4" Padding="8,5"
+                        Background="#1a1000" BorderBrush="#f4a261" BorderThickness="1"
+                        IsVisible="{Binding RestartRequired}">
+                  <TextBlock Text="🔄 AAIAS-Neustart erforderlich um die Extension zu aktivieren."
+                             FontSize="10" Foreground="#f4a261" TextWrapping="Wrap"/>
+                </Border>
+
+              </StackPanel>
+            </Border>
+
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+  </Grid>
+
+</UserControl>
