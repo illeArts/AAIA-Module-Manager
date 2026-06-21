@@ -142,7 +142,12 @@
         <tabs:VerifiedMarketplaceTab DataContext="{Binding VerifiedTab}"/>
       </TabItem>
 
-      <!-- Tab 9: KI-Assistent — für alle ETWs -->
+      <!-- Tab 9: Developer Dashboard (Phase 5.9) — nur für eingeloggte ETWs -->
+      <TabItem Header="📊  Dashboard" IsVisible="{Binding IsEtw}">
+        <tabs:DeveloperDashboardTab DataContext="{Binding DashboardTab}"/>
+      </TabItem>
+
+      <!-- Tab 10: KI-Assistent — für alle ETWs -->
       <TabItem Header="🤖  KI" IsVisible="{Binding IsEtw}">
         <tabs:AiPanelTab DataContext="{Binding AiPanel}"/>
       </TabItem>
@@ -201,11 +206,4 @@
       <Setter Property="BorderThickness" Value="0"/>
       <Setter Property="Padding" Value="6,2"/>
       <Setter Property="FontSize" Value="11"/>
-      <Setter Property="Cursor" Value="Hand"/>
-    </Style>
-    <Style Selector="Button.logout-btn:pointerover /template/ ContentPresenter">
-      <Setter Property="TextElement.Foreground" Value="#e74c3c"/>
-    </Style>
-  </Window.Styles>
-
-</Window>
+   

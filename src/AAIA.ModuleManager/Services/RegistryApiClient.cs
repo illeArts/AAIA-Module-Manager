@@ -168,38 +168,37 @@ public sealed class RegistryApiClient : IDisposable
         return dto ?? new PublishReleaseResponse(false, extensionId, version, null, null, $"HTTP {(int)resp.StatusCode}");
     }
 
-    // ── Hilfsmethoden ─────────────────────────────────────────────────────────
+    // ── Phase 5.9: Developer Dashboard ───────────────────────────────────────
 
-    private static string BuildUrl(string baseRoute, int page, int pageSize, string? category, string? search)
+    /// <summary>Lädt das vollständige ETW-Dashboard (alle Extensions + Statistiken).</summary>
+    public async Task<DeveloperDashboardDto?> GetDeveloperDashboardAsync(CancellationToken ct = default)
     {
-        var qs = new List<string>
-        {
-            $"page={page}",
-            $"pageSize={pageSize}"
-        };
-        if (!string.IsNullOrWhiteSpace(category)) qs.Add($"category={Uri.EscapeDataString(category)}");
-        if (!string.IsNullOrWhiteSpace(search))   qs.Add($"search={Uri.EscapeDataString(search)}");
-        return $"{baseRoute}?{string.Join("&", qs)}";
-    }
-
-    private static async Task EnsureSuccessAsync(HttpResponseMessage resp, CancellationToken ct)
-    {
-        if (resp.IsSuccessStatusCode) return;
-        string detail = $"HTTP {(int)resp.StatusCode}";
         try
         {
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            if (!string.IsNullOrWhiteSpace(body))
-            {
-                using var doc = JsonDocument.Parse(body);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("error",   out var e)) detail = e.GetString() ?? detail;
-                else if (root.TryGetProperty("message", out var m)) detail = m.GetString() ?? detail;
-            }
+            var resp = await _http.GetAsync(AaiaApiRoutes.Developers.Dashboard, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<DeveloperDashboardDto>(JsonOptions, ct);
         }
-        catch { /* Fallback auf HTTP-Status */ }
-        throw new HttpRequestException(detail, null, resp.StatusCode);
+        catch (Exception ex)
+        {
+            System.Diagnostics.Debug.WriteLine($"GetDeveloperDashboardAsync: {ex.Message}");
+            return null;
+        }
     }
 
-    public void Dispose() => _http.Dispose();
-}
+    /// <summary>Verkaufsstatistiken für eine Extension (letzte 12 Monate).</summary>
+    public async Task<ExtensionSalesSummaryDto?> GetSalesSummaryAsync(
+        string extensionId, CancellationToken ct = default)
+    {
+        try
+        {
+            var url  = AaiaApiRoutes.Developers.ExtensionSalesSummary
+                           .Replace("{extensionId}", Uri.EscapeDataString(extensionId));
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<ExtensionSalesSummaryDto>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Webhook-Events für eine Extension (max. 50, neueste zuerst)

@@ -1,0 +1,179 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.DeveloperDashboardTab"
+             x:DataType="vm:DeveloperDashboardViewModel">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+    <!-- ── Header ──────────────────────────────────────────────────────────── -->
+    <StackPanel Grid.Row="0" Margin="20,20,20,12" Spacing="4">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Grid.Column="0" Spacing="2">
+          <TextBlock Classes="h1" Text="📊  Mein Marketplace"/>
+          <TextBlock Classes="muted" FontSize="11"
+                     Text="{Binding EtwId, StringFormat='ETW-Dashboard · {0}'}"/>
+        </StackPanel>
+        <Button Grid.Column="1" Content="↻ Aktualisieren"
+                FontSize="11" Padding="10,5"
+                Command="{Binding RefreshCommand}"
+                IsEnabled="{Binding !IsLoading}"/>
+      </Grid>
+
+      <!-- Status-Zeile -->
+      <TextBlock FontSize="11" Foreground="#8892a4"
+                 Text="{Binding StatusText}"
+                 IsVisible="{Binding StatusText,
+                     Converter={x:Static StringConverters.IsNotNullOrEmpty}}"/>
+    </StackPanel>
+
+    <!-- ── Gesamtstatistiken ────────────────────────────────────────────────── -->
+    <Border Grid.Row="1" Margin="12,0,12,12"
+            Background="#0d1117" BorderBrush="#21262d" BorderThickness="1" CornerRadius="6"
+            Padding="16,12" IsVisible="{Binding !HasError}">
+      <Grid ColumnDefinitions="*,*,*,*">
+        <!-- Veröffentlicht -->
+        <StackPanel Grid.Column="0" Spacing="2" HorizontalAlignment="Center">
+          <TextBlock Text="{Binding PublishedCount}"
+                     FontSize="28" FontWeight="Bold" Foreground="#4f8ef7"
+                     HorizontalAlignment="Center"/>
+          <TextBlock Text="Veröffentlicht" FontSize="10" Foreground="#8892a4"
+                     HorizontalAlignment="Center"/>
+        </StackPanel>
+        <!-- Aktive Lizenzen -->
+        <StackPanel Grid.Column="1" Spacing="2" HorizontalAlignment="Center">
+          <TextBlock Text="{Binding TotalActiveLicenses}"
+                     FontSize="28" FontWeight="Bold" Foreground="#06d6a0"
+                     HorizontalAlignment="Center"/>
+          <TextBlock Text="Aktive Lizenzen" FontSize="10" Foreground="#8892a4"
+                     HorizontalAlignment="Center"/>
+        </StackPanel>
+        <!-- Käufe (Webhooks) -->
+        <StackPanel Grid.Column="2" Spacing="2" HorizontalAlignment="Center">
+          <TextBlock Text="{Binding TotalSales}"
+                     FontSize="28" FontWeight="Bold" Foreground="#f4a261"
+                     HorizontalAlignment="Center"/>
+          <TextBlock Text="Käufe (Webhooks)" FontSize="10" Foreground="#8892a4"
+                     HorizontalAlignment="Center"/>
+        </StackPanel>
+        <!-- Widerrufe -->
+        <StackPanel Grid.Column="3" Spacing="2" HorizontalAlignment="Center">
+          <TextBlock Text="{Binding TotalRevocations}"
+                     FontSize="28" FontWeight="Bold" Foreground="#ef476f"
+                     HorizontalAlignment="Center"/>
+          <TextBlock Text="Widerrufe" FontSize="10" Foreground="#8892a4"
+                     HorizontalAlignment="Center"/>
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ── Extensions-Tabelle ──────────────────────────────────────────────── -->
+    <ScrollViewer Grid.Row="2" Margin="12,0">
+      <ItemsControl ItemsSource="{Binding Extensions}">
+        <ItemsControl.ItemTemplate>
+          <DataTemplate DataType="vm:DeveloperExtensionRowViewModel">
+            <Border Margin="0,0,0,8" CornerRadius="6" Padding="14,12"
+                    Background="#0d1117" BorderBrush="#21262d" BorderThickness="1">
+              <Grid RowDefinitions="Auto,Auto,Auto">
+
+                <!-- ── Zeile 1: Name + Status-Badges ─── -->
+                <Grid Grid.Row="0" ColumnDefinitions="*,Auto" Margin="0,0,0,8">
+                  <StackPanel Grid.Column="0" Spacing="3">
+                    <TextBlock Text="{Binding Name}"
+                               FontSize="14" FontWeight="SemiBold" Foreground="#e6edf3"/>
+                    <TextBlock Text="{Binding ExtensionId}"
+                               FontSize="10" Foreground="#5a607a"/>
+                  </StackPanel>
+                  <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="6">
+                    <Border CornerRadius="4" Padding="6,3"
+                            Background="#1a2233">
+                      <TextBlock Text="{Binding StatusBadgeLabel}"
+                                 FontSize="10" Foreground="#8892a4"/>
+                    </Border>
+                    <Border CornerRadius="4" Padding="6,3"
+                            Background="#1a2233">
+                      <TextBlock Text="{Binding LicenseModel}"
+                                 FontSize="10" Foreground="#f4a261"/>
+                    </Border>
+                  </StackPanel>
+                </Grid>
+
+                <!-- ── Zeile 2: Statistiken ─────────────── -->
+                <Grid Grid.Row="1" ColumnDefinitions="*,*,*,*,*,*" Margin="0,0,0,8">
+                  <!-- Aktive Lizenzen -->
+                  <StackPanel Grid.Column="0" Spacing="1">
+                    <TextBlock Text="{Binding LicensesActive}"
+                               FontSize="18" FontWeight="Bold" Foreground="#06d6a0"/>
+                    <TextBlock Text="Aktiv" FontSize="10" Foreground="#5a607a"/>
+                  </StackPanel>
+                  <!-- Abgelaufen -->
+                  <StackPanel Grid.Column="1" Spacing="1">
+                    <TextBlock Text="{Binding LicensesExpired}"
+                               FontSize="18" FontWeight="Bold" Foreground="#e67e22"/>
+                    <TextBlock Text="Abgelaufen" FontSize="10" Foreground="#5a607a"/>
+                  </StackPanel>
+                  <!-- Widerrufen -->
+                  <StackPanel Grid.Column="2" Spacing="1">
+                    <TextBlock Text="{Binding LicensesRevoked}"
+                               FontSize="18" FontWeight="Bold" Foreground="#ef476f"/>
+                    <TextBlock Text="Widerrufen" FontSize="10" Foreground="#5a607a"/>
+                  </StackPanel>
+                  <!-- Nicht aktiviert -->
+                  <StackPanel Grid.Column="3" Spacing="1">
+                    <TextBlock Text="{Binding LicensesUnclaimed}"
+                               FontSize="18" FontWeight="Bold" Foreground="#8892a4"/>
+                    <TextBlock Text="Unclaimed" FontSize="10" Foreground="#5a607a"/>
+                  </StackPanel>
+                  <!-- Käufe (Webhook) -->
+                  <StackPanel Grid.Column="4" Spacing="1">
+                    <TextBlock Text="{Binding SalesFromWebhooks}"
+                               FontSize="18" FontWeight="Bold" Foreground="#4f8ef7"/>
+                    <TextBlock Text="Käufe" FontSize="10" Foreground="#5a607a"/>
+                  </StackPanel>
+                  <!-- Checkout -->
+                  <StackPanel Grid.Column="5" Spacing="1">
+                    <TextBlock Text="{Binding CheckoutLabel}"
+                               FontSize="11" Foreground="#8892a4"/>
+                    <TextBlock Text="Checkout" FontSize="10" Foreground="#5a607a"/>
+                  </StackPanel>
+                </Grid>
+
+                <!-- ── Zeile 3: MoR-Info + letztes Webhook-Event ─── -->
+                <StackPanel Grid.Row="2" Orientation="Horizontal" Spacing="16">
+                  <StackPanel Spacing="1">
+                    <TextBlock Text="MoR:" FontSize="9" Foreground="#5a607a"/>
+                    <TextBlock Text="{Binding MorLabel}"
+                               FontSize="10" Foreground="#8892a4"/>
+                  </StackPanel>
+                  <StackPanel Spacing="1">
+                    <TextBlock Text="Letztes Event:" FontSize="9" Foreground="#5a607a"/>
+                    <TextBlock Text="{Binding LastWebhookLabel}"
+                               FontSize="10" Foreground="#8892a4"/>
+                  </StackPanel>
+                  <StackPanel Spacing="1">
+                    <TextBlock Text="Trust:" FontSize="9" Foreground="#5a607a"/>
+                    <TextBlock Text="{Binding TrustLevel}"
+                               FontSize="10" Foreground="#8892a4"/>
+                  </StackPanel>
+                </StackPanel>
+
+              </Grid>
+            </Border>
+          </DataTemplate>
+        </ItemsControl.ItemTemplate>
+      </ItemsControl>
+    </ScrollViewer>
+
+    <!-- ── MoR-Hinweis (Footer) ────────────────────────────────────────────── -->
+    <Border Grid.Row="3" Margin="12,6,12,10" CornerRadius="5" Padding="10,7"
+            Background="#0d1117" BorderBrush="#30363d" BorderThickness="1">
+      <TextBlock FontSize="10" Foreground="#5a607a" TextWrapping="Wrap">
+        <Run Text="💡 "/>
+        <Run Text="Auszahlungen und steuerliche Abrechnung erfolgen über deinen Merchant-of-Record-Anbieter."/>
+        <Run Text=" AAIA zeigt nur technische Lizenz- und Kaufsignale aus Webhooks — keine verbindliche Finanzdaten."/>
+      </TextBlock>
+    </Border>
+
+  </Grid>
+
+</UserControl>

@@ -16,9 +16,11 @@ public partial class MainWindowViewModel : ObservableObject
     public LicensesTabViewModel       LicensesTab  { get; }
     public MarketplaceBrowseViewModel BrowseTab       { get; }
     /// <summary>Phase 5.2: Verifizierter Marketplace aus aaia-marketplace-api Registry.</summary>
-    public VerifiedRegistryViewModel  VerifiedTab  { get; }
-    public AdminTabViewModel          AdminTab     { get; }
-    public AiPanelViewModel           AiPanel      { get; }
+    public VerifiedRegistryViewModel   VerifiedTab   { get; }
+    /// <summary>Phase 5.9: ETW Marketplace Dashboard (Verkaufs- und Lizenzübersicht).</summary>
+    public DeveloperDashboardViewModel DashboardTab  { get; }
+    public AdminTabViewModel           AdminTab      { get; }
+    public AiPanelViewModel            AiPanel       { get; }
 
     // ── Update-Banner ─────────────────────────────────────────────────────────
 
@@ -69,6 +71,7 @@ public partial class MainWindowViewModel : ObservableObject
         // AaiasConn aus TesterTab weitergeben — VerifiedTab nutzt dieselbe AAIAS-Verbindung
         // für "In AAIAS installieren" (Phase 5.4b). Optional — null wenn nicht verbunden.
         VerifiedTab  = new VerifiedRegistryViewModel(registryClient, extensionDownload, TesterTab.AaiasConn);
+        DashboardTab = new DeveloperDashboardViewModel(registryClient);  // Phase 5.9
         AdminTab     = new AdminTabViewModel(wpMarketplace);
         AiPanel      = new AiPanelViewModel(config);
 
@@ -89,6 +92,9 @@ public partial class MainWindowViewModel : ObservableObject
                 marketplaceClient.SetBearer(config.MarketplaceToken);
                 wpMarketplace.SetBearer(config.MarketplaceToken);
                 registryClient.SetBearer(config.MarketplaceToken);
+
+                // Phase 5.9: Dashboard sofort laden (Token bereits gesetzt)
+                _ = DashboardTab.LoadAsync();
             }
         }
     }
@@ -116,14 +122,4 @@ public partial class MainWindowViewModel : ObservableObject
     }
 
     /// <summary>
-    /// Wird von App.axaml.cs aufgerufen nachdem LoginWindow erfolgreich abgeschlossen wurde.
-    /// Aktualisiert Titelleiste sofort ohne Neustart.
-    /// </summary>
-    public void SetDeveloperIdentity(string etwId, string displayName, DeveloperRole role = DeveloperRole.Community)
-    {
-        DeveloperEtwId       = etwId;
-        DeveloperDisplayName = displayName;
-        DeveloperRole        = role;
-        IsLoggedIn           = true;
-    }
-}
+    /// Wird von App.axaml.cs aufgerufen nachdem LoginWindow erfolgreich abgesc
