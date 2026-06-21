@@ -19,7 +19,8 @@ public enum WizardStep
     IdeaInput,
     IdeaResult,
     ProjectDetails,
-    Success
+    Success,
+    Validation
 }
 
 public partial class NewProjectWizardViewModel : ObservableObject
@@ -379,6 +380,114 @@ public partial class NewProjectWizardViewModel : ObservableObject
 
     [RelayCommand]
     private void ToggleRawOutput() => ShowRawOutput = !ShowRawOutput;
+
+    // ── Step 4: Projektprüfung ────────────────────────────────────────────────
+
+    [ObservableProperty] private ValidationResult? _validationResult;
+    [ObservableProperty] private bool              _isValidating = false;
+
+    public ObservableCollection<ValidationIssueViewModel> ValidationIssues { get; } = new();
+
+    [RelayCommand]
+    private async Task ValidateProjectAsync(CancellationToken ct)
+    {
+        if (CreatedProjectPath is null) return;
+
+        IsValidating     = true;
+        ValidationResult = null;
+        ValidationIssues.Clear();
+
+        var result = await ProjectValidationOrchestrator.ValidateAsync(
+            projectDir:  CreatedProjectPath,
+            projectType: ProjectType,
+            aiProvider:  _provider,
+            projectName: ProjectName,
+            ct:          ct);
+
+        foreach (var vm in ValidationIssueViewModel.From(result, id => ExecuteValidationActionCommand.Execute(id)))
+            ValidationIssues.Add(vm);
+
+        ValidationResult = result;
+        IsValidating     = false;
+        CurrentStep      = WizardStep.Validation;
+    }
+
+    /// <summary>Aktions-Buttons in den ValidationIssue-Karten.</summary>
+    [RelayCommand]
+    private async Task ExecuteValidationActionAsync(string actionId)
+    {
+        if (CreatedProjectPath is null) return;
+
+        switch (actionId)
+        {
+            case "create-manifest":
+            {
+                await ManifestValidationService.CreateDefaultManifestAsync(
+                    CreatedProjectPath,
+                    id:          ProjectId,
+                    displayName: ProjectName,
+                    host:        ProjectType switch
+                    {
+                        NewProjectType.ClientPlugin => "AAIAC",
+                        NewProjectType.HybridModule => "Hybrid",
+                        _                           => "AAIAS"
+                    },
+                    kind:        ProjectType switch
+                    {
+                        NewProjectType.ClientPlugin => "Plugin",
+                        NewProjectType.LanguagePack => "Connector",
+                        _                           => "Module"
+                    },
+                    pluginClass: ProjectType switch
+                    {
+                        NewProjectType.ClientPlugin => "ClientPlugin",
+                        NewProjectType.HybridModule => "HybridModule",
+                        _                           => "ServerModule"
+                    },
+                    publisherId: PublisherId);
+                using var cts1 = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                await ValidateProjectAsync(cts1.Token);
+                break;
+            }
+
+            case "add-readme":
+            {
+                await ExtensionStructureValidator.CreateReadmeAsync(
+                    CreatedProjectPath, ProjectName, Description);
+                using var cts2 = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                await ValidateProjectAsync(cts2.Token);
+                break;
+            }
+
+            case "add-license-mit":
+            {
+                await ExtensionStructureValidator.CreateMitLicenseAsync(
+                    CreatedProjectPath, PublisherId);
+                using var cts3 = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+                await ValidateProjectAsync(cts3.Token);
+                break;
+            }
+
+            case "open-manifest":
+                OpenFile(Path.Combine(CreatedProjectPath, "aaia-manifest.json"));
+                break;
+
+            case "open-csproj":
+                var csproj = ResolvedCsprojPath();
+                if (csproj is not null) OpenFile(csproj);
+                break;
+
+            case "open-folder":
+                OpenInExplorer();
+                break;
+        }
+    }
+
+    private static void OpenFile(string path)
+    {
+        if (!File.Exists(path)) return;
+        Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+    }
 
     // ── Im Explorer/Finder öffnen ─────────────────────────────────────────────
 

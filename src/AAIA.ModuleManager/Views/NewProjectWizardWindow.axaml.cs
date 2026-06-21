@@ -48,6 +48,7 @@ public partial class NewProjectWizardWindow : Window
         Step1Panel.IsVisible = step == WizardStep.IdeaResult;
         Step2Panel.IsVisible = step == WizardStep.ProjectDetails;
         Step3Panel.IsVisible = step == WizardStep.Success;
+        Step4Panel.IsVisible = step == WizardStep.Validation;
 
         if (step == WizardStep.ProjectDetails)
             SyncRadioButtons();
@@ -123,6 +124,14 @@ public partial class NewProjectWizardWindow : Window
         }
 
         NoIdeText.IsVisible = !hasIde;
+    }
+
+    // ── Step 4: Zurück zu Step 3 ──────────────────────────────────────────────
+
+    private void ValidationBack_Click(object? s, RoutedEventArgs e)
+    {
+        if (_vm is null) return;
+        _vm.CurrentStep = WizardStep.Success;
     }
 
     // ── Schließen ─────────────────────────────────────────────────────────────

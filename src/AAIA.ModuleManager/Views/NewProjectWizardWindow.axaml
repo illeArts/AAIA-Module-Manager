@@ -53,11 +53,11 @@
                   CornerRadius="6"
                   Padding="12,8">
             <StackPanel Spacing="3">
-              <TextBlock Text="⚠  Kein Claude API-Schlüssel konfiguriert"
+              <TextBlock Text="⚠  Kein KI-Assistent konfiguriert"
                          FontSize="12" FontWeight="SemiBold" Foreground="#c8a040"/>
               <TextBlock Text="Die KI-Analyse ist nicht verfügbar. Du kannst deine Idee trotzdem eingeben — sie wird als Beschreibung übernommen."
                          FontSize="11" Foreground="#8892a4" TextWrapping="Wrap"/>
-              <TextBlock Text="Einstellungen → KI-Assistent → API-Schlüssel"
+              <TextBlock Text="Einstellungen → KI-Assistent → Anbieter &amp; API-Schlüssel"
                          FontSize="11" Foreground="#5865f2"/>
             </StackPanel>
           </Border>
@@ -646,12 +646,149 @@
       <Border Grid.Row="2"
               BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
               Padding="28,10,28,20">
-        <Grid ColumnDefinitions="*,Auto">
+        <Grid ColumnDefinitions="*,Auto,Auto">
           <TextBlock Grid.Column="0"
                      Text="Dein Projekt ist bereit."
                      Foreground="#3a3f5a" FontSize="11"
                      VerticalAlignment="Center"/>
-          <Button Grid.Column="1" Classes="primary"
+          <Button Grid.Column="1" Classes="ghost" Margin="0,0,8,0"
+                  Content="Fertig" Click="Close_Click"/>
+          <Button Grid.Column="2" Classes="primary"
+                  Command="{Binding ValidateProjectCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Text="Projekt prüfen →" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+    </Grid>
+
+
+    <!-- ═══════════════════════════════ STEP 4: Projektprüfung ═════════════ -->
+    <Grid x:Name="Step4Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
+
+      <!-- Header -->
+      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock x:Name="ValidationHeaderIcon" Text="🔍"
+                     FontSize="20" VerticalAlignment="Center"/>
+          <TextBlock Text="Projektprüfung"
+                     FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock Text="Prüft ob dein Projekt bereit für die Paketierung ist."
+                   FontSize="12" Foreground="#8892a4" TextWrapping="Wrap"/>
+      </StackPanel>
+
+      <!-- Inhalt -->
+      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
+        <StackPanel Spacing="12">
+
+          <!-- Prüft gerade... -->
+          <StackPanel IsVisible="{Binding IsValidating}"
+                      HorizontalAlignment="Center" Spacing="8"
+                      Margin="0,20,0,0">
+            <TextBlock Text="⏳" FontSize="28" HorizontalAlignment="Center"/>
+            <TextBlock Text="Projekt wird geprüft..."
+                       FontSize="13" Foreground="#5865f2"
+                       FontStyle="Italic" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Ergebnis-Header (wenn fertig) -->
+          <Border IsVisible="{Binding ValidationResult, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  Background="#151530" BorderBrush="#2a2a5a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="4">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="{Binding ValidationResult.OverallIcon}"
+                           FontSize="18" VerticalAlignment="Center"/>
+                <TextBlock Text="{Binding ValidationResult.OverallStatus}"
+                           FontSize="15" FontWeight="SemiBold"
+                           VerticalAlignment="Center"/>
+              </StackPanel>
+              <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock Text="{Binding ValidationResult.ErrorCount,   StringFormat='🔴 {0} Blocker'}"
+                           FontSize="11" Foreground="#e05252"/>
+                <TextBlock Text="{Binding ValidationResult.WarningCount, StringFormat='🟡 {0} Empfehlungen'}"
+                           FontSize="11" Foreground="#c9a227"/>
+                <TextBlock Text="{Binding ValidationResult.InfoCount,    StringFormat='🔵 {0} Hinweise'}"
+                           FontSize="11" Foreground="#5865f2"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Issue-Karten -->
+          <ItemsControl ItemsSource="{Binding ValidationIssues}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ValidationIssueViewModel">
+                <Border Margin="0,0,0,6"
+                        Background="#18100e"
+                        BorderBrush="{Binding BorderBrushColor}"
+                        BorderThickness="1" CornerRadius="6"
+                        Padding="12,10">
+                  <StackPanel Spacing="6">
+
+                    <!-- Titel + Kategorie-Badge -->
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding SeverityIcon}"
+                                 FontSize="13" VerticalAlignment="Center"
+                                 Foreground="{Binding SeverityForeground}"/>
+                      <TextBlock Text="{Binding Title}"
+                                 FontSize="13" FontWeight="SemiBold"
+                                 VerticalAlignment="Center"/>
+                      <Border Background="{Binding BadgeBackground}" CornerRadius="3" Padding="5,1">
+                        <TextBlock Text="{Binding CategoryLabel}"
+                                   FontSize="10"
+                                   Foreground="{Binding SeverityForeground}"
+                                   FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                      </Border>
+                    </StackPanel>
+
+                    <!-- Nachricht -->
+                    <TextBlock Text="{Binding Message}"
+                               FontSize="12" Foreground="#b0b8c4"
+                               TextWrapping="Wrap" LineHeight="18"/>
+
+                    <!-- Aktions-Buttons -->
+                    <ItemsControl IsVisible="{Binding HasActions}"
+                                  ItemsSource="{Binding Actions}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" Spacing="6"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ValidationActionViewModel">
+                          <Button Content="{Binding Label}"
+                                  Classes="ghost"
+                                  FontSize="11"
+                                  Command="{Binding ExecuteCommand}"/>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Button-Leiste -->
+      <Border Grid.Row="2"
+              BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+              Padding="28,10,28,20">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+          <Button Grid.Column="0"
+                  Content="← Zurück" Classes="ghost"
+                  Click="ValidationBack_Click"/>
+          <Button Grid.Column="2"
+                  Content="Erneut prüfen" Classes="ghost"
+                  Margin="0,0,8,0"
+                  Command="{Binding ValidateProjectCommand}"/>
+          <Button Grid.Column="3" Classes="primary"
                   Content="Fertig" Click="Close_Click"/>
         </Grid>
       </Border>

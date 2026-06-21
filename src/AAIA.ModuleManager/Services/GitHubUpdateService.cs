@@ -22,7 +22,7 @@ public sealed record UpdateInfo(
 public static class GitHubUpdateService
 {
     // Aktuell eingebaute App-Version
-    public const string CurrentVersion = "2.0.0";
+    public const string CurrentVersion = "2.5.0-beta";
 
     private const string ApiUrl =
         "https://api.github.com/repos/illeArts/AAIA-Module-Manager/releases/latest";
