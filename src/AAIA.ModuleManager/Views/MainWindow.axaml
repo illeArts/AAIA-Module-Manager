@@ -160,6 +160,13 @@
         <tabs:SdkTab DataContext="{Binding SdkTab}"/>
       </TabItem>
 
+
+      <!-- Tab: Marketplace Console (Owner/Admin) — Phase 5.10 -->
+      <TabItem Header="🛡  Console"
+               IsVisible="{Binding IsOwner}">
+        <tabs:AdminMarketplaceTab DataContext="{Binding MarketplaceConsoleTab}"/>
+      </TabItem>
+
       <!-- Tab 9: Admin / Debug (nur Owner) -->
       <TabItem Header="🛠  Admin"
                IsVisible="{Binding IsOwner}">

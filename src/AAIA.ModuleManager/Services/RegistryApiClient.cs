@@ -201,55 +201,79 @@ public sealed class RegistryApiClient : IDisposable
         catch { return null; }
     }
 
-    /// <summary>Webhook-Events für eine Extension (max. 50, neueste zuerst).</summary>
-    public async Task<IReadOnlyList<DeveloperWebhookEventDto>> GetWebhookEventsAsync(
-        string extensionId, CancellationToken ct = default)
+    /// <summary>Webhook-Events für eine Extension (max. 50, neueste zuerst)
+    // ── Phase 5.10: Admin Marketplace Console ────────────────────────────────
+
+    /// <summary>Gesamtübersicht der Plattform (nur Owner/Admin).</summary>
+    public async Task<MarketplaceOverviewDto?> GetMarketplaceOverviewAsync(CancellationToken ct = default)
     {
         try
         {
-            var url  = AaiaApiRoutes.Developers.ExtensionWebhookEvents
-                           .Replace("{extensionId}", Uri.EscapeDataString(extensionId));
-            var resp = await _http.GetAsync(url, ct);
-            if (!resp.IsSuccessStatusCode) return Array.Empty<DeveloperWebhookEventDto>();
-            var list = await resp.Content
-                           .ReadFromJsonAsync<List<DeveloperWebhookEventDto>>(JsonOptions, ct);
-            return list ?? (IReadOnlyList<DeveloperWebhookEventDto>)Array.Empty<DeveloperWebhookEventDto>();
+            var resp = await _http.GetAsync(AaiaApiRoutes.Admin.MarketplaceOverview, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<MarketplaceOverviewDto>(JsonOptions, ct);
         }
-        catch { return Array.Empty<DeveloperWebhookEventDto>(); }
+        catch { return null; }
+    }
+
+    /// <summary>Extension-Liste für Admin-View.</summary>
+    public async Task<IReadOnlyList<AdminExtensionDto>> GetAdminExtensionsAsync(
+        string? search = null, string? riskLevel = null, bool? published = null,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var qs = new List<string> { "pageSize=100" };
+            if (search    is not null) qs.Add($"search={Uri.EscapeDataString(search)}");
+            if (riskLevel is not null) qs.Add($"riskLevel={Uri.EscapeDataString(riskLevel)}");
+            if (published.HasValue)    qs.Add($"published={published.Value.ToString().ToLower()}");
+            var resp = await _http.GetAsync($"{AaiaApiRoutes.Admin.AdminExtensions}?{string.Join("&", qs)}", ct);
+            if (!resp.IsSuccessStatusCode) return Array.Empty<AdminExtensionDto>();
+            var list = await resp.Content.ReadFromJsonAsync<List<AdminExtensionDto>>(JsonOptions, ct);
+            return list ?? (IReadOnlyList<AdminExtensionDto>)Array.Empty<AdminExtensionDto>();
+        }
+        catch { return Array.Empty<AdminExtensionDto>(); }
+    }
+
+    /// <summary>Pending-Review-Releases (Owner-only).</summary>
+    public async Task<IReadOnlyList<PendingReviewReleaseDto>> GetPendingReviewsAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.GetAsync(AaiaApiRoutes.Admin.PendingReviews, ct);
+            if (!resp.IsSuccessStatusCode) return Array.Empty<PendingReviewReleaseDto>();
+            var list = await resp.Content.ReadFromJsonAsync<List<PendingReviewReleaseDto>>(JsonOptions, ct);
+            return list ?? (IReadOnlyList<PendingReviewReleaseDto>)Array.Empty<PendingReviewReleaseDto>();
+        }
+        catch { return Array.Empty<PendingReviewReleaseDto>(); }
+    }
+
+    /// <summary>Release blockieren.</summary>
+    public async Task<BlockReleaseResponse?> BlockReleaseAsync(
+        int releaseId, string reason, CancellationToken ct = default)
+    {
+        try
+        {
+            var url  = AaiaApiRoutes.Admin.BlockRelease.Replace("{releaseId:int}", releaseId.ToString());
+            var resp = await _http.PostAsJsonAsync(url, new BlockReleaseRequest(reason), ct);
+            return await resp.Content.ReadFromJsonAsync<BlockReleaseResponse>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+    /// <summary>Release-Blockierung aufheben.</summary>
+    public async Task<BlockReleaseResponse?> UnblockReleaseAsync(int releaseId, CancellationToken ct = default)
+    {
+        try
+        {
+            var url  = AaiaApiRoutes.Admin.UnblockRelease.Replace("{releaseId:int}", releaseId.ToString());
+            var resp = await _http.PostAsJsonAsync(url, new { }, ct);
+            return await resp.Content.ReadFromJsonAsync<BlockReleaseResponse>(JsonOptions, ct);
+        }
+        catch { return null; }
     }
 
     // ── Hilfsmethoden ─────────────────────────────────────────────────────────
-
-    private static string BuildUrl(string baseRoute, int page, int pageSize, string? category, string? search)
-    {
-        var qs = new List<string>
-        {
-            $"page={page}",
-            $"pageSize={pageSize}"
-        };
-        if (!string.IsNullOrWhiteSpace(category)) qs.Add($"category={Uri.EscapeDataString(category)}");
-        if (!string.IsNullOrWhiteSpace(search))   qs.Add($"search={Uri.EscapeDataString(search)}");
-        return $"{baseRoute}?{string.Join("&", qs)}";
-    }
-
-    private static async Task EnsureSuccessAsync(HttpResponseMessage resp, CancellationToken ct)
-    {
-        if (resp.IsSuccessStatusCode) return;
-        string detail = $"HTTP {(int)resp.StatusCode}";
-        try
-        {
-            var body = await resp.Content.ReadAsStringAsync(ct);
-            if (!string.IsNullOrWhiteSpace(body))
-            {
-                using var doc = JsonDocument.Parse(body);
-                var root = doc.RootElement;
-                if (root.TryGetProperty("error",   out var e)) detail = e.GetString() ?? detail;
-                else if (root.TryGetProperty("message", out var m)) detail = m.GetString() ?? detail;
-            }
-        }
-        catch { /* Fallback auf HTTP-Status */ }
-        throw new HttpRequestException(detail, null, resp.StatusCode);
-    }
 
     public void Dispose() => _http.Dispose();
 }

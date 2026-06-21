@@ -19,6 +19,8 @@ public partial class MainWindowViewModel : ObservableObject
     public VerifiedRegistryViewModel   VerifiedTab   { get; }
     /// <summary>Phase 5.9: ETW Marketplace Dashboard (Verkaufs- und Lizenzübersicht).</summary>
     public DeveloperDashboardViewModel DashboardTab  { get; }
+    /// <summary>Phase 5.10: Owner/Admin Marketplace Console.</summary>
+    public AdminMarketplaceViewModel   MarketplaceConsoleTab { get; }
     public AdminTabViewModel           AdminTab      { get; }
     public AiPanelViewModel            AiPanel       { get; }
 
@@ -71,8 +73,9 @@ public partial class MainWindowViewModel : ObservableObject
         // AaiasConn aus TesterTab weitergeben — VerifiedTab nutzt dieselbe AAIAS-Verbindung
         // für "In AAIAS installieren" (Phase 5.4b). Optional — null wenn nicht verbunden.
         VerifiedTab  = new VerifiedRegistryViewModel(registryClient, extensionDownload, TesterTab.AaiasConn);
-        DashboardTab = new DeveloperDashboardViewModel(registryClient);  // Phase 5.9
-        AdminTab     = new AdminTabViewModel(wpMarketplace);
+        DashboardTab          = new DeveloperDashboardViewModel(registryClient);   // Phase 5.9
+        MarketplaceConsoleTab = new AdminMarketplaceViewModel(registryClient);    // Phase 5.10
+        AdminTab              = new AdminTabViewModel(wpMarketplace);
         AiPanel      = new AiPanelViewModel(config);
 
         _ = TesterTab.InitAsync(config);
@@ -95,6 +98,9 @@ public partial class MainWindowViewModel : ObservableObject
 
                 // Phase 5.9: Dashboard sofort laden (Token bereits gesetzt)
                 _ = DashboardTab.LoadAsync();
+                // Phase 5.10: Admin-Console laden wenn Owner/Admin
+                if (config.DeveloperRole is DeveloperRole.Owner or DeveloperRole.Admin)
+                    _ = MarketplaceConsoleTab.LoadAsync();
             }
         }
     }
@@ -134,5 +140,8 @@ public partial class MainWindowViewModel : ObservableObject
 
         // Phase 5.9: Dashboard nach interaktivem Login laden
         _ = DashboardTab.LoadAsync();
+        // Phase 5.10: Admin-Console bei Owner/Admin
+        if (role is DeveloperRole.Owner or DeveloperRole.Admin)
+            _ = MarketplaceConsoleTab.LoadAsync();
     }
 }
