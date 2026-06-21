@@ -20,7 +20,8 @@ public enum WizardStep
     IdeaResult,
     ProjectDetails,
     Success,
-    Validation
+    Validation,
+    PublishReadiness
 }
 
 public partial class NewProjectWizardViewModel : ObservableObject
@@ -268,7 +269,10 @@ public partial class NewProjectWizardViewModel : ObservableObject
             _ = _config.SaveAsync();
 
             CreatedProjectPath = projectDir;
-            CurrentStep        = WizardStep.Success;
+            // Reihenfolge erzwingen: Validation vor Build
+            CurrentStep = WizardStep.Validation;
+            using var valCts = new CancellationTokenSource(TimeSpan.FromSeconds(60));
+            await ValidateProjectAsync(valCts.Token);
         }
         catch (Exception ex)
         {
@@ -409,7 +413,14 @@ public partial class NewProjectWizardViewModel : ObservableObject
 
         ValidationResult = result;
         IsValidating     = false;
-        CurrentStep      = WizardStep.Validation;
+        // Step bleibt Validation — Navigation obliegt dem Aufrufer
+    }
+
+    /// <summary>Von Validation zu Build wechseln (Weiter: Bauen-Button).</summary>
+    [RelayCommand]
+    private void ProceedToBuild()
+    {
+        CurrentStep = WizardStep.Success;
     }
 
     /// <summary>Aktions-Buttons in den ValidationIssue-Karten.</summary>
@@ -487,6 +498,187 @@ public partial class NewProjectWizardViewModel : ObservableObject
     {
         if (!File.Exists(path)) return;
         Process.Start(new ProcessStartInfo(path) { UseShellExecute = true });
+    }
+
+    // ── Step 5: Veröffentlichung vorbereiten ─────────────────────────────────
+
+    [ObservableProperty] private ValidationResult? _publishReadinessResult;
+    [ObservableProperty] private bool              _isCheckingReadiness = false;
+    [ObservableProperty] private PackageResult?    _lastPackageResult;
+    [ObservableProperty] private RegistryPreview?  _registryPreview;
+    [ObservableProperty] private bool              _showRegistryPreview = false;
+    public string RegistryPreviewJson => _registryPreview?.ToDisplayJson() ?? "";
+
+    partial void OnRegistryPreviewChanged(RegistryPreview? value)
+        => OnPropertyChanged(nameof(RegistryPreviewJson));
+
+    public ObservableCollection<ValidationIssueViewModel> PublishIssues { get; } = new();
+
+    public string PublishStatusLabel => PublishReadinessResult switch
+    {
+        null                     => "Prüfung ausstehend",
+        { HasBlockers: true }    => "Nicht veröffentlichbar",
+        { WarningCount: > 0 }    => "Veröffentlichbar mit Hinweisen",
+        _                        => "Veröffentlichbar ✓"
+    };
+
+    public string PublishStatusIcon => PublishReadinessResult switch
+    {
+        null                  => "⏳",
+        { HasBlockers: true } => "🔴",
+        { WarningCount: > 0 } => "🟡",
+        _                     => "🟢"
+    };
+
+    partial void OnPublishReadinessResultChanged(ValidationResult? value)
+    {
+        OnPropertyChanged(nameof(PublishStatusLabel));
+        OnPropertyChanged(nameof(PublishStatusIcon));
+    }
+
+    /// <summary>Von Build zu PublishReadiness wechseln und Prüfung starten.</summary>
+    [RelayCommand]
+    private async Task CheckPublishReadinessAsync(CancellationToken ct)
+    {
+        if (CreatedProjectPath is null) return;
+
+        IsCheckingReadiness = true;
+        PublishReadinessResult = null;
+        PublishIssues.Clear();
+        LastPackageResult = null;
+        RegistryPreview   = null;
+        ShowRegistryPreview = false;
+
+        CurrentStep = WizardStep.PublishReadiness;
+
+        var result = PublishReadinessService.Check(
+            projectDir:  CreatedProjectPath,
+            projectType: ProjectType,
+            lastBuild:   LastBuildResult);
+
+        foreach (var vm in ValidationIssueViewModel.From(result, ExecutePublishActionAsync))
+            PublishIssues.Add(vm);
+
+        PublishReadinessResult  = result;
+        IsCheckingReadiness     = false;
+    }
+
+    /// <summary>Erstellt das .aaiaext-Paket.</summary>
+    [RelayCommand]
+    private async Task CreatePackageAsync(CancellationToken ct)
+    {
+        if (CreatedProjectPath is null) return;
+
+        IsCheckingReadiness = true;
+        var pkg = await ExtensionPackageService.CreatePackageAsync(CreatedProjectPath, ct: ct);
+        LastPackageResult   = pkg;
+        IsCheckingReadiness = false;
+
+        if (pkg.Success)
+        {
+            // Registry-Preview automatisch generieren
+            await ShowRegistryPreviewAsync(ct);
+        }
+        else
+        {
+            // Paket-Issues in PublishIssues einfügen
+            foreach (var issue in pkg.Issues)
+                PublishIssues.Insert(0, new ValidationIssueViewModel(issue, ExecutePublishActionAsync));
+        }
+    }
+
+    /// <summary>Zeigt die Registry-Vorschau.</summary>
+    [RelayCommand]
+    private async Task ShowRegistryPreviewAsync(CancellationToken ct)
+    {
+        if (CreatedProjectPath is null) return;
+        RegistryPreview = await ExtensionRegistryPreviewService.GenerateAsync(
+            CreatedProjectPath, _config, LastPackageResult, ct);
+        ShowRegistryPreview = true;
+    }
+
+    [RelayCommand]
+    private async Task IncreasePatchVersionAsync()
+    {
+        if (CreatedProjectPath is null) return;
+        await ManifestVersionService.BumpPatchAsync(CreatedProjectPath);
+        // Readiness neu prüfen
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await CheckPublishReadinessAsync(cts.Token);
+    }
+
+    [RelayCommand]
+    private async Task IncreaseMinorVersionAsync()
+    {
+        if (CreatedProjectPath is null) return;
+        await ManifestVersionService.BumpMinorAsync(CreatedProjectPath);
+        using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+        await CheckPublishReadinessAsync(cts.Token);
+    }
+
+    [RelayCommand]
+    private void OpenPackageFolder()
+    {
+        var dir = LastPackageResult?.PackagePath is not null
+            ? Path.GetDirectoryName(LastPackageResult.PackagePath)
+            : CreatedProjectPath is not null
+                ? Path.Combine(CreatedProjectPath, "packages")
+                : null;
+
+        if (dir is null || !Directory.Exists(dir)) return;
+
+        if (RuntimeInformation.IsOSPlatform(OSPlatform.Windows))
+            Process.Start(new ProcessStartInfo("explorer.exe", dir) { UseShellExecute = true });
+        else if (RuntimeInformation.IsOSPlatform(OSPlatform.OSX))
+            Process.Start(new ProcessStartInfo("open", dir) { UseShellExecute = true });
+        else
+            Process.Start(new ProcessStartInfo("xdg-open", dir) { UseShellExecute = true });
+    }
+
+    /// <summary>Aktions-Handler für PublishIssue-Buttons.</summary>
+    private async void ExecutePublishActionAsync(string actionId)
+    {
+        if (CreatedProjectPath is null) return;
+
+        if (actionId.StartsWith("set-version:"))
+        {
+            var ver = actionId["set-version:".Length..];
+            await ManifestVersionService.SetVersionAsync(CreatedProjectPath, ver);
+            using var cts = new CancellationTokenSource(TimeSpan.FromSeconds(30));
+            await CheckPublishReadinessAsync(cts.Token);
+            return;
+        }
+
+        if (actionId.StartsWith("open-file:"))
+        {
+            OpenFile(actionId["open-file:".Length..]);
+            return;
+        }
+
+        switch (actionId)
+        {
+            case "increase-patch":
+                await IncreasePatchVersionAsync();
+                break;
+            case "create-manifest":
+                await ExecuteValidationActionCommand.ExecuteAsync("create-manifest");
+                break;
+            case "add-readme":
+                await ExecuteValidationActionCommand.ExecuteAsync("add-readme");
+                break;
+            case "add-license-mit":
+                await ExecuteValidationActionCommand.ExecuteAsync("add-license-mit");
+                break;
+            case "open-manifest":
+                OpenFile(Path.Combine(CreatedProjectPath, "aaia-manifest.json"));
+                break;
+            case "open-folder":
+                OpenInExplorer();
+                break;
+            case "build-project":
+                CurrentStep = WizardStep.Success;
+                break;
+        }
     }
 
     // ── Im Explorer/Finder öffnen ─────────────────────────────────────────────

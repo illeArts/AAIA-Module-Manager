@@ -49,6 +49,7 @@ public partial class NewProjectWizardWindow : Window
         Step2Panel.IsVisible = step == WizardStep.ProjectDetails;
         Step3Panel.IsVisible = step == WizardStep.Success;
         Step4Panel.IsVisible = step == WizardStep.Validation;
+        Step5Panel.IsVisible = step == WizardStep.PublishReadiness;
 
         if (step == WizardStep.ProjectDetails)
             SyncRadioButtons();
@@ -129,6 +130,14 @@ public partial class NewProjectWizardWindow : Window
     // ── Step 4: Zurück zu Step 3 ──────────────────────────────────────────────
 
     private void ValidationBack_Click(object? s, RoutedEventArgs e)
+    {
+        if (_vm is null) return;
+        _vm.CurrentStep = WizardStep.Success;
+    }
+
+    // ── Step 5: Zurück zu Step 4 ──────────────────────────────────────────────
+
+    private void PublishBack_Click(object? s, RoutedEventArgs e)
     {
         if (_vm is null) return;
         _vm.CurrentStep = WizardStep.Success;

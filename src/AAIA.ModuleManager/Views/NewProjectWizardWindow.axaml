@@ -26,53 +26,57 @@
                    FontSize="12" Foreground="#8892a4" TextWrapping="Wrap"/>
       </StackPanel>
 
-      <!-- Inhalt -->
-      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
-        <StackPanel Spacing="14">
+      <!-- Inhalt: Grid statt StackPanel — Textfeld füllt verfügbaren Raum -->
+      <Grid Grid.Row="1" RowDefinitions="*,Auto,Auto" Margin="28,16,28,8">
 
-          <!-- Idee-Textfeld -->
-          <TextBox x:Name="IdeaBox"
-                   Text="{Binding IdeaText, Mode=TwoWay}"
-                   Watermark="z. B.: Ich moechte ein Modul bauen, das meine FRITZ!Box ueberwacht."
-                   AcceptsReturn="True"
-                   Height="140"
-                   TextWrapping="Wrap"
-                   Background="#12122a"
-                   Foreground="#e0e0e0"
-                   BorderBrush="#2a2a4a"
-                   BorderThickness="1"
-                   CornerRadius="8"
-                   Padding="12,10"
-                   FontSize="13"/>
+        <!-- Idee-Textfeld — nimmt gesamten verfügbaren Platz -->
+        <TextBox Grid.Row="0"
+                 x:Name="IdeaBox"
+                 Text="{Binding IdeaText, Mode=TwoWay}"
+                 Watermark="z. B.: Ich moechte ein Modul bauen, das meine FRITZ!Box ueberwacht."
+                 AcceptsReturn="True"
+                 MinHeight="120"
+                 TextWrapping="Wrap"
+                 Background="#12122a"
+                 Foreground="#e0e0e0"
+                 BorderBrush="#2a2a4a"
+                 BorderThickness="1"
+                 CornerRadius="8"
+                 Padding="12,10"
+                 FontSize="13"
+                 VerticalAlignment="Stretch"/>
 
-          <!-- Kein API-Key → Info -->
-          <Border IsVisible="{Binding HasNoApiKey}"
-                  Background="#1a1a0a"
-                  BorderBrush="#3a3a1a"
-                  BorderThickness="1"
-                  CornerRadius="6"
-                  Padding="12,8">
-            <StackPanel Spacing="3">
-              <TextBlock Text="⚠  Kein KI-Assistent konfiguriert"
-                         FontSize="12" FontWeight="SemiBold" Foreground="#c8a040"/>
-              <TextBlock Text="Die KI-Analyse ist nicht verfügbar. Du kannst deine Idee trotzdem eingeben — sie wird als Beschreibung übernommen."
-                         FontSize="11" Foreground="#8892a4" TextWrapping="Wrap"/>
-              <TextBlock Text="Einstellungen → KI-Assistent → Anbieter &amp; API-Schlüssel"
-                         FontSize="11" Foreground="#5865f2"/>
-            </StackPanel>
-          </Border>
-
-          <!-- Analyse läuft -->
-          <StackPanel IsVisible="{Binding IsAnalyzing}"
-                      Orientation="Horizontal" Spacing="8">
-            <TextBlock Text="⏳" FontSize="13" VerticalAlignment="Center"/>
-            <TextBlock Text="{Binding AnalyzeStatus}"
-                       FontSize="12" Foreground="#5865f2"
-                       FontStyle="Italic" VerticalAlignment="Center"/>
+        <!-- Kein API-Key → Info — am unteren Rand -->
+        <Border Grid.Row="1"
+                IsVisible="{Binding HasNoApiKey}"
+                Background="#1a1a0a"
+                BorderBrush="#3a3a1a"
+                BorderThickness="1"
+                CornerRadius="6"
+                Padding="12,8"
+                Margin="0,10,0,0">
+          <StackPanel Spacing="3">
+            <TextBlock Text="⚠  Kein KI-Assistent konfiguriert"
+                       FontSize="12" FontWeight="SemiBold" Foreground="#c8a040"/>
+            <TextBlock Text="Die KI-Analyse ist nicht verfügbar. Du kannst deine Idee trotzdem eingeben — sie wird als Beschreibung übernommen."
+                       FontSize="11" Foreground="#8892a4" TextWrapping="Wrap"/>
+            <TextBlock Text="Einstellungen → KI-Assistent → Anbieter &amp; API-Schlüssel"
+                       FontSize="11" Foreground="#5865f2"/>
           </StackPanel>
+        </Border>
 
+        <!-- Analyse läuft -->
+        <StackPanel Grid.Row="2"
+                    IsVisible="{Binding IsAnalyzing}"
+                    Orientation="Horizontal" Spacing="8"
+                    Margin="0,6,0,0">
+          <TextBlock Text="⏳" FontSize="13" VerticalAlignment="Center"/>
+          <TextBlock Text="{Binding AnalyzeStatus}"
+                     FontSize="12" Foreground="#5865f2"
+                     FontStyle="Italic" VerticalAlignment="Center"/>
         </StackPanel>
-      </ScrollViewer>
+
+      </Grid>
 
       <!-- Button-Leiste -->
       <Border Grid.Row="2"
@@ -648,16 +652,16 @@
               Padding="28,10,28,20">
         <Grid ColumnDefinitions="*,Auto,Auto">
           <TextBlock Grid.Column="0"
-                     Text="Dein Projekt ist bereit."
+                     Text="Build abgeschlossen."
                      Foreground="#3a3f5a" FontSize="11"
                      VerticalAlignment="Center"/>
           <Button Grid.Column="1" Classes="ghost" Margin="0,0,8,0"
                   Content="Fertig" Click="Close_Click"/>
           <Button Grid.Column="2" Classes="primary"
-                  Command="{Binding ValidateProjectCommand}">
+                  Command="{Binding CheckPublishReadinessCommand}">
             <StackPanel Orientation="Horizontal" Spacing="6">
-              <TextBlock Text="🔍" FontSize="12" VerticalAlignment="Center"/>
-              <TextBlock Text="Projekt prüfen →" VerticalAlignment="Center"/>
+              <TextBlock Text="📦" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Text="Veröffentlichung vorbereiten →" VerticalAlignment="Center"/>
             </StackPanel>
           </Button>
         </Grid>
@@ -780,7 +784,7 @@
       <Border Grid.Row="2"
               BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
               Padding="28,10,28,20">
-        <Grid ColumnDefinitions="Auto,*,Auto,Auto">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
           <Button Grid.Column="0"
                   Content="← Zurück" Classes="ghost"
                   Click="ValidationBack_Click"/>
@@ -788,8 +792,179 @@
                   Content="Erneut prüfen" Classes="ghost"
                   Margin="0,0,8,0"
                   Command="{Binding ValidateProjectCommand}"/>
-          <Button Grid.Column="3" Classes="primary"
-                  Content="Fertig" Click="Close_Click"/>
+          <Button Grid.Column="3" Classes="ghost"
+                  Content="Fertig" Margin="0,0,8,0"
+                  Click="Close_Click"/>
+          <Button Grid.Column="4" Classes="primary"
+                  Command="{Binding ProceedToBuildCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="🔨" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Text="Weiter: Bauen →" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
+        </Grid>
+      </Border>
+    </Grid>
+
+
+    <!-- ═══════════════════════════════ STEP 5: Veröffentlichung ════════════ -->
+    <Grid x:Name="Step5Panel" IsVisible="False" RowDefinitions="Auto,*,Auto">
+
+      <!-- Header -->
+      <StackPanel Grid.Row="0" Margin="28,24,28,0" Spacing="4">
+        <StackPanel Orientation="Horizontal" Spacing="10">
+          <TextBlock Text="{Binding PublishStatusIcon}" FontSize="20" VerticalAlignment="Center"/>
+          <TextBlock Text="Veröffentlichung vorbereiten"
+                     FontSize="18" FontWeight="Bold" VerticalAlignment="Center"/>
+        </StackPanel>
+        <TextBlock Text="{Binding PublishStatusLabel}"
+                   FontSize="12" Foreground="#8892a4"/>
+      </StackPanel>
+
+      <!-- Inhalt -->
+      <ScrollViewer Grid.Row="1" Padding="28,16,28,8">
+        <StackPanel Spacing="12">
+
+          <!-- Lädt... -->
+          <StackPanel IsVisible="{Binding IsCheckingReadiness}"
+                      HorizontalAlignment="Center" Spacing="8" Margin="0,20,0,0">
+            <TextBlock Text="⏳" FontSize="28" HorizontalAlignment="Center"/>
+            <TextBlock Text="Prüfung läuft..."
+                       FontSize="13" Foreground="#5865f2"
+                       FontStyle="Italic" HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Publish-Issue-Karten -->
+          <ItemsControl ItemsSource="{Binding PublishIssues}">
+            <ItemsControl.ItemTemplate>
+              <DataTemplate x:DataType="vm:ValidationIssueViewModel">
+                <Border Margin="0,0,0,6"
+                        Background="#18100e"
+                        BorderBrush="{Binding BorderBrushColor}"
+                        BorderThickness="1" CornerRadius="6"
+                        Padding="12,10">
+                  <StackPanel Spacing="6">
+                    <StackPanel Orientation="Horizontal" Spacing="8">
+                      <TextBlock Text="{Binding SeverityIcon}"
+                                 FontSize="13" VerticalAlignment="Center"
+                                 Foreground="{Binding SeverityForeground}"/>
+                      <TextBlock Text="{Binding Title}"
+                                 FontSize="13" FontWeight="SemiBold" VerticalAlignment="Center"/>
+                      <Border Background="{Binding BadgeBackground}" CornerRadius="3" Padding="5,1">
+                        <TextBlock Text="{Binding CategoryLabel}"
+                                   FontSize="10" Foreground="{Binding SeverityForeground}"
+                                   FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+                      </Border>
+                    </StackPanel>
+                    <TextBlock Text="{Binding Message}"
+                               FontSize="12" Foreground="#b0b8c4"
+                               TextWrapping="Wrap" LineHeight="18"/>
+                    <ItemsControl IsVisible="{Binding HasActions}" ItemsSource="{Binding Actions}">
+                      <ItemsControl.ItemsPanel>
+                        <ItemsPanelTemplate>
+                          <StackPanel Orientation="Horizontal" Spacing="6"/>
+                        </ItemsPanelTemplate>
+                      </ItemsControl.ItemsPanel>
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:ValidationActionViewModel">
+                          <Button Content="{Binding Label}" Classes="ghost"
+                                  FontSize="11" Command="{Binding ExecuteCommand}"/>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </StackPanel>
+                </Border>
+              </DataTemplate>
+            </ItemsControl.ItemTemplate>
+          </ItemsControl>
+
+          <!-- Paket-Info (nach Paket-Erstellung) -->
+          <Border IsVisible="{Binding LastPackageResult, Converter={x:Static ObjectConverters.IsNotNull}}"
+                  Background="#0a1a0a" BorderBrush="#1a4a1a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="6">
+              <TextBlock Text="📦 Paket erstellt" FontSize="13" FontWeight="SemiBold" Foreground="#4ade80"/>
+              <TextBlock Text="{Binding LastPackageResult.PackagePath}"
+                         FontSize="11" Foreground="#5865f2"
+                         FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                         TextWrapping="Wrap"/>
+              <StackPanel Orientation="Horizontal" Spacing="16">
+                <TextBlock Text="{Binding LastPackageResult.SizeLabel, StringFormat='Größe: {0}'}"
+                           FontSize="11" Foreground="#8892a4"/>
+                <TextBlock Text="{Binding LastPackageResult.PackageHash, StringFormat='SHA256: {0}'}"
+                           FontSize="10" Foreground="#4a5070"
+                           FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+          <!-- Registry-Vorschau -->
+          <Border IsVisible="{Binding ShowRegistryPreview}"
+                  Background="#151530" BorderBrush="#2a2a6a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="8">
+              <TextBlock Text="🔍 Marketplace-Vorschau" FontSize="13" FontWeight="SemiBold"/>
+              <TextBlock Text="So würde dein Modul im AAIA Marketplace erscheinen:"
+                         FontSize="11" Foreground="#8892a4"/>
+              <ScrollViewer MaxHeight="200">
+                <TextBox Text="{Binding RegistryPreviewJson}"
+                         IsReadOnly="True"
+                         Background="Transparent"
+                         Foreground="#7ab3f5"
+                         BorderThickness="0"
+                         Padding="0"
+                         FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"
+                         FontSize="11"
+                         AcceptsReturn="True"
+                         TextWrapping="Wrap"/>
+              </ScrollViewer>
+            </StackPanel>
+          </Border>
+
+          <!-- Versions-Karte -->
+          <Border Background="#202042" BorderBrush="#2a2a4a"
+                  BorderThickness="1" CornerRadius="8" Padding="14,12">
+            <StackPanel Spacing="8">
+              <TextBlock Text="Version" FontSize="12" FontWeight="SemiBold"/>
+              <StackPanel Orientation="Horizontal" Spacing="8" IsVisible="{Binding !IsCheckingReadiness}">
+                <Button Classes="ghost" FontSize="11"
+                        Command="{Binding IncreasePatchVersionCommand}">
+                  Patch +0.0.1
+                </Button>
+                <Button Classes="ghost" FontSize="11"
+                        Command="{Binding IncreaseMinorVersionCommand}">
+                  Minor +0.1.0
+                </Button>
+              </StackPanel>
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
+      </ScrollViewer>
+
+      <!-- Button-Leiste -->
+      <Border Grid.Row="2"
+              BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+              Padding="28,10,28,20">
+        <Grid ColumnDefinitions="Auto,*,Auto,Auto,Auto">
+          <Button Grid.Column="0"
+                  Content="← Zurück" Classes="ghost"
+                  Click="PublishBack_Click"/>
+          <Button Grid.Column="2"
+                  Content="Erneut prüfen" Classes="ghost"
+                  Margin="0,0,8,0"
+                  Command="{Binding CheckPublishReadinessCommand}"/>
+          <Button Grid.Column="3"
+                  Content="📂 Paketordner" Classes="ghost"
+                  Margin="0,0,8,0"
+                  Command="{Binding OpenPackageFolderCommand}"/>
+          <Button Grid.Column="4" Classes="primary"
+                  Command="{Binding CreatePackageCommand}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <TextBlock Text="📦" FontSize="12" VerticalAlignment="Center"/>
+              <TextBlock Text="Paket erstellen" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Button>
         </Grid>
       </Border>
     </Grid>
