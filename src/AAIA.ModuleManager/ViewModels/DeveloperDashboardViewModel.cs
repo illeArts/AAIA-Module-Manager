@@ -40,6 +40,30 @@ public partial class DeveloperDashboardViewModel : ObservableObject
 
     [ObservableProperty] private DeveloperExtensionRowViewModel? _selectedExtension;
 
+    // ── MoR Status (Phase 5.11) ───────────────────────────────────────────────
+
+    [ObservableProperty] private bool             _morProviderConnected;
+    [ObservableProperty] private string?          _morProvider;
+    [ObservableProperty] private bool             _morCheckoutActive;
+    [ObservableProperty] private bool             _morPayoutSetupComplete;
+    [ObservableProperty] private DateTimeOffset?  _morLastEvent;
+    [ObservableProperty] private bool             _morWebhookHealthy;
+    [ObservableProperty] private int              _morActiveMappings;
+    [ObservableProperty] private int              _morModulesWithCheckout;
+    [ObservableProperty] private bool             _morStatusLoaded;
+
+    // Formatierte MoR-Statuslabels
+    public string MorProviderLabel  => MorProviderConnected
+        ? $"{MorProvider ?? "Verbunden"} ({MorActiveMappings} Mapping(s))"
+        : "Kein MoR-Provider verbunden";
+
+    public string MorPayoutLabel    => MorPayoutSetupComplete ? "✅ Vollständig" : "⚠ Unvollständig";
+    public string MorCheckoutLabel  => MorCheckoutActive      ? "✅ Aktiv"       : "❌ Kein Checkout";
+    public string MorWebhookLabel   => !MorProviderConnected  ? "—"
+        : MorWebhookHealthy ? "✅ Gesund"
+        : MorLastEvent.HasValue ? $"⚠ Letztes Event: {MorLastEvent:dd.MM.yyyy}"
+        : "⚠ Kein Event empfangen";
+
     public DeveloperDashboardViewModel(RegistryApiClient api)
     {
         _api = api;
@@ -77,6 +101,21 @@ public partial class DeveloperDashboardViewModel : ObservableObject
             StatusText = Extensions.Count == 0
                 ? "Noch keine Extensions veröffentlicht."
                 : $"{Extensions.Count} Extension(s) geladen.";
+
+            // MoR Status parallel laden
+            var morStatus = await _api.GetMorStatusAsync(ct);
+            if (morStatus is not null)
+            {
+                MorProviderConnected    = morStatus.ProviderConnected;
+                MorProvider             = morStatus.Provider;
+                MorCheckoutActive       = morStatus.CheckoutActive;
+                MorPayoutSetupComplete  = morStatus.PayoutSetupComplete;
+                MorLastEvent            = morStatus.LastMorEvent;
+                MorWebhookHealthy       = morStatus.WebhookHealthy;
+                MorActiveMappings       = morStatus.ActiveMappings;
+                MorModulesWithCheckout  = morStatus.ModulesWithCheckout;
+                MorStatusLoaded         = true;
+            }
         }
         catch (OperationCanceledException)
         {

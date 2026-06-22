@@ -3,6 +3,7 @@ using CommunityToolkit.Mvvm.Input;
 using AAIA.ModuleManager.Services;
 using AAIA.Shared.Contracts.Marketplace;
 using System.Collections.ObjectModel;
+using System.Linq;
 
 namespace AAIA.ModuleManager.ViewModels;
 
@@ -49,6 +50,21 @@ public sealed partial class AdminMarketplaceViewModel : ObservableObject
 
     public ObservableCollection<PendingReviewRowVm> PendingReviews { get; } = [];
 
+    // ── MoR Account Status (Phase 5.11) ───────────────────────────────────────
+
+    public ObservableCollection<AdminMorStatusRowVm> MorAccountItems { get; } = [];
+
+    [ObservableProperty] private int _morTotalEtws;
+    [ObservableProperty] private int _morEtwsWithMapping;
+    [ObservableProperty] private int _morEtwsWithCheckout;
+    [ObservableProperty] private int _morEtwsWithIssues;
+    [ObservableProperty] private bool _morStatusLoaded;
+
+    public string MorSummaryLabel =>
+        MorStatusLoaded
+        ? $"{MorEtwsWithMapping}/{MorTotalEtws} ETWs verbunden · {MorEtwsWithIssues} Problem(e)"
+        : "—";
+
     // ── Konstruktor ────────────────────────────────────────────────────────────
 
     public AdminMarketplaceViewModel(RegistryApiClient client)
@@ -82,7 +98,8 @@ public sealed partial class AdminMarketplaceViewModel : ObservableObject
 
             await Task.WhenAll(
                 LoadExtensionsAsync(ExtensionSearch, ct),
-                LoadPendingReviewsAsync(ct));
+                LoadPendingReviewsAsync(ct),
+                LoadMorAccountStatusAsync(ct));
 
             StatusMessage = overview is null ? "⚠ Keine Verbindung zur API." : "";
         }
@@ -98,6 +115,24 @@ public sealed partial class AdminMarketplaceViewModel : ObservableObject
 
     [RelayCommand]
     private Task RefreshAsync() => LoadAsync();
+
+    private async Task LoadMorAccountStatusAsync(CancellationToken ct = default)
+    {
+        var status = await _client.GetAdminMorAccountStatusAsync(ct);
+        if (status is null) return;
+
+        MorTotalEtws        = status.TotalEtws;
+        MorEtwsWithMapping  = status.EtwsWithMorMapping;
+        MorEtwsWithCheckout = status.EtwsWithCheckout;
+        MorEtwsWithIssues   = status.EtwsWithWebhookIssues;
+        MorStatusLoaded     = true;
+
+        MorAccountItems.Clear();
+        foreach (var item in status.Items.OrderBy(i => i.StatusSummary != "OK").ThenBy(i => i.EtwId))
+            MorAccountItems.Add(item);
+
+        OnPropertyChanged(nameof(MorSummaryLabel));
+    }
 
     private async Task LoadExtensionsAsync(string search = "", CancellationToken ct = default)
     {
@@ -238,4 +273,50 @@ public sealed partial class PendingReviewRowVm : ObservableObject
     [RelayCommand]
     private Task BlockAsync() =>
         _parent.BlockAsync(ReleaseId, string.IsNullOrWhiteSpace(BlockReason) ? "Blockiert durch Admin." : BlockReason);
+}
+
+/// <summary>
+/// Wrapper-ViewModel für AdminMorAccountStatusItemDto.
+/// Liefert formatierte Anzeige-Properties für die AXAML-View.
+/// </summary>
+public sealed class AdminMorStatusRowVm
+{
+    private readonly AdminMorAccountStatusItemDto _dto;
+
+    public AdminMorStatusRowVm(AdminMorAccountStatusItemDto dto) => _dto = dto;
+
+    public string  EtwId                  => _dto.EtwId;
+    public string  DisplayName            => _dto.DisplayName;
+    public string? Provider               => _dto.Provider;
+    public int     TotalExtensions        => _dto.TotalExtensions;
+    public int     ExtensionsWithCheckout => _dto.ExtensionsWithCheckout;
+    public int     ActiveMappings         => _dto.ActiveMappings;
+    public bool    WebhookHealthy         => _dto.WebhookHealthy;
+    public string  StatusSummary          => _dto.StatusSummary;
+
+    public string LastWebhookLabel => _dto.LastWebhookEvent.HasValue
+        ? _dto.LastWebhookEvent.Value.ToString("dd.MM.yyyy HH:mm")
+        : "Kein Event";
+
+    public string WebhookHealthLabel => _dto.WebhookHealthy ? "✅ Gesund" : "⚠ Problem";
+
+    public string StatusEmoji => _dto.StatusSummary switch
+    {
+        "OK"           => "✅",
+        "NeedsMapping" => "🔌",
+        "NoCheckout"   => "🛒",
+        "WebhookStale" => "⚠",
+        "NoExtensions" => "📭",
+        _              => "❓"
+    };
+
+    public string StatusLabel => _dto.StatusSummary switch
+    {
+        "OK"           => "OK",
+        "NeedsMapping" => "Kein MoR-Mapping",
+        "NoCheckout"   => "Kein Checkout",
+        "WebhookStale" => "Webhook veraltet",
+        "NoExtensions" => "Keine Extensions",
+        _              => _dto.StatusSummary
+    };
 }

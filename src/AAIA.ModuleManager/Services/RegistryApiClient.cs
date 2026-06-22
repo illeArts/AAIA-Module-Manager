@@ -290,7 +290,44 @@ public sealed class RegistryApiClient : IDisposable
         catch { return null; }
     }
 
-    // ── Hilfsmethoden ─────────────────────────────────────────────────────────
+    // ── Phase 5.11: MoR Status ───────────────────────────────────────────────────
+
+    public async Task<MorStatusDto?> GetMorStatusAsync(CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.GetAsync(AaiaApiRoutes.Developers.MorStatus, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<MorStatusDto>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+    public async Task<bool> UpdateMorProviderAsync(
+        string extensionId, string? checkoutUrl, CancellationToken ct = default)
+    {
+        try
+        {
+            var req  = new MorProviderUpdateRequest(extensionId, checkoutUrl);
+            var resp = await _http.PutAsJsonAsync(AaiaApiRoutes.Developers.MorProvider, req, ct);
+            return resp.IsSuccessStatusCode;
+        }
+        catch { return false; }
+    }
+
+    public async Task<AdminMorAccountStatusDto?> GetAdminMorAccountStatusAsync(
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.GetAsync(AaiaApiRoutes.Admin.MorAccountStatus, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<AdminMorAccountStatusDto>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+        // ── Hilfsmethoden ─────────────────────────────────────────────────────────
 
     private static string BuildUrl(string baseRoute, int page, int pageSize, string? category, string? search)
     {
