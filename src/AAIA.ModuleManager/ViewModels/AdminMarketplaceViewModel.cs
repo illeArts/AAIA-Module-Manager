@@ -129,7 +129,7 @@ public sealed partial class AdminMarketplaceViewModel : ObservableObject
 
         MorAccountItems.Clear();
         foreach (var item in status.Items.OrderBy(i => i.StatusSummary != "OK").ThenBy(i => i.EtwId))
-            MorAccountItems.Add(item);
+            MorAccountItems.Add(new AdminMorStatusRowVm(item));
 
         OnPropertyChanged(nameof(MorSummaryLabel));
     }
