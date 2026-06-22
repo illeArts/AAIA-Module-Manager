@@ -98,6 +98,9 @@ public partial class DeveloperDashboardViewModel : ObservableObject
             foreach (var ext in dto.Extensions)
                 Extensions.Add(new DeveloperExtensionRowViewModel(ext));
 
+            // Phase 5.12: PublishGate für alle Extensions im Hintergrund laden
+            _ = Task.WhenAll(Extensions.Select(e => e.LoadPublishGateAsync(_api, ct)));
+
             StatusText = Extensions.Count == 0
                 ? "Noch keine Extensions veröffentlicht."
                 : $"{Extensions.Count} Extension(s) geladen.";
@@ -188,6 +191,70 @@ public partial class DeveloperExtensionRowViewModel : ObservableObject
     [ObservableProperty] private bool   _eventsLoaded;
     [ObservableProperty] private bool   _eventsLoading;
 
+    // ── PublishGate (Phase 5.12) ──────────────────────────────────────────────
+
+    [ObservableProperty] private PublishGateResultDto? _publishGate;
+    [ObservableProperty] private bool                  _publishGateLoaded;
+    [ObservableProperty] private bool                  _publishGateLoading;
+
+    /// <summary>true wenn alle Gate-Checks grün.</summary>
+    public bool CanPublishToMarketplace => PublishGate?.CanPublish ?? false;
+
+    /// <summary>Ampel-Emoji für den Publish-Gate-Status.</summary>
+    public string PublishGateEmoji => PublishGate switch
+    {
+        null                     => "⬜",
+        { CanPublish: true }     => "✅",
+        { HasMorProduct: false } => "🔌",
+        _                        => "⛔"
+    };
+
+    /// <summary>Kurze Zusammenfassung für die Tabellenzeile.</summary>
+    public string PublishGateSummary => PublishGate switch
+    {
+        null                         => "—",
+        { CanPublish: true }         => "Veröffentlichung möglich",
+        { HasMorProduct: false }     => "Kein MoR-Produkt",
+        { IsMorProductActive: false} => "MoR nicht freigegeben",
+        _                            => "Blockiert"
+    };
+
+    /// <summary>
+    /// Detaillierte Blocker-Meldung für den Nutzer.
+    /// </summary>
+    public string PublishGateBlockerText
+    {
+        get
+        {
+            if (PublishGate is null) return "";
+            if (PublishGate.CanPublish) return "";
+            if (PublishGate.Blockers.Length == 0) return "";
+
+            return "Marketplace-Veröffentlichung blockiert:
+"
+                 + string.Join("
+• ", new[] { "" }.Concat(PublishGate.Blockers)).TrimStart();
+        }
+    }
+
+    // ── PublishGate-Label-Properties (kein Converter nötig) ─────────────────────
+
+    public string GateSignatureLabel  => PublishGate is null ? "—"
+        : PublishGate.IsSignatureVerified    ? "✅ Verifiziert"  : "❌ Fehlt";
+
+    public string GateMorProductLabel => PublishGate is null ? "—"
+        : PublishGate.HasMorProduct          ? "✅ Vorhanden"   : "❌ Fehlt";
+
+    public string GateMorActiveLabel  => PublishGate is null ? "—"
+        : PublishGate.IsMorProductActive     ? "✅ Freigegeben" : "⏳ Ausstehend";
+
+    public string GateCommissionLabel => PublishGate is null ? "—"
+        : PublishGate.IsCommissionConfigured ? "✅ Konfiguriert" : "⚠ Fehlt";
+
+    public bool HasPublishBlockers    => PublishGate is not null &&
+                                        !PublishGate.CanPublish &&
+                                         PublishGate.Blockers.Length > 0;
+
     public DeveloperExtensionRowViewModel(DeveloperExtensionSummaryDto dto)
     {
         _dto = dto;
@@ -205,5 +272,31 @@ public partial class DeveloperExtensionRowViewModel : ObservableObject
             EventsLoaded = true;
         }
         finally { EventsLoading = false; }
+    }
+
+    public async Task LoadPublishGateAsync(RegistryApiClient api, CancellationToken ct = default)
+    {
+        if (PublishGateLoaded || PublishGateLoading) return;
+        PublishGateLoading = true;
+        try
+        {
+            var gate = await api.GetPublishGateAsync(ExtensionId, ct);
+            if (gate is not null)
+            {
+                PublishGate       = gate;
+                PublishGateLoaded = true;
+                // Computed Properties anstoßen
+                OnPropertyChanged(nameof(CanPublishToMarketplace));
+                OnPropertyChanged(nameof(PublishGateEmoji));
+                OnPropertyChanged(nameof(PublishGateSummary));
+                OnPropertyChanged(nameof(PublishGateBlockerText));
+                OnPropertyChanged(nameof(GateSignatureLabel));
+                OnPropertyChanged(nameof(GateMorProductLabel));
+                OnPropertyChanged(nameof(GateMorActiveLabel));
+                OnPropertyChanged(nameof(GateCommissionLabel));
+                OnPropertyChanged(nameof(HasPublishBlockers));
+            }
+        }
+        finally { PublishGateLoading = false; }
     }
 }

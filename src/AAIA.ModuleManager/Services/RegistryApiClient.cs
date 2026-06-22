@@ -327,7 +327,77 @@ public sealed class RegistryApiClient : IDisposable
         catch { return null; }
     }
 
-        // ── Hilfsmethoden ─────────────────────────────────────────────────────────
+    // ── Phase 5.12: MoR Gate ─────────────────────────────────────────────────────
+
+    public async Task<PublishGateResultDto?> GetPublishGateAsync(
+        string extensionId, CancellationToken ct = default)
+    {
+        try
+        {
+            var url  = AaiaApiRoutes.Developers.PublishGateCheck
+                          .Replace("{extensionId}", Uri.EscapeDataString(extensionId));
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<PublishGateResultDto>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+    public async Task<DeveloperMorAccountDto?> CreateMorAccountAsync(
+        CreateDeveloperMorAccountRequest req, CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.PostAsJsonAsync(AaiaApiRoutes.Developers.MorAccounts, req, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<DeveloperMorAccountDto>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+    public async Task<List<DeveloperMorAccountDto>?> GetMorAccountsAsync(
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var resp = await _http.GetAsync(AaiaApiRoutes.Developers.MorAccounts, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<List<DeveloperMorAccountDto>>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+    public async Task<ExtensionMorProductDto?> CreateExtensionMorProductAsync(
+        string extensionId,
+        CreateExtensionMorProductRequest req,
+        CancellationToken ct = default)
+    {
+        try
+        {
+            var url  = AaiaApiRoutes.Developers.ExtensionMorProducts
+                          .Replace("{extensionId}", Uri.EscapeDataString(extensionId));
+            var resp = await _http.PostAsJsonAsync(url, req, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<ExtensionMorProductDto>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+    public async Task<List<ExtensionMorProductDto>?> GetExtensionMorProductsAsync(
+        string extensionId, CancellationToken ct = default)
+    {
+        try
+        {
+            var url  = AaiaApiRoutes.Developers.ExtensionMorProducts
+                          .Replace("{extensionId}", Uri.EscapeDataString(extensionId));
+            var resp = await _http.GetAsync(url, ct);
+            if (!resp.IsSuccessStatusCode) return null;
+            return await resp.Content.ReadFromJsonAsync<List<ExtensionMorProductDto>>(JsonOptions, ct);
+        }
+        catch { return null; }
+    }
+
+            // ── Hilfsmethoden ─────────────────────────────────────────────────────────
 
     private static string BuildUrl(string baseRoute, int page, int pageSize, string? category, string? search)
     {
