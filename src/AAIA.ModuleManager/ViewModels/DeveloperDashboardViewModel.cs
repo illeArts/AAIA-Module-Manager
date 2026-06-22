@@ -230,10 +230,8 @@ public partial class DeveloperExtensionRowViewModel : ObservableObject
             if (PublishGate.CanPublish) return "";
             if (PublishGate.Blockers.Length == 0) return "";
 
-            return "Marketplace-Veröffentlichung blockiert:
-"
-                 + string.Join("
-• ", new[] { "" }.Concat(PublishGate.Blockers)).TrimStart();
+            return "Marketplace-Veröffentlichung blockiert:\n\u2022 "
+                 + string.Join("\n\u2022 ", PublishGate.Blockers);
         }
     }
 
