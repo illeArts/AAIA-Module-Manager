@@ -28,10 +28,10 @@ jobs:
           token: ${{ secrets.GH_PAT }}
 
       - name: Integrity Guard (module-manager)
-        run: python3 aaia-module-manager/scripts/check_integrity.py aaia-module-manager/src/
+        run: python  aaia-module-manager/scripts/check_integrity.py aaia-module-manager/src/
 
       - name: Integrity Guard (sdk)
-        run: python3 aaia-sdk/scripts/check_integrity.py aaia-sdk/src/
+        run: python  aaia-sdk/scripts/check_integrity.py aaia-sdk/src/
 
       - name: Setup .NET 8
         uses: actions/setup-dotnet@v5
