@@ -1,6 +1,6 @@
 # Phase 8.3 — AIR Resource Manager: Spezifikation
 
-> Status: spezifiziert, nicht implementiert
+> Status: implementiert; interner AIR-Kern, ohne MCP/UI/Host-Adapter
 > Scope: ausschließlich interner AIR-Kern; kein MCP, keine UI, keine Host-Adapter
 
 ## 1. Ziel
@@ -296,3 +296,15 @@ Die bestehende Tool-Sicherheitskette bleibt danach unverändert vollständig akt
 7. vollständige Regression und eigener PR.
 
 MCP, UI und Host-Adapter beginnen erst in Phase 8.4 und sind kein Teil dieses Plans.
+
+## 14. Implementierungsstand
+
+- Contracts für Profile, Anforderungen, Entscheidungen, Reservations, Budgets und Telemetrie sind umgesetzt.
+- Registry und Telemetrie-Store validieren und kapseln registrierte Ressourcen defensiv.
+- Capacity- und Budgetreservierung erfolgen atomar und thread-safe.
+- Harte Filter und der dokumentierte deterministische Score sind umgesetzt.
+- Scheduler nutzt den Manager nur bei expliziten `ResourceRequirements`; bestehende Executions bleiben kompatibel.
+- Retryfähige Denials requeue ohne Verbrauch von `MaxAttempts`; terminale Denials führen keinen Tool-Handler aus.
+- Reservations werden nach Erfolg, Fehler oder Cancellation zuverlässig settled.
+- 26 Resource-Pflichtszenarien und die vollständige Regression mit 161 Tests sind grün.
+- Es wurden keine MCP-, UI- oder Host-Adapter ergänzt.

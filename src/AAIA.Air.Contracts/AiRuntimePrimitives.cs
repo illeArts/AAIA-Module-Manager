@@ -64,6 +64,10 @@ public enum AiRuntimeEventType
     ExecutionFailed,
     ExecutionCancelled,
     ExecutionRecovered,
+    ResourceReserved,
+    ResourceCommitted,
+    ResourceReleased,
+    ResourceDenied,
     ErrorOccurred
 }
 
