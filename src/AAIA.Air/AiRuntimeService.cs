@@ -8,6 +8,7 @@ using AAIA.Air.Memory;
 using AAIA.Air.Messaging;
 using AAIA.Air.Providers;
 using AAIA.Air.Scheduling;
+using AAIA.Air.Resources;
 using AAIA.Air.Tasks;
 using AAIA.Air.Workflows;
 
@@ -28,6 +29,9 @@ public sealed class AiRuntimeService
     public AiWorkspaceLockService Locks        { get; }
     public AiRuntimeEventBus     Events        { get; }
     public AiAuditService        Audit         { get; }
+
+    /// <summary>Interne Ressourcenwahl für Kapazität, Last und Budgets.</summary>
+    public AiResourceManager     Resources     { get; }
 
     /// <summary>Sessiongebundene Nachrichten zwischen AIR-Teilnehmern.</summary>
     public AiMessageBus          Messages      { get; }
@@ -76,6 +80,7 @@ public sealed class AiRuntimeService
         Events       = events;
         Audit        = audit;
         Messages     = new AiMessageBus(Sessions, Events);
+        Resources    = new AiResourceManager(events: Events);
 
         // Task- und Workflow-Schritte laufen durch denselben sicheren Runtime-Pfad.
         Func<string, string, JsonElement, CancellationToken, Task<(bool, string)>> executor =
@@ -88,7 +93,7 @@ public sealed class AiRuntimeService
             };
 
         Tasks         = new AiTaskManager    { Executor = executor };
-        Scheduler     = new AiExecutionScheduler(Tasks, Sessions, Events);
+        Scheduler     = new AiExecutionScheduler(Tasks, Sessions, Events, resources: Resources);
         Workflows     = new AiWorkflowEngine { Executor = executor };
         Collaboration = new AiCollaborationManager(Sessions, Blackboard);
     }

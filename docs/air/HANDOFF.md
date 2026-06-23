@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging und 8.2 Scheduling sind abgeschlossen. Tests: 135/135 grün. Phase 8.3 Resource Manager ist spezifiziert, aber nicht implementiert.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling und 8.3 Resource Manager sind abgeschlossen. Tests: 161/161 grün. Nächster Schritt: Phase 8.4 Adapter-/MCP-/UI-Grenzen separat spezifizieren.
 
 ## Wo wir stehen
 
@@ -25,15 +25,15 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase-8.3-Spezifikation prüfen und fachlich freigeben.
-2. Erst danach die dokumentierte Implementierungsreihenfolge beginnen.
-3. MCP, UI und Host-Adapter bleiben vollständig außerhalb von Phase 8.3.
+1. Phase-8.3-Implementierungs-Checkpoint prüfen und mergen.
+2. Phase 8.4 separat spezifizieren: Permissions, Adaptergrenzen und explizite UI-Freigaben.
+3. Keine MCP-/UI-Oberfläche ohne diese separate Freigabe implementieren.
 
 ## Harte Regeln (nicht verletzen)
 
 - **Keine neuen AIR-Funktionen mehr in Phase 7.0.** Nur Build-/Verdrahtungsfehler lösen.
 - **AIR ist herstellerneutral:** nirgends `if Claude` / `if GPT`. Nur Client / Capabilities / Permissions / Roles. (Vendor wird NICHT aus dem Namen abgeleitet.)
-- **Phase 8 inkrementell halten:** Messaging und Scheduler sind umgesetzt; Resource Manager und MCP-Freigabe bleiben getrennte, jeweils eigenständig geprüfte Änderungen.
+- **Phase 8 inkrementell halten:** Messaging, Scheduler und Resource Manager sind umgesetzt; MCP-/UI-Freigaben bleiben ein getrenntes Inkrement.
 - **AIR kennt keine App.** Apps (Module Manager, AAIAS, BBK, DUKI, Website, Mobile) sind Nutzer über Hosts/Contracts — nie umgekehrt.
 - **Sicherheit unverändert lassen:** Bridge-Token-Pflicht, nur 127.0.0.1, Default deaktiviert, Patch nur über Approval, Terminal nur Allowlist, keine Secrets, Path-Traversal-Schutz, Black-Tools existieren nicht.
 

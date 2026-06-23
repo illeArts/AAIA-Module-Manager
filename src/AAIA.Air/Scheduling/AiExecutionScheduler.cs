@@ -1,4 +1,5 @@
 using AAIA.Air.Tasks;
+using AAIA.Air.Resources;
 
 namespace AAIA.Air.Scheduling;
 
@@ -17,6 +18,10 @@ public sealed class AiExecutionScheduler
         public string? LastError { get; set; }
         public DateTime UpdatedAtUtc { get; set; }
         public CancellationTokenSource? Cancellation { get; set; }
+        public string? ResourceId { get; set; }
+        public string? ResourceReservationId { get; set; }
+        public int ResourceDeferralCount { get; set; }
+        public DateTime? ResourceDeferredUntilUtc { get; set; }
     }
 
     private readonly object _gate = new();
@@ -28,6 +33,8 @@ public sealed class AiExecutionScheduler
     private readonly TimeProvider _time;
     private readonly TimeSpan _leaseDuration;
     private readonly TimeSpan _agingInterval;
+    private readonly AiResourceManager? _resources;
+    private readonly int _maxResourceDeferrals;
     private long _assignmentSequence;
 
     public AiExecutionScheduler(
@@ -36,7 +43,9 @@ public sealed class AiExecutionScheduler
         AiRuntimeEventBus events,
         TimeProvider? timeProvider = null,
         TimeSpan? leaseDuration = null,
-        TimeSpan? agingInterval = null)
+        TimeSpan? agingInterval = null,
+        AiResourceManager? resources = null,
+        int maxResourceDeferrals = 10)
     {
         _tasks = tasks ?? throw new ArgumentNullException(nameof(tasks));
         _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
@@ -44,8 +53,11 @@ public sealed class AiExecutionScheduler
         _time = timeProvider ?? TimeProvider.System;
         _leaseDuration = leaseDuration ?? TimeSpan.FromMinutes(2);
         _agingInterval = agingInterval ?? TimeSpan.FromMinutes(5);
+        _resources = resources;
+        _maxResourceDeferrals = maxResourceDeferrals;
         if (_leaseDuration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(leaseDuration));
         if (_agingInterval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(agingInterval));
+        if (_maxResourceDeferrals <= 0) throw new ArgumentOutOfRangeException(nameof(maxResourceDeferrals));
     }
 
     public AiExecutionSnapshot Enqueue(
@@ -54,7 +66,8 @@ public sealed class AiExecutionScheduler
         AiRole? requiredRole = null,
         IEnumerable<string>? requiredCapabilities = null,
         DateTime? notBeforeUtc = null,
-        int maxAttempts = 3)
+        int maxAttempts = 3,
+        AiResourceRequirements? resourceRequirements = null)
     {
         if (maxAttempts <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttempts));
         var task = _tasks.Get(taskId) ?? throw new InvalidOperationException("Aufgabe nicht gefunden.");
@@ -71,7 +84,8 @@ public sealed class AiExecutionScheduler
                 ?? Array.Empty<string>(),
             EnqueuedAtUtc = now,
             NotBeforeUtc = notBeforeUtc,
-            MaxAttempts = maxAttempts
+            MaxAttempts = maxAttempts,
+            ResourceRequirements = CloneRequirements(resourceRequirements)
         };
 
         ScheduledItem item;
@@ -110,7 +124,8 @@ public sealed class AiExecutionScheduler
 
             var candidates = _items.Values
                 .Where(item => item.State == AiExecutionState.Queued &&
-                               (!item.Request.NotBeforeUtc.HasValue || item.Request.NotBeforeUtc <= now))
+                               (!item.Request.NotBeforeUtc.HasValue || item.Request.NotBeforeUtc <= now) &&
+                               (!item.ResourceDeferredUntilUtc.HasValue || item.ResourceDeferredUntilUtc <= now))
                 .OrderByDescending(item => EffectivePriority(item.Request, now))
                 .ThenBy(item => item.Request.EnqueuedAtUtc)
                 .ThenBy(item => item.Request.Id)
@@ -170,7 +185,7 @@ public sealed class AiExecutionScheduler
     {
         AiExecutionLease lease;
         AiSession session;
-        CancellationTokenSource executionCancellation;
+        CancellationTokenSource? executionCancellation = null;
         ScheduledItem item;
 
         lock (_gate)
@@ -184,15 +199,55 @@ public sealed class AiExecutionScheduler
                 throw new InvalidOperationException("Zugewiesene Session ist nicht mehr aktiv.");
 
             lease = item.Lease;
+        }
+
+        if (item.Request.ResourceRequirements is not null)
+        {
+            if (_resources is null)
+                return ApplyResourceDenial(item, session,
+                    new AiResourceDecision
+                    {
+                        Status = AiResourceDecisionStatus.Denied,
+                        ReasonCode = AiResourceReasonCodes.NoMatchingResource,
+                        Retryable = false
+                    });
+
+            var task = _tasks.Get(lease.TaskId)!;
+            var decision = _resources.SelectAndReserve(new AiResourceRequest
+            {
+                ExecutionRequestId = requestId,
+                TaskId = lease.TaskId,
+                ProjectId = task.Project,
+                SessionId = sessionId,
+                Requirements = item.Request.ResourceRequirements
+            });
+            if (decision.Status == AiResourceDecisionStatus.Denied)
+                return ApplyResourceDenial(item, session, decision);
+
+            lock (_gate)
+            {
+                // Cancel kann während der Resource-Auswahl die Lease freigeben.
+                if (item.State != AiExecutionState.Leased || item.Lease?.SessionId != sessionId)
+                {
+                    _resources.Release(decision.Reservation!.Id, out _);
+                    return Snapshot(item);
+                }
+                item.ResourceId = decision.SelectedResourceId;
+                item.ResourceReservationId = decision.Reservation!.Id;
+            }
+        }
+
+        lock (_gate)
+        {
             executionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
             item.Cancellation = executionCancellation;
             item.State = AiExecutionState.Running;
             item.UpdatedAtUtc = UtcNow;
         }
-
         _events.Publish(AiRuntimeEventType.ExecutionStarted, session, message: requestId,
             data: new Dictionary<string, object?> { ["taskId"] = lease.TaskId });
 
+        AiRuntimeEventType finalEvent;
         try
         {
             var task = await _tasks.RunAsync(lease.TaskId, session, executionCancellation.Token)
@@ -205,11 +260,9 @@ public sealed class AiExecutionScheduler
                 item.LastError = task.Status == AiTaskStatus.Completed ? null : $"Task-Status: {task.Status}";
                 item.UpdatedAtUtc = UtcNow;
             }
-            _events.Publish(
-                item.State == AiExecutionState.Completed
-                    ? AiRuntimeEventType.ExecutionCompleted
-                    : AiRuntimeEventType.ExecutionFailed,
-                session, message: requestId);
+            finalEvent = item.State == AiExecutionState.Completed
+                ? AiRuntimeEventType.ExecutionCompleted
+                : AiRuntimeEventType.ExecutionFailed;
         }
         catch (OperationCanceledException)
         {
@@ -219,7 +272,7 @@ public sealed class AiExecutionScheduler
                 item.LastError = "Ausführung abgebrochen.";
                 item.UpdatedAtUtc = UtcNow;
             }
-            _events.Publish(AiRuntimeEventType.ExecutionCancelled, session, message: requestId);
+            finalEvent = AiRuntimeEventType.ExecutionCancelled;
         }
         catch (Exception ex)
         {
@@ -229,7 +282,7 @@ public sealed class AiExecutionScheduler
                 item.LastError = ex.Message;
                 item.UpdatedAtUtc = UtcNow;
             }
-            _events.Publish(AiRuntimeEventType.ExecutionFailed, session, message: requestId);
+            finalEvent = AiRuntimeEventType.ExecutionFailed;
         }
         finally
         {
@@ -237,6 +290,58 @@ public sealed class AiExecutionScheduler
             executionCancellation.Dispose();
         }
 
+        if (_resources is not null && item.ResourceReservationId is not null)
+        {
+            var reservation = _resources.GetReservation(item.ResourceReservationId);
+            if (reservation is not null &&
+                !_resources.Commit(reservation.Id, reservation.EstimatedCost, out var resourceError))
+            {
+                lock (_gate)
+                {
+                    item.State = AiExecutionState.Failed;
+                    item.LastError = $"Resource-Settlement fehlgeschlagen: {resourceError}";
+                    item.UpdatedAtUtc = UtcNow;
+                }
+                finalEvent = AiRuntimeEventType.ExecutionFailed;
+            }
+        }
+
+        _events.Publish(finalEvent, session, message: requestId);
+
+        lock (_gate) return Snapshot(item);
+    }
+
+    private AiExecutionSnapshot ApplyResourceDenial(
+        ScheduledItem item,
+        AiSession session,
+        AiResourceDecision decision)
+    {
+        bool requeued;
+        lock (_gate)
+        {
+            var lease = item.Lease;
+            if (lease is null) return Snapshot(item);
+            _tasks.ReleaseClaim(item.Request.TaskId, lease.SessionId);
+            item.Lease = null;
+            item.LastError = decision.ReasonCode;
+            item.ResourceDeferralCount++;
+            requeued = decision.Retryable && item.ResourceDeferralCount <= _maxResourceDeferrals;
+            if (requeued)
+            {
+                item.State = AiExecutionState.Queued;
+                item.ResourceDeferredUntilUtc = decision.RetryAfterUtc ?? UtcNow.AddSeconds(30);
+                item.AttemptCount = Math.Max(0, item.AttemptCount - 1);
+            }
+            else
+            {
+                item.State = AiExecutionState.Failed;
+            }
+            item.UpdatedAtUtc = UtcNow;
+        }
+
+        _events.Publish(requeued ? AiRuntimeEventType.ExecutionRecovered : AiRuntimeEventType.ExecutionFailed,
+            session, message: item.Request.Id,
+            data: new Dictionary<string, object?> { ["resourceReason"] = decision.ReasonCode });
         lock (_gate) return Snapshot(item);
     }
 
@@ -327,6 +432,23 @@ public sealed class AiExecutionScheduler
     private static bool IsTerminal(AiExecutionState state)
         => state is AiExecutionState.Completed or AiExecutionState.Failed or AiExecutionState.Cancelled;
 
+    private static AiResourceRequirements? CloneRequirements(AiResourceRequirements? requirements)
+        => requirements is null ? null : new AiResourceRequirements
+        {
+            Kind = requirements.Kind,
+            RequiredCapabilities = (requirements.RequiredCapabilities ?? Array.Empty<string>())
+                .Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+            MinimumContextTokens = requirements.MinimumContextTokens,
+            MinimumMemoryMiB = requirements.MinimumMemoryMiB,
+            MinimumWorkUnitsPerMinute = requirements.MinimumWorkUnitsPerMinute,
+            EstimatedInputUnits = requirements.EstimatedInputUnits,
+            EstimatedOutputUnits = requirements.EstimatedOutputUnits,
+            EstimatedWorkUnits = requirements.EstimatedWorkUnits,
+            CostUnit = requirements.CostUnit,
+            PinnedResourceId = requirements.PinnedResourceId,
+            ReservationDuration = requirements.ReservationDuration
+        };
+
     private static AiExecutionSnapshot Snapshot(ScheduledItem item) => new()
     {
         Request = item.Request,
@@ -334,6 +456,9 @@ public sealed class AiExecutionScheduler
         AttemptCount = item.AttemptCount,
         Lease = item.Lease,
         LastError = item.LastError,
+        ResourceId = item.ResourceId,
+        ResourceReservationId = item.ResourceReservationId,
+        ResourceDeferralCount = item.ResourceDeferralCount,
         UpdatedAtUtc = item.UpdatedAtUtc
     };
 

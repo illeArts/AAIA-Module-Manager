@@ -24,6 +24,7 @@ public sealed class AiExecutionRequest
     public DateTime EnqueuedAtUtc { get; init; } = DateTime.UtcNow;
     public DateTime? NotBeforeUtc { get; init; }
     public int MaxAttempts { get; init; } = 3;
+    public AiResourceRequirements? ResourceRequirements { get; init; }
 }
 
 /// <summary>Zeitlich begrenzte Reservierung einer Execution für eine Session.</summary>
@@ -45,5 +46,8 @@ public sealed class AiExecutionSnapshot
     public int AttemptCount { get; init; }
     public AiExecutionLease? Lease { get; init; }
     public string? LastError { get; init; }
+    public string? ResourceId { get; init; }
+    public string? ResourceReservationId { get; init; }
+    public int ResourceDeferralCount { get; init; }
     public DateTime UpdatedAtUtc { get; init; }
 }
