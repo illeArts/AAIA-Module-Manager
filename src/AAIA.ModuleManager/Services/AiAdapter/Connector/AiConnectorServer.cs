@@ -31,6 +31,10 @@ public sealed class AiConnectorServer : IDisposable
     // Pending Patch-Proposals: proposalId → TCS<bool> (true = approved)
     private readonly ConcurrentDictionary<string, TaskCompletionSource<bool>> _pending = new();
 
+    // Abgeschlossene Proposals: proposalId → "approved" | "rejected" | "expired"
+    // Einträge bleiben 10 Minuten gespeichert damit Polling nach Entscheidung noch antworten kann.
+    private readonly ConcurrentDictionary<string, (string Status, DateTime ResolvedAt)> _resolved = new();
+
     // Letzter bekannter Projektzustand (vom ViewModel aktualisiert)
     private volatile AiHandoffContext? _currentContext;
     private volatile string?           _projectRoot;
@@ -49,9 +53,10 @@ public sealed class AiConnectorServer : IDisposable
 
     // ── Status ────────────────────────────────────────────────────────────────
 
-    public bool IsRunning => _running;
-    public int  Port      => AiConnectorProtocol.Port;
-    public string BaseUrl  => AiConnectorProtocol.BaseUrl;
+    public bool   IsRunning => _running;
+    public int    Port      => _config.AiConnector.Port;
+    public string BaseUrl   => $"http://localhost:{Port}";
+    private string Prefix   => $"http://localhost:{Port}/aaia/v1/";
 
     // ── Konstruktor ───────────────────────────────────────────────────────────
 
@@ -68,7 +73,7 @@ public sealed class AiConnectorServer : IDisposable
 
         _cts      = new CancellationTokenSource();
         _listener = new HttpListener();
-        _listener.Prefixes.Add(AiConnectorProtocol.FullPrefix);
+        _listener.Prefixes.Add(Prefix);
 
         try
         {
@@ -99,10 +104,14 @@ public sealed class AiConnectorServer : IDisposable
             await _serverTask.ConfigureAwait(false);
         }
 
-        // Alle wartenden Requests ablehnen
-        foreach (var tcs in _pending.Values)
+        // Alle wartenden Requests als expired markieren
+        foreach (var (id, tcs) in _pending)
+        {
             tcs.TrySetResult(false);
+            _resolved[id] = ("expired", DateTime.UtcNow);
+        }
         _pending.Clear();
+        _resolved.Clear();
     }
 
     // ── Kontext aktualisieren ─────────────────────────────────────────────────
@@ -123,14 +132,33 @@ public sealed class AiConnectorServer : IDisposable
     public void ApprovePatch(string proposalId)
     {
         if (_pending.TryRemove(proposalId, out var tcs))
+        {
             tcs.TrySetResult(true);
+            _resolved[proposalId] = ("approved", DateTime.UtcNow);
+            PurgeOldResolved();
+        }
     }
 
     /// <summary>Vom ViewModel aufgerufen: Nutzer hat Patch abgelehnt.</summary>
     public void RejectPatch(string proposalId)
     {
         if (_pending.TryRemove(proposalId, out var tcs))
+        {
             tcs.TrySetResult(false);
+            _resolved[proposalId] = ("rejected", DateTime.UtcNow);
+            PurgeOldResolved();
+        }
+    }
+
+    /// <summary>Entfernt Resolved-Einträge die älter als 10 Minuten sind (Memory-Leak-Schutz).</summary>
+    private void PurgeOldResolved()
+    {
+        var cutoff = DateTime.UtcNow.AddMinutes(-ConnectorHardening.PatchApprovalTimeoutMinutes);
+        foreach (var key in _resolved.Keys)
+        {
+            if (_resolved.TryGetValue(key, out var entry) && entry.ResolvedAt < cutoff)
+                _resolved.TryRemove(key, out _);
+        }
     }
 
     // ── Listen-Loop ───────────────────────────────────────────────────────────
@@ -465,14 +493,37 @@ public sealed class AiConnectorServer : IDisposable
             return;
         }
 
-        var isPending = _pending.ContainsKey(id);
-        var status    = isPending ? "pending" : "resolved";
+        string status;
+        int    approvedCount = 0;
+        int    rejectedCount = 0;
+        int    pendingCount  = 0;
+
+        if (_pending.ContainsKey(id))
+        {
+            status       = "pending";
+            pendingCount = 1;
+        }
+        else if (_resolved.TryGetValue(id, out var resolved))
+        {
+            status = resolved.Status; // "approved" | "rejected" | "expired"
+            if (resolved.Status == "approved") approvedCount = 1;
+            else if (resolved.Status == "rejected") rejectedCount = 1;
+        }
+        else
+        {
+            // Unbekannte ID — entweder nie existiert oder bereits aus Cache gefallen
+            await WriteJsonAsync(resp, AiConnectorProtocol.StatusNotFound,
+                new { error = "Proposal-ID nicht gefunden oder abgelaufen.", proposalId = id });
+            return;
+        }
 
         await WriteJsonAsync(resp, AiConnectorProtocol.StatusOk, new AiPatchStatusResponse
         {
-            ProposalId   = id,
-            Status       = status,
-            PendingCount = isPending ? 1 : 0
+            ProposalId    = id,
+            Status        = status,
+            ApprovedCount = approvedCount,
+            RejectedCount = rejectedCount,
+            PendingCount  = pendingCount,
         });
     }
 

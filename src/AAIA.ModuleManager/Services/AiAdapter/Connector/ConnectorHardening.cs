@@ -50,6 +50,7 @@ public static class ConnectorHardening
     /// <summary>
     /// Gibt zurück ob der Connector das Raten-Limit überschritten hat.
     /// Sliding-Window: zählt Requests der letzten 60 Sekunden.
+    /// Inactive Windows (keine Anfrage > 5 Minuten) werden lazy bereinigt.
     /// </summary>
     public static bool IsRateLimited(string connectorId)
     {
@@ -60,14 +61,38 @@ public static class ConnectorHardening
         {
             // Alte Einträge entfernen (älter als 1 Minute)
             window.Timestamps.RemoveAll(t => (now - t).TotalSeconds > 60);
+            window.LastUsed = now;
 
             if (window.Timestamps.Count >= MaxRequestsPerMinute)
                 return true;
 
             window.Timestamps.Add(now);
-            return false;
+        }
+
+        // Lazy-Purge: inaktive Windows anderer Connector-IDs entfernen
+        PurgeInactiveWindows(now);
+        return false;
+    }
+
+    private static void PurgeInactiveWindows(DateTime now)
+    {
+        // Nur alle 60 Sekunden aufräumen (Throttle via statisches Feld)
+        if ((now - _lastPurge).TotalSeconds < 60) return;
+        _lastPurge = now;
+
+        var cutoff = now.AddMinutes(-5);
+        foreach (var key in _rateWindows.Keys)
+        {
+            if (_rateWindows.TryGetValue(key, out var w))
+            {
+                bool stale;
+                lock (w) { stale = w.LastUsed < cutoff && w.Timestamps.Count == 0; }
+                if (stale) _rateWindows.TryRemove(key, out _);
+            }
         }
     }
+
+    private static DateTime _lastPurge = DateTime.UtcNow;
 
     /// <summary>Setzt den Rate-Counter für einen Connector zurück (für Tests).</summary>
     public static void ResetRateWindow(string connectorId)
@@ -76,6 +101,7 @@ public static class ConnectorHardening
     private sealed class RateWindow
     {
         public List<DateTime> Timestamps { get; } = new(64);
+        public DateTime       LastUsed   { get; set; } = DateTime.UtcNow;
     }
 
     // ── Body-Size-Check ───────────────────────────────────────────────────────
