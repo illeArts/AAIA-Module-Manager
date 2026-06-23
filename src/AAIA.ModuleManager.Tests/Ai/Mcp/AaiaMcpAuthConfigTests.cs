@@ -1,4 +1,4 @@
-using AAIA.ModuleManager.Services.Ai.Mcp;
+using AAIA.Air.Mcp;
 using Xunit;
 
 namespace AAIA.ModuleManager.Tests.Ai.Mcp;

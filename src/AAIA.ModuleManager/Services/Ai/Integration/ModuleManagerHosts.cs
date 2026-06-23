@@ -4,8 +4,8 @@ using System.IO;
 using System.Linq;
 using System.Threading;
 using System.Threading.Tasks;
-using AAIA.ModuleManager.Services.Ai.Runtime;
-using AAIA.ModuleManager.Services.Ai.Runtime.Hosts;
+using AAIA.Air;
+using AAIA.Air.Hosts;
 
 namespace AAIA.ModuleManager.Services.Ai.Integration;
 

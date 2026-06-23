@@ -1,8 +1,8 @@
 using System.Linq;
 using System.Text.Json;
 using System.Threading.Tasks;
-using AAIA.ModuleManager.Services.Ai.Runtime;
-using AAIA.ModuleManager.Services.Ai.Runtime.Hosts;
+using AAIA.Air;
+using AAIA.Air.Hosts;
 using Xunit;
 
 namespace AAIA.ModuleManager.Tests.Ai.Runtime;

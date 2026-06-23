@@ -2,6 +2,7 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using AAIA.Air.Mcp;
 using AAIA.ModuleManager.Services.AiAdapter;
 using AAIA.ModuleManager.Services.AiAdapter.Connector;
 using AAIA.Shared.Contracts.Publisher;
@@ -112,7 +113,7 @@ public class AppConfig
     // ── Phase 7.0 — AI Runtime / MCP-Bridge ──────────────────────────────────
 
     /// <summary>Einstellungen der AI Runtime / MCP-Bridge (standardmäßig deaktiviert).</summary>
-    public Ai.Mcp.AaiaMcpBridgeOptions McpBridge { get; set; } = new();
+    public AaiaMcpBridgeOptions McpBridge { get; set; } = new();
 
     // V2 — AAIAS connection
     public string AaiasUrl      { get; set; } = "http://localhost:5174";
