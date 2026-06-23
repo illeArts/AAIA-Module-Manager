@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0 sowie Plattform-Split Stage 1 und 2 sind abgeschlossen. Build: 0 Fehler/0 Warnungen, Tests: 112/112 grün. Nächster Schritt: Stage 3 (`AAIA.Air.SDK`).
+**Stand:** Phase 7.0 und der vollständige Vier-Projekt-Plattform-Split sind abgeschlossen. Tests: 114/114 grün. Nächster Schritt: Phase 8 separat planen.
 
 ## Wo wir stehen
 
@@ -9,6 +9,7 @@ Implementiert und gebaut:
 - **Contracts** (`src/AAIA.Air.Contracts/`): BCL-only, keine Projekt- oder NuGet-Abhängigkeiten. Enthält öffentliche Typen, Enums, Sessions, Host-Interfaces, Task-/Workflow-Modelle, Events, Capability-Interfaces und `AiMessage`.
 - **AIR-Runtime-Kern** (`src/AAIA.Air/`): `AiRuntimeService` (Orchestrator mit Sicherheits-Kette Session→Capability→Permission→Lock→Ausführung→Audit+Event), Manager, Engines, Blackboard und Memory. Referenziert nur Contracts.
 - **MCP-Adapter** (`src/AAIA.Air.Mcp/`): `AaiaMcpServer` (ASP.NET Core Streamable HTTP, 127.0.0.1:39158, Token-Middleware, SDK 1.4.0), Adapter, Auth, Konfiguration und Composition.
+- **SDK** (`src/AAIA.Air.SDK/`): öffentliche ETW-Entwickleroberfläche mit `AirToolProviderBase` und `AirToolBuilder`; referenziert ausschließlich Contracts.
 - **Module-Manager-Integration** (`src/AAIA.ModuleManager/Services/Ai/Integration/`): app-spezifische Hosts, Bridge und UI-Glue. Die Runtime kennt den Module Manager nicht.
 
 ## ✅ Schritt 2 — ERLEDIGT (App-Verdrahtung)
@@ -24,10 +25,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. **Stage 3:** `AAIA.Air.SDK` mit `AirToolProviderBase` und `AirToolBuilder` für ETW-Entwickler erstellen.
-2. SDK gegen `AAIA.Air.Contracts` referenzieren; keine Abhängigkeit auf Runtime, MCP oder Module Manager.
-3. Builder-/Provider-Tests ergänzen und kompletten Build/Test erneut ausführen.
-4. Danach Plattform-Split als abgeschlossen sichern und erst dann Phase 8 planen.
+1. Plattform-Split-Checkpoint mergen.
+2. NuGet-Metadaten und Veröffentlichungsstrategie für Contracts/SDK separat festlegen.
+3. Phase 8 (Messaging, Scheduling, Resources) als eigene Spezifikation planen; keine Phase-8-Logik in diesen Split-Commit aufnehmen.
 
 ## Harte Regeln (nicht verletzen)
 

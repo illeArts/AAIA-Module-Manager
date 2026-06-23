@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <RootNamespace>AAIA.Air.SDK</RootNamespace>
+    <AssemblyName>AAIA.Air.SDK</AssemblyName>
+    <Description>Public SDK for AAIA Intelligence Runtime tool providers.</Description>
+  </PropertyGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\AAIA.Air.Contracts\AAIA.Air.Contracts.csproj" />
+  </ItemGroup>
+</Project>
