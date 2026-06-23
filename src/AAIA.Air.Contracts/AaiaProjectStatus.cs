@@ -1,4 +1,4 @@
-namespace AAIA.Air;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Schlanker, secret-freier Statusausschnitt für aaia.status.get.

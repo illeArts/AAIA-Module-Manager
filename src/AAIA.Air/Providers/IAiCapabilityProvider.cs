@@ -2,31 +2,9 @@ using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Linq;
+using AAIA.Air.Contracts;
 
 namespace AAIA.Air.Providers;
-
-/// <summary>Bekannte externe Modul-Fähigkeiten (nicht KI-Capabilities, sondern Ressourcen).</summary>
-public static class AiRequiredCapabilities
-{
-    public const string Filesystem = "filesystem";
-    public const string Scanner    = "scanner";
-    public const string Router     = "router";
-    public const string Docker     = "docker";
-    public const string Git        = "git";
-    public const string Network    = "network";
-}
-
-/// <summary>
-/// Ein Modul deklariert, welche externen Fähigkeiten es benötigt (Filesystem, Scanner,
-/// Router, Docker, Git …). Die Runtime weiß dadurch automatisch, welche Ressourcen ein
-/// Modul braucht — Grundlage für spätere Freigaben/Sandbox-Entscheidungen.
-/// Ergänzt <see cref="AAIA.Air.IAiToolProvider"/>.
-/// </summary>
-public interface IAiCapabilityProvider
-{
-    string ProviderId { get; }
-    IEnumerable<string> RequiredCapabilities();
-}
 
 /// <summary>Sammelt die Capability-Anforderungen aller Module.</summary>
 public sealed class AiCapabilityRequirementRegistry

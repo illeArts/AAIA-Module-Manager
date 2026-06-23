@@ -1,8 +1,7 @@
 using System;
 using System.Collections.Generic;
-using AAIA.Air.Roles;
 
-namespace AAIA.Air;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Eine aktive Sitzung eines KI-Clients. Mehrere Sessions existieren gleichzeitig —

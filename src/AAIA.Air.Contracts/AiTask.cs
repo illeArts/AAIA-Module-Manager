@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
-namespace AAIA.Air.Tasks;
+namespace AAIA.Air.Contracts;
 
 public enum AiTaskStatus
 {

@@ -1,4 +1,4 @@
-namespace AAIA.Air.Roles;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Rollen/Verantwortlichkeiten einer KI im Team. Nicht modellspezifisch — jede KI kann

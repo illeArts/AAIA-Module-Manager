@@ -1,7 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Linq;
-using AAIA.Air.Roles;
+using AAIA.Air.Contracts;
 
 namespace AAIA.Air.Collaboration;
 
