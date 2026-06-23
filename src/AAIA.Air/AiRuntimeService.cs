@@ -5,6 +5,7 @@ using System.Threading.Tasks;
 using AAIA.Air.Collaboration;
 using AAIA.Air.Hosts;
 using AAIA.Air.Memory;
+using AAIA.Air.Messaging;
 using AAIA.Air.Providers;
 using AAIA.Air.Tasks;
 using AAIA.Air.Workflows;
@@ -26,6 +27,9 @@ public sealed class AiRuntimeService
     public AiWorkspaceLockService Locks        { get; }
     public AiRuntimeEventBus     Events        { get; }
     public AiAuditService        Audit         { get; }
+
+    /// <summary>Sessiongebundene Nachrichten zwischen AIR-Teilnehmern.</summary>
+    public AiMessageBus          Messages      { get; }
 
     /// <summary>Host-Registry — die Runtime kennt nur Interfaces, keine konkrete App.</summary>
     public AiHostRegistry        Hosts         { get; } = new();
@@ -67,6 +71,7 @@ public sealed class AiRuntimeService
         Locks        = locks;
         Events       = events;
         Audit        = audit;
+        Messages     = new AiMessageBus(Sessions, Events);
 
         // Task- und Workflow-Schritte laufen durch denselben sicheren Runtime-Pfad.
         Func<string, string, JsonElement, CancellationToken, Task<(bool, string)>> executor =
