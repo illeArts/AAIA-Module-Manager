@@ -57,6 +57,13 @@ public enum AiRuntimeEventType
     MessageSent,
     MessageDelivered,
     MessageAcknowledged,
+    ExecutionQueued,
+    ExecutionLeased,
+    ExecutionStarted,
+    ExecutionCompleted,
+    ExecutionFailed,
+    ExecutionCancelled,
+    ExecutionRecovered,
     ErrorOccurred
 }
 

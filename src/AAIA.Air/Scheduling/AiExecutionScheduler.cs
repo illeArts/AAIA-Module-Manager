@@ -1,0 +1,341 @@
+using AAIA.Air.Tasks;
+
+namespace AAIA.Air.Scheduling;
+
+/// <summary>
+/// Priorisierte, alternde Execution Queue. Der Scheduler weist bestehende AIR-Tasks
+/// geeigneten Sessions zu; ausgeführt wird ausschließlich über den AiTaskManager.
+/// </summary>
+public sealed class AiExecutionScheduler
+{
+    private sealed class ScheduledItem
+    {
+        public required AiExecutionRequest Request { get; init; }
+        public AiExecutionState State { get; set; } = AiExecutionState.Queued;
+        public int AttemptCount { get; set; }
+        public AiExecutionLease? Lease { get; set; }
+        public string? LastError { get; set; }
+        public DateTime UpdatedAtUtc { get; set; }
+        public CancellationTokenSource? Cancellation { get; set; }
+    }
+
+    private readonly object _gate = new();
+    private readonly Dictionary<string, ScheduledItem> _items = new(StringComparer.Ordinal);
+    private readonly Dictionary<string, long> _sessionLastAssigned = new(StringComparer.Ordinal);
+    private readonly AiTaskManager _tasks;
+    private readonly AiSessionManager _sessions;
+    private readonly AiRuntimeEventBus _events;
+    private readonly TimeProvider _time;
+    private readonly TimeSpan _leaseDuration;
+    private readonly TimeSpan _agingInterval;
+    private long _assignmentSequence;
+
+    public AiExecutionScheduler(
+        AiTaskManager tasks,
+        AiSessionManager sessions,
+        AiRuntimeEventBus events,
+        TimeProvider? timeProvider = null,
+        TimeSpan? leaseDuration = null,
+        TimeSpan? agingInterval = null)
+    {
+        _tasks = tasks ?? throw new ArgumentNullException(nameof(tasks));
+        _sessions = sessions ?? throw new ArgumentNullException(nameof(sessions));
+        _events = events ?? throw new ArgumentNullException(nameof(events));
+        _time = timeProvider ?? TimeProvider.System;
+        _leaseDuration = leaseDuration ?? TimeSpan.FromMinutes(2);
+        _agingInterval = agingInterval ?? TimeSpan.FromMinutes(5);
+        if (_leaseDuration <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(leaseDuration));
+        if (_agingInterval <= TimeSpan.Zero) throw new ArgumentOutOfRangeException(nameof(agingInterval));
+    }
+
+    public AiExecutionSnapshot Enqueue(
+        string taskId,
+        AiExecutionPriority priority = AiExecutionPriority.Normal,
+        AiRole? requiredRole = null,
+        IEnumerable<string>? requiredCapabilities = null,
+        DateTime? notBeforeUtc = null,
+        int maxAttempts = 3)
+    {
+        if (maxAttempts <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttempts));
+        var task = _tasks.Get(taskId) ?? throw new InvalidOperationException("Aufgabe nicht gefunden.");
+        if (task.Status != AiTaskStatus.Pending || task.OwnerSessionId is not null)
+            throw new InvalidOperationException("Nur nicht übernommene Pending-Aufgaben können eingeplant werden.");
+
+        var now = UtcNow;
+        var request = new AiExecutionRequest
+        {
+            TaskId = taskId,
+            Priority = priority,
+            RequiredRole = requiredRole,
+            RequiredCapabilities = requiredCapabilities?.Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
+                ?? Array.Empty<string>(),
+            EnqueuedAtUtc = now,
+            NotBeforeUtc = notBeforeUtc,
+            MaxAttempts = maxAttempts
+        };
+
+        ScheduledItem item;
+        lock (_gate)
+        {
+            if (_items.Values.Any(existing => existing.Request.TaskId == taskId && !IsTerminal(existing.State)))
+                throw new InvalidOperationException("Aufgabe ist bereits eingeplant.");
+            item = new ScheduledItem { Request = request, UpdatedAtUtc = now };
+            _items[request.Id] = item;
+        }
+
+        _events.Publish(new AiRuntimeEvent
+        {
+            Type = AiRuntimeEventType.ExecutionQueued,
+            Message = request.Id,
+            Data = new Dictionary<string, object?> { ["taskId"] = taskId, ["priority"] = priority.ToString() }
+        });
+        return Snapshot(item);
+    }
+
+    public bool TryAssignNext(out AiExecutionLease? lease)
+    {
+        RecoverExpiredLeases();
+        lease = null;
+        AiSession? selectedSession = null;
+        ScheduledItem? selectedItem = null;
+        var now = UtcNow;
+
+        lock (_gate)
+        {
+            var busySessions = _items.Values
+                .Where(item => item.State is AiExecutionState.Leased or AiExecutionState.Running or AiExecutionState.Cancelling)
+                .Select(item => item.Lease?.SessionId)
+                .Where(id => id is not null)
+                .ToHashSet(StringComparer.Ordinal);
+
+            var candidates = _items.Values
+                .Where(item => item.State == AiExecutionState.Queued &&
+                               (!item.Request.NotBeforeUtc.HasValue || item.Request.NotBeforeUtc <= now))
+                .OrderByDescending(item => EffectivePriority(item.Request, now))
+                .ThenBy(item => item.Request.EnqueuedAtUtc)
+                .ThenBy(item => item.Request.Id)
+                .ToArray();
+
+            foreach (var item in candidates)
+            {
+                var session = _sessions.Active
+                    .Where(candidate => !busySessions.Contains(candidate.SessionId))
+                    .Where(candidate => !item.Request.RequiredRole.HasValue ||
+                                        candidate.HasRole(item.Request.RequiredRole.Value))
+                    .Where(candidate => item.Request.RequiredCapabilities.All(candidate.HasCapability))
+                    .OrderBy(candidate => _sessionLastAssigned.GetValueOrDefault(candidate.SessionId, long.MinValue))
+                    .ThenBy(candidate => candidate.ActiveLocks.Count)
+                    .ThenBy(candidate => candidate.ConnectedAt)
+                    .FirstOrDefault();
+
+                if (session is null) continue;
+                if (!_tasks.Claim(item.Request.TaskId, session, out var conflict))
+                {
+                    item.State = AiExecutionState.Failed;
+                    item.LastError = conflict;
+                    item.UpdatedAtUtc = now;
+                    continue;
+                }
+
+                item.AttemptCount++;
+                item.State = AiExecutionState.Leased;
+                item.Lease = new AiExecutionLease
+                {
+                    RequestId = item.Request.Id,
+                    TaskId = item.Request.TaskId,
+                    SessionId = session.SessionId,
+                    Attempt = item.AttemptCount,
+                    LeasedAtUtc = now,
+                    ExpiresAtUtc = now + _leaseDuration
+                };
+                item.UpdatedAtUtc = now;
+                _sessionLastAssigned[session.SessionId] = ++_assignmentSequence;
+                selectedItem = item;
+                selectedSession = session;
+                lease = item.Lease;
+                break;
+            }
+        }
+
+        if (lease is null || selectedSession is null || selectedItem is null) return false;
+        _events.Publish(AiRuntimeEventType.ExecutionLeased, selectedSession, message: lease.RequestId,
+            data: new Dictionary<string, object?> { ["taskId"] = lease.TaskId, ["attempt"] = lease.Attempt });
+        return true;
+    }
+
+    public async Task<AiExecutionSnapshot> RunAsync(
+        string requestId,
+        string sessionId,
+        CancellationToken cancellationToken = default)
+    {
+        AiExecutionLease lease;
+        AiSession session;
+        CancellationTokenSource executionCancellation;
+        ScheduledItem item;
+
+        lock (_gate)
+        {
+            item = GetItem(requestId);
+            if (item.State != AiExecutionState.Leased || item.Lease?.SessionId != sessionId)
+                throw new InvalidOperationException("Execution besitzt keine gültige Lease für diese Session.");
+            if (item.Lease.ExpiresAtUtc <= UtcNow)
+                throw new InvalidOperationException("Execution-Lease ist abgelaufen.");
+            if (!_sessions.TryGet(sessionId, out session!))
+                throw new InvalidOperationException("Zugewiesene Session ist nicht mehr aktiv.");
+
+            lease = item.Lease;
+            executionCancellation = CancellationTokenSource.CreateLinkedTokenSource(cancellationToken);
+            item.Cancellation = executionCancellation;
+            item.State = AiExecutionState.Running;
+            item.UpdatedAtUtc = UtcNow;
+        }
+
+        _events.Publish(AiRuntimeEventType.ExecutionStarted, session, message: requestId,
+            data: new Dictionary<string, object?> { ["taskId"] = lease.TaskId });
+
+        try
+        {
+            var task = await _tasks.RunAsync(lease.TaskId, session, executionCancellation.Token)
+                .ConfigureAwait(false);
+            lock (_gate)
+            {
+                item.State = task.Status == AiTaskStatus.Completed
+                    ? AiExecutionState.Completed
+                    : AiExecutionState.Failed;
+                item.LastError = task.Status == AiTaskStatus.Completed ? null : $"Task-Status: {task.Status}";
+                item.UpdatedAtUtc = UtcNow;
+            }
+            _events.Publish(
+                item.State == AiExecutionState.Completed
+                    ? AiRuntimeEventType.ExecutionCompleted
+                    : AiRuntimeEventType.ExecutionFailed,
+                session, message: requestId);
+        }
+        catch (OperationCanceledException)
+        {
+            lock (_gate)
+            {
+                item.State = AiExecutionState.Cancelled;
+                item.LastError = "Ausführung abgebrochen.";
+                item.UpdatedAtUtc = UtcNow;
+            }
+            _events.Publish(AiRuntimeEventType.ExecutionCancelled, session, message: requestId);
+        }
+        catch (Exception ex)
+        {
+            lock (_gate)
+            {
+                item.State = AiExecutionState.Failed;
+                item.LastError = ex.Message;
+                item.UpdatedAtUtc = UtcNow;
+            }
+            _events.Publish(AiRuntimeEventType.ExecutionFailed, session, message: requestId);
+        }
+        finally
+        {
+            lock (_gate) item.Cancellation = null;
+            executionCancellation.Dispose();
+        }
+
+        lock (_gate) return Snapshot(item);
+    }
+
+    public bool Cancel(string requestId)
+    {
+        AiRuntimeEventType? eventType = null;
+        AiSession? session = null;
+        lock (_gate)
+        {
+            if (!_items.TryGetValue(requestId, out var item) || IsTerminal(item.State)) return false;
+            if (item.State == AiExecutionState.Queued)
+            {
+                item.State = AiExecutionState.Cancelled;
+                item.UpdatedAtUtc = UtcNow;
+                eventType = AiRuntimeEventType.ExecutionCancelled;
+            }
+            else if (item.State == AiExecutionState.Leased && item.Lease is not null)
+            {
+                _tasks.ReleaseClaim(item.Request.TaskId, item.Lease.SessionId);
+                _sessions.TryGet(item.Lease.SessionId, out session!);
+                item.State = AiExecutionState.Cancelled;
+                item.UpdatedAtUtc = UtcNow;
+                eventType = AiRuntimeEventType.ExecutionCancelled;
+            }
+            else if (item.State == AiExecutionState.Running)
+            {
+                item.State = AiExecutionState.Cancelling;
+                item.UpdatedAtUtc = UtcNow;
+                item.Cancellation?.Cancel();
+            }
+        }
+
+        if (eventType.HasValue)
+            _events.Publish(eventType.Value, session, message: requestId);
+        return true;
+    }
+
+    public int RecoverExpiredLeases()
+    {
+        var recovered = new List<(string RequestId, AiSession? Session, bool Failed)>();
+        var now = UtcNow;
+        lock (_gate)
+        {
+            foreach (var item in _items.Values.Where(item => item.State == AiExecutionState.Leased).ToArray())
+            {
+                var lease = item.Lease!;
+                if (lease.ExpiresAtUtc > now && _sessions.TryGet(lease.SessionId, out _)) continue;
+
+                _tasks.ReleaseClaim(item.Request.TaskId, lease.SessionId);
+                _sessions.TryGet(lease.SessionId, out var session);
+                var failed = item.AttemptCount >= item.Request.MaxAttempts;
+                item.State = failed ? AiExecutionState.Failed : AiExecutionState.Queued;
+                item.LastError = failed ? "Maximale Lease-Versuche überschritten." : null;
+                item.Lease = null;
+                item.UpdatedAtUtc = now;
+                recovered.Add((item.Request.Id, session, failed));
+            }
+        }
+
+        foreach (var entry in recovered)
+            _events.Publish(entry.Failed ? AiRuntimeEventType.ExecutionFailed : AiRuntimeEventType.ExecutionRecovered,
+                entry.Session, message: entry.RequestId);
+        return recovered.Count;
+    }
+
+    public AiExecutionSnapshot? Get(string requestId)
+    {
+        lock (_gate) return _items.TryGetValue(requestId, out var item) ? Snapshot(item) : null;
+    }
+
+    public IReadOnlyList<AiExecutionSnapshot> List()
+    {
+        lock (_gate)
+            return _items.Values.OrderBy(item => item.Request.EnqueuedAtUtc).Select(Snapshot).ToArray();
+    }
+
+    private ScheduledItem GetItem(string requestId)
+        => _items.TryGetValue(requestId, out var item)
+            ? item
+            : throw new InvalidOperationException("Execution nicht gefunden.");
+
+    private int EffectivePriority(AiExecutionRequest request, DateTime now)
+    {
+        var ageSteps = Math.Max(0, (int)((now - request.EnqueuedAtUtc).Ticks / _agingInterval.Ticks));
+        return Math.Min((int)AiExecutionPriority.Critical, (int)request.Priority + ageSteps);
+    }
+
+    private static bool IsTerminal(AiExecutionState state)
+        => state is AiExecutionState.Completed or AiExecutionState.Failed or AiExecutionState.Cancelled;
+
+    private static AiExecutionSnapshot Snapshot(ScheduledItem item) => new()
+    {
+        Request = item.Request,
+        State = item.State,
+        AttemptCount = item.AttemptCount,
+        Lease = item.Lease,
+        LastError = item.LastError,
+        UpdatedAtUtc = item.UpdatedAtUtc
+    };
+
+    private DateTime UtcNow => _time.GetUtcNow().UtcDateTime;
+}

@@ -54,15 +54,40 @@ public sealed class AiTaskManager
             conflict = "Aufgabe nicht gefunden.";
             return false;
         }
-        if (task.OwnerSessionId is not null && task.OwnerSessionId != session.SessionId)
+        lock (task)
         {
-            conflict = $"Bereits übernommen von {task.OwnerClientName} ({task.OwnerSessionId}).";
-            return false;
+            if (task.OwnerSessionId is not null && task.OwnerSessionId != session.SessionId)
+            {
+                conflict = $"Bereits übernommen von {task.OwnerClientName} ({task.OwnerSessionId}).";
+                return false;
+            }
+            if (task.Status is not (AiTaskStatus.Pending or AiTaskStatus.Claimed))
+            {
+                conflict = $"Aufgabe kann im Status {task.Status} nicht übernommen werden.";
+                return false;
+            }
+            task.OwnerSessionId = session.SessionId;
+            task.OwnerClientName = session.ClientName;
+            if (task.Status == AiTaskStatus.Pending) task.Status = AiTaskStatus.Claimed;
+            task.UpdatedAt = DateTime.UtcNow;
         }
-        task.OwnerSessionId = session.SessionId;
-        task.OwnerClientName = session.ClientName;
-        if (task.Status == AiTaskStatus.Pending) task.Status = AiTaskStatus.Claimed;
-        task.UpdatedAt = DateTime.UtcNow;
+        TaskChanged?.Invoke(task);
+        return true;
+    }
+
+    /// <summary>Gibt einen noch nicht gestarteten Claim frei, z. B. nach Lease-Ablauf.</summary>
+    public bool ReleaseClaim(string id, string sessionId)
+    {
+        if (!_tasks.TryGetValue(id, out var task)) return false;
+        lock (task)
+        {
+            if (task.Status != AiTaskStatus.Claimed || task.OwnerSessionId != sessionId)
+                return false;
+            task.OwnerSessionId = null;
+            task.OwnerClientName = null;
+            task.Status = AiTaskStatus.Pending;
+            task.UpdatedAt = DateTime.UtcNow;
+        }
         TaskChanged?.Invoke(task);
         return true;
     }
@@ -80,32 +105,62 @@ public sealed class AiTaskManager
         if (task.OwnerSessionId != owner.SessionId)
             throw new InvalidOperationException("Nur der Owner darf die Aufgabe ausführen.");
 
-        task.Status = AiTaskStatus.InProgress;
-        task.UpdatedAt = DateTime.UtcNow;
+        lock (task)
+        {
+            if (task.Status != AiTaskStatus.Claimed)
+                throw new InvalidOperationException($"Aufgabe kann im Status {task.Status} nicht gestartet werden.");
+            task.Status = AiTaskStatus.InProgress;
+            task.UpdatedAt = DateTime.UtcNow;
+        }
         TaskChanged?.Invoke(task);
 
-        foreach (var step in task.Steps)
+        try
         {
-            ct.ThrowIfCancellationRequested();
-            step.Status = AiTaskStepStatus.Running;
-            TaskChanged?.Invoke(task);
-
-            var (ok, json) = await Executor(owner.SessionId, step.ToolName, step.Input, ct).ConfigureAwait(false);
-            step.ResultJson = json;
-
-            if (ok)
+            foreach (var step in task.Steps)
             {
-                step.Status = AiTaskStepStatus.Done;
-            }
-            else
-            {
-                step.Status = AiTaskStepStatus.Failed;
-                step.Error = json;
-                task.Status = AiTaskStatus.Failed;
-                task.UpdatedAt = DateTime.UtcNow;
+                ct.ThrowIfCancellationRequested();
+                step.Status = AiTaskStepStatus.Running;
                 TaskChanged?.Invoke(task);
-                return task;
+
+                var (ok, json) = await Executor(owner.SessionId, step.ToolName, step.Input, ct).ConfigureAwait(false);
+                step.ResultJson = json;
+
+                if (ok)
+                {
+                    step.Status = AiTaskStepStatus.Done;
+                }
+                else
+                {
+                    step.Status = AiTaskStepStatus.Failed;
+                    step.Error = json;
+                    task.Status = AiTaskStatus.Failed;
+                    task.UpdatedAt = DateTime.UtcNow;
+                    TaskChanged?.Invoke(task);
+                    return task;
+                }
             }
+        }
+        catch (OperationCanceledException)
+        {
+            var running = task.Steps.FirstOrDefault(step => step.Status == AiTaskStepStatus.Running);
+            if (running is not null) running.Status = AiTaskStepStatus.Skipped;
+            task.Status = AiTaskStatus.Cancelled;
+            task.UpdatedAt = DateTime.UtcNow;
+            TaskChanged?.Invoke(task);
+            throw;
+        }
+        catch (Exception ex)
+        {
+            var running = task.Steps.FirstOrDefault(step => step.Status == AiTaskStepStatus.Running);
+            if (running is not null)
+            {
+                running.Status = AiTaskStepStatus.Failed;
+                running.Error = ex.Message;
+            }
+            task.Status = AiTaskStatus.Failed;
+            task.UpdatedAt = DateTime.UtcNow;
+            TaskChanged?.Invoke(task);
+            throw;
         }
 
         task.Status = AiTaskStatus.Completed;
