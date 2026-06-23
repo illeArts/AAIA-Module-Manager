@@ -3,7 +3,7 @@ using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AAIA.Air;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Definition eines Runtime-Tools. Gehört in die AI Runtime — NICHT in MCP.

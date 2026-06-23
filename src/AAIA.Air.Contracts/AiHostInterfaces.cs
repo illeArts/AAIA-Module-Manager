@@ -1,7 +1,7 @@
 using System.Threading;
 using System.Threading.Tasks;
 
-namespace AAIA.Air.Hosts;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Host-Abstraktion. Die AI Runtime kennt KEINE konkrete App (Module Manager, AAIAS,

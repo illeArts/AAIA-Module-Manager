@@ -1,4 +1,4 @@
-namespace AAIA.Air;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Identität eines verbundenen KI-Clients — Grundlage für Audit und Per-Client-Permissions.

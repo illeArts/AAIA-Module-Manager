@@ -3,10 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
-    <RootNamespace>AAIA.Air</RootNamespace>
-    <AssemblyName>AAIA.Air</AssemblyName>
+    <RootNamespace>AAIA.Air.Contracts</RootNamespace>
+    <AssemblyName>AAIA.Air.Contracts</AssemblyName>
   </PropertyGroup>
-  <ItemGroup>
-    <ProjectReference Include="..\AAIA.Air.Contracts\AAIA.Air.Contracts.csproj" />
-  </ItemGroup>
 </Project>

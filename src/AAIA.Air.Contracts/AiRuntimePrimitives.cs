@@ -1,6 +1,6 @@
 using System;
 
-namespace AAIA.Air;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Risikostufen für AI-Runtime-Tools. Black-Tools werden nicht implementiert.

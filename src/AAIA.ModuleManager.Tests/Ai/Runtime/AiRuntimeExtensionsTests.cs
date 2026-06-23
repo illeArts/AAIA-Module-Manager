@@ -168,9 +168,9 @@ public sealed class AiRuntimeExtensionsTests
     {
         var rt = BuildRuntime();
         var dev = Session(rt, "Claude", AiPermission.Read);
-        dev.Roles.Add(AAIA.Air.Roles.AiRole.Developer);
+        dev.Roles.Add(AiRole.Developer);
         var rev = Session(rt, "ChatGPT", AiPermission.Read);
-        rev.Roles.Add(AAIA.Air.Roles.AiRole.Reviewer);
+        rev.Roles.Add(AiRole.Reviewer);
 
         var suggestion = rt.Collaboration.SuggestReviewer(dev.SessionId);
         Assert.NotNull(suggestion);

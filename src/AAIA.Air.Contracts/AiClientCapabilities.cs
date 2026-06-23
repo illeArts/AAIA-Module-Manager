@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Linq;
 
-namespace AAIA.Air;
+namespace AAIA.Air.Contracts;
 
 /// <summary>
 /// Strukturiertes Fähigkeitsprofil eines Clients. Erweiterte Capability Negotiation:

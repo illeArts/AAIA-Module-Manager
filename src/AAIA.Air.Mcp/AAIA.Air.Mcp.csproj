@@ -14,6 +14,7 @@
     <PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.4.0" />
   </ItemGroup>
   <ItemGroup>
+    <ProjectReference Include="..\AAIA.Air.Contracts\AAIA.Air.Contracts.csproj" />
     <ProjectReference Include="..\AAIA.Air\AAIA.Air.csproj" />
   </ItemGroup>
 </Project>

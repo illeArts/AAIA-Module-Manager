@@ -2,7 +2,7 @@ using System;
 using System.Collections.Generic;
 using System.Text.Json;
 
-namespace AAIA.Air.Workflows;
+namespace AAIA.Air.Contracts;
 
 public enum AiWorkflowStatus { Pending, Running, Completed, Failed, Cancelled }
 public enum AiWorkflowPhaseStatus { Pending, Running, Done, Failed, Skipped }
