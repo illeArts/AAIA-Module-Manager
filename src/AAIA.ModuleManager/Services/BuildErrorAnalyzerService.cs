@@ -4,6 +4,7 @@ using System.Text;
 using System.Text.RegularExpressions;
 using System.Threading;
 using System.Threading.Tasks;
+using AAIA.ModuleManager.Services.Help;
 
 namespace AAIA.ModuleManager.Services;
 
@@ -90,6 +91,10 @@ public static class BuildErrorAnalyzerService
                 issues.Add(issue);
             }
         }
+
+        // HelpArticleId für alle Issues setzen
+        foreach (var i in issues)
+            i.HelpArticleId ??= ErrorHelpMappingService.GetArticleIdForBuildCode(i.Code);
 
         return issues;
     }

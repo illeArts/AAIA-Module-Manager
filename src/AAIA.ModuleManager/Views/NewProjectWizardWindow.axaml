@@ -553,23 +553,32 @@
                                      Text="{Binding LocationLabel}"
                                      FontFamily="JetBrains Mono,Cascadia Code,Consolas,monospace"/>
 
-                          <!-- Aktions-Buttons -->
-                          <ItemsControl IsVisible="{Binding HasActions}"
-                                        ItemsSource="{Binding SuggestedActions}">
-                            <ItemsControl.ItemsPanel>
-                              <ItemsPanelTemplate>
-                                <StackPanel Orientation="Horizontal" Spacing="6"/>
-                              </ItemsPanelTemplate>
-                            </ItemsControl.ItemsPanel>
-                            <ItemsControl.ItemTemplate>
-                              <DataTemplate x:DataType="vm:BuildActionViewModel">
-                                <Button Content="{Binding Label}"
-                                        Classes="ghost"
-                                        FontSize="11"
-                                        Command="{Binding ExecuteCommand}"/>
-                              </DataTemplate>
-                            </ItemsControl.ItemTemplate>
-                          </ItemsControl>
+                          <!-- Aktions-Buttons + Hilfe -->
+                          <StackPanel Orientation="Horizontal" Spacing="6">
+                            <ItemsControl IsVisible="{Binding HasActions}"
+                                          ItemsSource="{Binding SuggestedActions}">
+                              <ItemsControl.ItemsPanel>
+                                <ItemsPanelTemplate>
+                                  <StackPanel Orientation="Horizontal" Spacing="6"/>
+                                </ItemsPanelTemplate>
+                              </ItemsControl.ItemsPanel>
+                              <ItemsControl.ItemTemplate>
+                                <DataTemplate x:DataType="vm:BuildActionViewModel">
+                                  <Button Content="{Binding Label}"
+                                          Classes="ghost"
+                                          FontSize="11"
+                                          Command="{Binding ExecuteCommand}"/>
+                                </DataTemplate>
+                              </ItemsControl.ItemTemplate>
+                            </ItemsControl>
+                            <Button IsVisible="{Binding HasHelp}"
+                                    Content="❓ Hilfe"
+                                    Classes="ghost"
+                                    FontSize="11"
+                                    Foreground="#5865f2"
+                                    Command="{Binding OpenHelpCommand}"
+                                    ToolTip.Tip="Hilfeartikel zu diesem Fehler öffnen"/>
+                          </StackPanel>
 
                         </StackPanel>
                       </Border>
@@ -759,23 +768,32 @@
                                FontSize="12" Foreground="#b0b8c4"
                                TextWrapping="Wrap" LineHeight="18"/>
 
-                    <!-- Aktions-Buttons -->
-                    <ItemsControl IsVisible="{Binding HasActions}"
-                                  ItemsSource="{Binding Actions}">
-                      <ItemsControl.ItemsPanel>
-                        <ItemsPanelTemplate>
-                          <StackPanel Orientation="Horizontal" Spacing="6"/>
-                        </ItemsPanelTemplate>
-                      </ItemsControl.ItemsPanel>
-                      <ItemsControl.ItemTemplate>
-                        <DataTemplate x:DataType="vm:ValidationActionViewModel">
-                          <Button Content="{Binding Label}"
-                                  Classes="ghost"
-                                  FontSize="11"
-                                  Command="{Binding ExecuteCommand}"/>
-                        </DataTemplate>
-                      </ItemsControl.ItemTemplate>
-                    </ItemsControl>
+                    <!-- Aktions-Buttons + Hilfe -->
+                    <StackPanel Orientation="Horizontal" Spacing="6">
+                      <ItemsControl IsVisible="{Binding HasActions}"
+                                    ItemsSource="{Binding Actions}">
+                        <ItemsControl.ItemsPanel>
+                          <ItemsPanelTemplate>
+                            <StackPanel Orientation="Horizontal" Spacing="6"/>
+                          </ItemsPanelTemplate>
+                        </ItemsControl.ItemsPanel>
+                        <ItemsControl.ItemTemplate>
+                          <DataTemplate x:DataType="vm:ValidationActionViewModel">
+                            <Button Content="{Binding Label}"
+                                    Classes="ghost"
+                                    FontSize="11"
+                                    Command="{Binding ExecuteCommand}"/>
+                          </DataTemplate>
+                        </ItemsControl.ItemTemplate>
+                      </ItemsControl>
+                      <Button IsVisible="{Binding HasHelp}"
+                              Content="❓ Hilfe"
+                              Classes="ghost"
+                              FontSize="11"
+                              Foreground="#5865f2"
+                              Command="{Binding OpenHelpCommand}"
+                              ToolTip.Tip="Hilfeartikel zu diesem Problem öffnen"/>
+                    </StackPanel>
 
                   </StackPanel>
                 </Border>

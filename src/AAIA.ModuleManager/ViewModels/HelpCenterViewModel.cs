@@ -106,6 +106,12 @@ public sealed partial class HelpCenterViewModel : ObservableObject
         _aiContext = new AiHelpContextService(_center, _search);
     }
 
+    /// <summary>
+    /// Wenn gesetzt, wird nach LoadAsync() direkt dieser Artikel geöffnet.
+    /// Kann Artikel-ID oder Fehlercode sein. Gesetzt von Fehlerkarten im UI.
+    /// </summary>
+    public string? PendingArticleId { get; set; }
+
     // ── Laden ─────────────────────────────────────────────────────────────────
 
     public async Task LoadAsync()
@@ -120,10 +126,22 @@ public sealed partial class HelpCenterViewModel : ObservableObject
 
         IsLoading = false;
 
-        // Ersten Artikel öffnen wenn vorhanden
-        var first = _center.AllArticles.FirstOrDefault();
-        if (first is not null)
-            await OpenArticleAsync(first);
+        if (PendingArticleId is not null)
+        {
+            // Direkt zum gewünschten Artikel navigieren
+            var article = _center.GetById(PendingArticleId)
+                       ?? _center.GetByErrorCode(PendingArticleId);
+            if (article is not null)
+                await OpenArticleAsync(article);
+            else
+                await OpenForErrorAsync(PendingArticleId);
+        }
+        else
+        {
+            var first = _center.AllArticles.FirstOrDefault();
+            if (first is not null)
+                await OpenArticleAsync(first);
+        }
     }
 
     // ── Suche ─────────────────────────────────────────────────────────────────
@@ -318,7 +336,6 @@ public sealed partial class HelpCenterViewModel : ObservableObject
 
     private static string? ResolveHelpRoot()
     {
-        // Im Entwicklungs-Build: Repo-Root suchen
         var dir = AppContext.BaseDirectory;
         for (int i = 0; i < 8; i++)
         {
@@ -327,6 +344,6 @@ public sealed partial class HelpCenterViewModel : ObservableObject
                 return candidate;
             dir = System.IO.Path.GetDirectoryName(dir) ?? dir;
         }
-        return null; // HelpCenterService verwendet dann eigenen Fallback
+        return null;
     }
 }

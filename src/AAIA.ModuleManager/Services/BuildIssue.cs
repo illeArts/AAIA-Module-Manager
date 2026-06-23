@@ -42,6 +42,12 @@ public sealed class BuildIssue
     /// <summary>True wenn eine dieser Aktionen automatisch ausgeführt werden kann.</summary>
     public bool CanAutoFix => SuggestedActions.Exists(a => a.IsAutomatic);
 
+    /// <summary>
+    /// ID des passenden Hilfeartikels (docs/help/index.json).
+    /// Wird von ErrorHelpMappingService gesetzt. Null = kein Artikel bekannt.
+    /// </summary>
+    public string? HelpArticleId { get; set; }
+
     public bool IsError   => Severity == "Error";
     public bool IsWarning => Severity == "Warning";
 

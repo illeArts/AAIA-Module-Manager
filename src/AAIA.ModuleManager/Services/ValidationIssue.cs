@@ -43,6 +43,12 @@ public sealed class ValidationIssue
     /// <summary>Aktionen die dem ETW angeboten werden.</summary>
     public List<ValidationAction> Actions { get; set; } = [];
 
+    /// <summary>
+    /// ID des passenden Hilfeartikels (docs/help/index.json).
+    /// Wird von ErrorHelpMappingService gesetzt. Null = kein Artikel bekannt.
+    /// </summary>
+    public string? HelpArticleId { get; set; }
+
     public bool CanAutoFix    => Actions.Exists(a => a.IsAutomatic);
     public bool IsError       => Severity == "Error";
     public bool IsWarning     => Severity == "Warning";

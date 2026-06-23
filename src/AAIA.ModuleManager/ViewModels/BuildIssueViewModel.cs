@@ -4,6 +4,7 @@ using System.Linq;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.Input;
 using AAIA.ModuleManager.Services;
+using AAIA.ModuleManager.Services.Help;
 
 namespace AAIA.ModuleManager.ViewModels;
 
@@ -24,19 +25,19 @@ public sealed class BuildActionViewModel
 
 /// <summary>
 /// ViewModel-Wrapper um BuildIssue für die XAML-DataTemplate-Bindung.
-/// Enthält fertige IBrush-Werte und ausführbare Aktions-Commands.
+/// Enthält fertige IBrush-Werte, ausführbare Aktions-Commands und Hilfe-Link.
 /// </summary>
 public sealed class BuildIssueViewModel
 {
     // ── Daten ──────────────────────────────────────────────────────────────────
 
-    public string  Code            { get; }
-    public string  Title           { get; }
-    public string  HumanMessage    { get; }
+    public string  Code             { get; }
+    public string  Title            { get; }
+    public string  HumanMessage     { get; }
     public string  TechnicalDetails { get; }
-    public bool    IsError         { get; }
-    public bool    IsWarning       { get; }
-    public string  SeverityIcon    { get; }
+    public bool    IsError          { get; }
+    public bool    IsWarning        { get; }
+    public string  SeverityIcon     { get; }
 
     // ── Dateiinfo ──────────────────────────────────────────────────────────────
 
@@ -48,6 +49,12 @@ public sealed class BuildIssueViewModel
     public bool                        HasActions       { get; }
     public List<BuildActionViewModel>  SuggestedActions { get; }
 
+    // ── Hilfe ──────────────────────────────────────────────────────────────────
+
+    public string?       HelpArticleId  { get; }
+    public bool          HasHelp        { get; }
+    public IRelayCommand OpenHelpCommand { get; }
+
     // ── Farben (Avalonia IBrush) ───────────────────────────────────────────────
 
     public IBrush SeverityForeground { get; }
@@ -57,7 +64,10 @@ public sealed class BuildIssueViewModel
 
     // ── Konstruktor ────────────────────────────────────────────────────────────
 
-    public BuildIssueViewModel(BuildIssue issue, Action<string> executeAction)
+    public BuildIssueViewModel(
+        BuildIssue issue,
+        Action<string> executeAction,
+        Action<string>? openHelp = null)
     {
         Code             = issue.Code;
         Title            = issue.Title;
@@ -67,7 +77,7 @@ public sealed class BuildIssueViewModel
         IsWarning        = issue.IsWarning;
         SeverityIcon     = issue.SeverityIcon;
 
-        HasLocation  = !string.IsNullOrWhiteSpace(issue.FilePath);
+        HasLocation   = !string.IsNullOrWhiteSpace(issue.FilePath);
         LocationLabel = HasLocation
             ? (issue.Line.HasValue
                 ? $"Datei: {issue.FilePath} (Zeile {issue.Line})"
@@ -78,6 +88,14 @@ public sealed class BuildIssueViewModel
         SuggestedActions = issue.SuggestedActions
             .Select(a => new BuildActionViewModel(a.Label, () => executeAction(a.ActionId)))
             .ToList();
+
+        // Hilfe-Artikel: aus Issue-Modell oder per Code-Mapping
+        HelpArticleId = issue.HelpArticleId
+            ?? ErrorHelpMappingService.GetArticleIdForBuildCode(issue.Code);
+        HasHelp = HelpArticleId is not null && openHelp is not null;
+        OpenHelpCommand = new RelayCommand(
+            () => openHelp?.Invoke(HelpArticleId!),
+            () => HasHelp);
 
         // Farben
         if (IsError)
@@ -97,8 +115,11 @@ public sealed class BuildIssueViewModel
     }
 
     /// <summary>Erstellt ViewModels aus einer BuildResult-Issue-Liste.</summary>
-    public static List<BuildIssueViewModel> From(BuildResult result, Action<string> executeAction)
+    public static List<BuildIssueViewModel> From(
+        BuildResult result,
+        Action<string> executeAction,
+        Action<string>? openHelp = null)
         => result.Issues
-               .Select(i => new BuildIssueViewModel(i, executeAction))
+               .Select(i => new BuildIssueViewModel(i, executeAction, openHelp))
                .ToList();
 }

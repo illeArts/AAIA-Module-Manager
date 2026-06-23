@@ -4,6 +4,7 @@ using System.Linq;
 using Avalonia.Media;
 using CommunityToolkit.Mvvm.Input;
 using AAIA.ModuleManager.Services;
+using AAIA.ModuleManager.Services.Help;
 
 namespace AAIA.ModuleManager.ViewModels;
 
@@ -23,17 +24,22 @@ public sealed class ValidationActionViewModel
 }
 
 /// <summary>
-/// ViewModel-Wrapper um ValidationIssue — mit IBrush-Farben und Commands.
+/// ViewModel-Wrapper um ValidationIssue — mit IBrush-Farben, Commands und Hilfe-Link.
 /// </summary>
 public sealed class ValidationIssueViewModel
 {
     public string  Title        { get; }
     public string  Message      { get; }
     public string  Category     { get; }
-    public string  Severity     { get; }  // "Error" | "Warning" | "Info"
+    public string  Severity     { get; }
     public string  SeverityIcon { get; }
     public bool    HasActions   { get; }
     public List<ValidationActionViewModel> Actions { get; }
+
+    // Hilfe
+    public string?       HelpArticleId  { get; }
+    public bool          HasHelp        { get; }
+    public IRelayCommand OpenHelpCommand { get; }
 
     // Avalonia-Brushes
     public IBrush SeverityForeground { get; }
@@ -41,7 +47,10 @@ public sealed class ValidationIssueViewModel
     public IBrush BadgeBackground    { get; }
     public string CategoryLabel      { get; }
 
-    public ValidationIssueViewModel(ValidationIssue issue, Action<string> executeAction)
+    public ValidationIssueViewModel(
+        ValidationIssue issue,
+        Action<string> executeAction,
+        Action<string>? openHelp = null)
     {
         Title        = issue.Title;
         Message      = issue.Message;
@@ -54,6 +63,14 @@ public sealed class ValidationIssueViewModel
         Actions = issue.Actions
             .Select(a => new ValidationActionViewModel(a.Label, () => executeAction(a.ActionId)))
             .ToList();
+
+        // Hilfe-Artikel: aus Issue-Modell oder per Kategorie-Mapping
+        HelpArticleId = issue.HelpArticleId
+            ?? ErrorHelpMappingService.GetArticleIdForValidationCategory(issue.Category);
+        HasHelp = HelpArticleId is not null && openHelp is not null;
+        OpenHelpCommand = new RelayCommand(
+            () => openHelp?.Invoke(HelpArticleId!),
+            () => HasHelp);
 
         (SeverityForeground, BorderBrushColor, BadgeBackground) = issue.Severity switch
         {
@@ -76,9 +93,11 @@ public sealed class ValidationIssueViewModel
     }
 
     public static List<ValidationIssueViewModel> From(
-        ValidationResult result, Action<string> executeAction)
+        ValidationResult result,
+        Action<string> executeAction,
+        Action<string>? openHelp = null)
         => result.Issues
                .OrderBy(i => i.Severity switch { "Error" => 0, "Warning" => 1, _ => 2 })
-               .Select(i => new ValidationIssueViewModel(i, executeAction))
+               .Select(i => new ValidationIssueViewModel(i, executeAction, openHelp))
                .ToList();
 }

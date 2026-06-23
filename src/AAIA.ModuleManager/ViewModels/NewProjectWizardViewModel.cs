@@ -227,6 +227,12 @@ public partial class NewProjectWizardViewModel : ObservableObject
 
     public IStorageProvider?      StorageProvider { get; set; }
     public Avalonia.Input.Platform.IClipboard? Clipboard { get; set; }
+
+    /// <summary>
+    /// Callback vom View: Öffnet das HelpCenter mit dem angegebenen Artikel.
+    /// Wird von NewProjectWizardWindow.SetViewModel() gesetzt.
+    /// </summary>
+    public Action<string>? OpenHelpRequested { get; set; }
     public List<IdeInfo>          InstalledIdes   { get; private set; } = [];
     public string                 PublisherId     => _config.DeveloperEtwId ?? _config.DeveloperDisplayName ?? "ETW";
 
@@ -428,7 +434,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
 
         // BuildIssues-Collection befüllen
         BuildIssues.Clear();
-        foreach (var vm in BuildIssueViewModel.From(result, id => ExecuteBuildActionCommand.Execute(id)))
+        foreach (var vm in BuildIssueViewModel.From(result, id => ExecuteBuildActionCommand.Execute(id), OpenHelpRequested))
             BuildIssues.Add(vm);
 
         LastBuildResult = result;
@@ -521,7 +527,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
             projectName: ProjectName,
             ct:          ct);
 
-        foreach (var vm in ValidationIssueViewModel.From(result, id => ExecuteValidationActionCommand.Execute(id)))
+        foreach (var vm in ValidationIssueViewModel.From(result, id => ExecuteValidationActionCommand.Execute(id), OpenHelpRequested))
             ValidationIssues.Add(vm);
 
         ValidationResult       = result;
@@ -696,7 +702,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
             projectType: ProjectType,
             lastBuild:   LastBuildResult);
 
-        foreach (var vm in ValidationIssueViewModel.From(result, ExecutePublishActionAsync))
+        foreach (var vm in ValidationIssueViewModel.From(result, ExecutePublishActionAsync, OpenHelpRequested))
             PublishIssues.Add(vm);
 
         PublishReadinessResult     = result;
@@ -730,7 +736,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
         {
             // Paket-Issues in PublishIssues einfügen
             foreach (var issue in pkg.Issues)
-                PublishIssues.Insert(0, new ValidationIssueViewModel(issue, ExecutePublishActionAsync));
+                PublishIssues.Insert(0, new ValidationIssueViewModel(issue, ExecutePublishActionAsync, OpenHelpRequested));
         }
     }
 
@@ -775,7 +781,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
         else
         {
             foreach (var issue in releaseResult.Issues)
-                PublishIssues.Insert(0, new ValidationIssueViewModel(issue, ExecutePublishActionAsync));
+                PublishIssues.Insert(0, new ValidationIssueViewModel(issue, ExecutePublishActionAsync, OpenHelpRequested));
         }
 
         IsPreparingRelease = false;

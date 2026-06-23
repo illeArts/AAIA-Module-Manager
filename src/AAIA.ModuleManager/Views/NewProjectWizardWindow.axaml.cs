@@ -19,8 +19,9 @@ public partial class NewProjectWizardWindow : Window
         _vm         = vm;
         DataContext = vm;
 
-        _vm.StorageProvider = StorageProvider;
-        _vm.Clipboard       = TopLevel.GetTopLevel(this)?.Clipboard;
+        _vm.StorageProvider    = StorageProvider;
+        _vm.Clipboard          = TopLevel.GetTopLevel(this)?.Clipboard;
+        _vm.OpenHelpRequested  = articleId => OpenHelpForArticle(articleId);
 
         vm.PropertyChanged += (_, e) =>
         {
@@ -183,7 +184,12 @@ public partial class NewProjectWizardWindow : Window
         dlg.ShowDialog(this);
     }
 
-    // ── Schließen ─────────────────────────────────────────────────────────────
+    // ── Phase 6.10d: Fehler-Hilfe ─────────────────────────────────────────────
 
-    private void Close_Click(object? s, RoutedEventArgs e) => Close();
+    private void OpenHelpForArticle(string articleId)
+    {
+        var helpVm  = new HelpCenterViewModel { PendingArticleId = articleId };
+        var helpWnd = new HelpCenterWindow { DataContext = helpVm };
+        helpWnd.ShowDialog(this);
+    }
 }
