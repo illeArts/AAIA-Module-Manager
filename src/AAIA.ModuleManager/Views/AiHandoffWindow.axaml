@@ -118,7 +118,7 @@
 
     <!-- ── Footer ── -->
     <Border Grid.Row="3" Background="#12122a" Padding="16,10">
-      <Grid ColumnDefinitions="*,Auto,8,Auto,8,Auto">
+      <Grid ColumnDefinitions="*,Auto,8,Auto,8,Auto,8,Auto">
 
         <!-- Sicherheitshinweis -->
         <TextBlock Grid.Column="0"
@@ -140,8 +140,15 @@
                 FontSize="12"
                 Click="Export_Click"/>
 
-        <!-- Schließen -->
+        <!-- Als Paket exportieren (Phase 6.1) -->
         <Button Grid.Column="5"
+                Content="📦  Als Paket"
+                Classes="ghost"
+                FontSize="12"
+                Click="ExportPackage_Click"/>
+
+        <!-- Schließen -->
+        <Button Grid.Column="7"
                 Content="Schließen"
                 Classes="primary"
                 FontSize="12"

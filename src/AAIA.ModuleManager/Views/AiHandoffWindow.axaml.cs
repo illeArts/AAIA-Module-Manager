@@ -5,6 +5,8 @@ using Avalonia.Controls;
 using Avalonia.Input.Platform;
 using Avalonia.Interactivity;
 using Avalonia.Platform.Storage;
+using AAIA.ModuleManager.Services.AiAdapter;
+using AAIA.ModuleManager.Services.AiAdapter.HandoffPackage;
 using AAIA.ModuleManager.Services.Help;
 
 namespace AAIA.ModuleManager.Views;
@@ -77,6 +79,32 @@ public partial class AiHandoffWindow : Window
     }
 
     private void Close_Click(object? sender, RoutedEventArgs e) => Close();
+
+    // ── Als Paket exportieren (Phase 6.1) ────────────────────────────────────
+
+    private void ExportPackage_Click(object? sender, RoutedEventArgs e)
+    {
+        var handoffReq  = BuildRequest();
+        var adapterReq  = new AiAdapterRequest
+        {
+            Target       = MapProfile(handoffReq.Profile),
+            Task         = handoffReq.Target,
+            ContextLevel = handoffReq.ContextLevel,
+            ProjectContext = _ctx
+        };
+
+        var win = new AiHandoffPackageWindow(adapterReq, _ctx);
+        win.ShowDialog(this);
+    }
+
+    private static AiTarget MapProfile(AiHandoffProfile profile) => profile switch
+    {
+        AiHandoffProfile.ChatGpt => AiTarget.ChatGPT,
+        AiHandoffProfile.Claude  => AiTarget.Claude,
+        AiHandoffProfile.Gemini  => AiTarget.Gemini,
+        AiHandoffProfile.Codex   => AiTarget.Codex,
+        _                        => AiTarget.Claude
+    };
 
     // ── Generator ────────────────────────────────────────────────────────────
 

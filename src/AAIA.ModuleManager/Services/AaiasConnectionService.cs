@@ -286,6 +286,62 @@ public sealed class AaiasConnectionService : IDisposable
         return null;
     }
 
+    // ── AI Chat (Phase 6.5) ────────────────────────────────────────────────────
+
+    /// <summary>
+    /// Sendet einen Prompt an das KI-Modell des AAIAS-Servers.
+    ///
+    /// AAIAS muss einen konfigurierten AI-Provider haben (serverseitig eingerichtet).
+    /// Es werden KEINE API-Keys des Module Managers übertragen.
+    ///
+    /// Erwartet AAIAS-Endpunkt:
+    ///   POST /api/ai/chat
+    ///   Body: { prompt, systemPrompt, maxTokens }
+    ///   Response: { text, model, finishReason } oder { error }
+    /// </summary>
+    public async Task<(string? Text, string? Error)> SendAiChatAsync(
+        string prompt,
+        string? systemPrompt = null,
+        int maxTokens = 2048,
+        CancellationToken ct = default)
+    {
+        if (!IsConnected || _http is null)
+            return (null, "Nicht mit AAIAS verbunden.");
+
+        try
+        {
+            var resp = await _http.PostAsJsonAsync("api/ai/chat",
+                new { prompt, systemPrompt = systemPrompt ?? "", maxTokens }, ct);
+
+            var body = await resp.Content.ReadAsStringAsync(ct);
+
+            if (!resp.IsSuccessStatusCode)
+            {
+                if (resp.StatusCode == System.Net.HttpStatusCode.NotFound)
+                    return (null, "AAIAS unterstützt keinen AI-Chat-Endpunkt (/api/ai/chat).");
+
+                return (null, $"AI-Chat-Fehler ({(int)resp.StatusCode}): {ExtractError(body)}");
+            }
+
+            using var doc = JsonDocument.Parse(body);
+            var el = doc.RootElement;
+
+            if (el.TryGetProperty("error", out var err))
+                return (null, err.GetString() ?? "Unbekannter AAIAS-Fehler.");
+
+            var text = el.TryGetProperty("text", out var t) ? t.GetString() : null;
+            return (text ?? "", null);
+        }
+        catch (OperationCanceledException)
+        {
+            return (null, "Anfrage abgebrochen.");
+        }
+        catch (Exception ex)
+        {
+            return (null, $"AAIAS-Verbindungsfehler: {ex.Message}");
+        }
+    }
+
     // ── Dev Mode ───────────────────────────────────────────────────────────────
 
     public async Task<bool> IsDevModeActiveAsync()

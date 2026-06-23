@@ -152,6 +152,11 @@
         <tabs:AiPanelTab DataContext="{Binding AiPanel}"/>
       </TabItem>
 
+      <!-- Tab 11: AI Connector-Server (Phase 6.3) — für alle ETWs -->
+      <TabItem Header="🔌  Connector" IsVisible="{Binding IsEtw}">
+        <tabs:ConnectorTab DataContext="{Binding ConnectorTab}"/>
+      </TabItem>
+
       <!-- ── Owner-only Tabs (am Ende — werden bei ETW nie ausgewählt) ── -->
 
       <!-- Tab 8: SDK / Contracts (nur Owner) -->

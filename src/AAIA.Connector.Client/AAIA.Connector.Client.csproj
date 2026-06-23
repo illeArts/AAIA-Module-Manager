@@ -1,0 +1,13 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <TargetFramework>net8.0</TargetFramework>
+    <Nullable>enable</Nullable>
+    <ImplicitUsings>enable</ImplicitUsings>
+    <OutputType>Exe</OutputType>
+    <RootNamespace>AAIA.Connector.Client</RootNamespace>
+    <AssemblyName>AAIA.Connector.Client</AssemblyName>
+    <Description>AAIA AI Connector SDK — Beispiel-Client für das AAIA Connector Protocol</Description>
+  </PropertyGroup>
+
+</Project>

@@ -2,6 +2,7 @@ using Avalonia.Controls;
 using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Input;
 using AAIA.ModuleManager.Services;
+using AAIA.ModuleManager.Services.AiAdapter.Connector;  // AiPatchRequest
 using AAIA.ModuleManager.ViewModels;
 using AAIA.ModuleManager.Views;
 
@@ -12,7 +13,32 @@ public partial class MainWindow : Window
     public MainWindow()
     {
         InitializeComponent();
-        DataContext = new MainWindowViewModel();
+        var vm = new MainWindowViewModel();
+        DataContext = vm;
+
+        // Phase 6.3 — PatchApprovalWindow aus dem ViewModel-Callback öffnen.
+        // ShowPatchApproval wird auf dem UI-Thread aufgerufen (Dispatcher.UIThread.Post).
+        vm.ConnectorTab.ShowPatchApproval = (proposalId, patchRequest) =>
+            OpenPatchApproval(proposalId, patchRequest, vm);
+    }
+
+    private void OpenPatchApproval(
+        string proposalId,
+        AiPatchRequest patchRequest,
+        MainWindowViewModel mainVm)
+    {
+        var projectRoot = string.IsNullOrEmpty(mainVm.ModuleTab.ProjectPath)
+            ? null
+            : mainVm.ModuleTab.ProjectPath;
+
+        var wnd = new PatchApprovalWindow(
+            proposalId:  proposalId,
+            request:     patchRequest,
+            projectRoot: projectRoot,
+            onDecision:  (id, approved) =>
+                mainVm.ConnectorTab.OnPatchDecision(id, approved));
+
+        wnd.ShowDialog(this);
     }
 
     private void TitleBar_PointerPressed(object? sender, PointerPressedEventArgs e)

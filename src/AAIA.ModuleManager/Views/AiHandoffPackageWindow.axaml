@@ -1,0 +1,231 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="clr-namespace:AAIA.ModuleManager.ViewModels"
+        x:Class="AAIA.ModuleManager.Views.AiHandoffPackageWindow"
+        x:DataType="vm:AiHandoffPackageViewModel"
+        Title="📦  KI-Handoff Paket — AAIA Module Manager"
+        Width="1060" Height="720"
+        MinWidth="800" MinHeight="540"
+        WindowStartupLocation="CenterOwner"
+        Background="#0d1117"
+        Foreground="#e0e0e0"
+        FontFamily="Inter,Segoe UI,sans-serif">
+
+  <Grid RowDefinitions="Auto,Auto,*,Auto">
+
+    <!-- ── Header ── -->
+    <Border Grid.Row="0" Background="#12122a" Padding="28,18,28,14">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="3">
+          <TextBlock Text="📦  KI-Handoff Paket"
+                     FontSize="18" FontWeight="Bold" Foreground="#e0e0e0"/>
+          <TextBlock Text="Strukturiertes Übergabepaket mit allen relevanten Kontext-Dateien."
+                     FontSize="12" Foreground="#8892a4"/>
+        </StackPanel>
+        <TextBlock Grid.Column="1"
+                   Text="{Binding PackageInfo}"
+                   FontSize="11" Foreground="#4a6fa5"
+                   VerticalAlignment="Center"
+                   HorizontalAlignment="Right"/>
+      </Grid>
+    </Border>
+
+    <!-- ── Steuerleiste ── -->
+    <Border Grid.Row="1" Background="#111827" Padding="20,10"
+            BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,16,Auto,16,Auto,*,Auto,8,Auto">
+
+        <!-- Aufgaben-Typ -->
+        <StackPanel Grid.Column="0" Spacing="4">
+          <TextBlock Text="Aufgaben-Typ" FontSize="10" Foreground="#8892a4"/>
+          <ComboBox x:Name="PackageTypeCombo"
+                    Width="220" FontSize="12"
+                    SelectedIndex="0"
+                    SelectionChanged="PackageType_Changed">
+            <ComboBoxItem Tag="BuildFix"               Content="🐛  Build-Fehler beheben"/>
+            <ComboBoxItem Tag="ValidationFix"          Content="⚠️  Validierungsfehler beheben"/>
+            <ComboBoxItem Tag="ManifestCreation"       Content="📋  Manifest erstellen"/>
+            <ComboBoxItem Tag="SignatureIssue"         Content="🔐  Signaturproblem lösen"/>
+            <ComboBoxItem Tag="MarketplaceUploadIssue" Content="🚀  Marketplace-Problem analysieren"/>
+            <ComboBoxItem Tag="NewExtensionPlanning"   Content="💡  Neue Extension planen"/>
+            <ComboBoxItem Tag="CodeReview"             Content="🔍  Code-Review"/>
+            <ComboBoxItem Tag="SecurityReview"         Content="🛡️  Sicherheits-Review"/>
+            <ComboBoxItem Tag="DocumentationGeneration" Content="📝  Dokumentation erstellen"/>
+          </ComboBox>
+        </StackPanel>
+
+        <!-- Neu erstellen -->
+        <Button Grid.Column="2"
+                Content="🔄  Neu erstellen"
+                Classes="ghost"
+                FontSize="12"
+                VerticalAlignment="Bottom"
+                IsEnabled="{Binding !IsBuilding}"
+                Click="Rebuild_Click"/>
+
+        <!-- Ladeindikator -->
+        <StackPanel Grid.Column="4"
+                    Orientation="Horizontal"
+                    Spacing="6"
+                    VerticalAlignment="Center"
+                    IsVisible="{Binding IsBuilding}">
+          <TextBlock Text="⏳" FontSize="12"/>
+          <TextBlock Text="Erstellt Paket …" FontSize="12" Foreground="#8892a4"/>
+        </StackPanel>
+
+        <!-- Spacer -->
+
+        <!-- Export-Buttons -->
+        <StackPanel Grid.Column="6"
+                    Orientation="Horizontal"
+                    Spacing="8"
+                    VerticalAlignment="Center">
+          <Button Content="📁  Als Ordner"
+                  Classes="ghost"
+                  FontSize="12"
+                  IsEnabled="{Binding IsReady}"
+                  Click="ExportFolder_Click"/>
+          <Button Content="🗜️  Als ZIP"
+                  Classes="ghost"
+                  FontSize="12"
+                  IsEnabled="{Binding IsReady}"
+                  Click="ExportZip_Click"/>
+        </StackPanel>
+
+        <!-- Ordner öffnen -->
+        <Button Grid.Column="8"
+                Content="📂  Öffnen"
+                Classes="ghost"
+                FontSize="12"
+                VerticalAlignment="Center"
+                IsEnabled="{Binding HasExportedPath}"
+                Click="OpenFolder_Click"/>
+
+      </Grid>
+    </Border>
+
+    <!-- ── Hauptbereich: Dateiliste + Preview ── -->
+    <Grid Grid.Row="2" ColumnDefinitions="240,*">
+
+      <!-- Linke Seite: Dateiliste -->
+      <Border Grid.Column="0"
+              Background="#0e1520"
+              BorderBrush="#1e2a3a"
+              BorderThickness="0,0,1,0">
+        <Grid RowDefinitions="Auto,*">
+
+          <Border Grid.Row="0" Background="#111827" Padding="12,8">
+            <TextBlock Text="DATEIEN IM PAKET"
+                       FontSize="9" FontWeight="SemiBold"
+                       Foreground="#4a5a6a"
+                       LetterSpacing="1.5"/>
+          </Border>
+
+          <ListBox Grid.Row="1"
+                   x:Name="FileList"
+                   Background="Transparent"
+                   ItemsSource="{Binding FileEntries}"
+                   SelectedItem="{Binding SelectedFile}"
+                   SelectionMode="Single"
+                   Padding="4,4">
+            <ListBox.ItemTemplate>
+              <DataTemplate x:DataType="vm:HandoffFileEntry">
+                <Grid RowDefinitions="Auto,Auto" Margin="4,6,4,4">
+                  <TextBlock Grid.Row="0"
+                             Text="{Binding DisplayLabel}"
+                             FontSize="12" FontWeight="Medium"
+                             Foreground="#c8d8e8"/>
+                  <StackPanel Grid.Row="1" Orientation="Horizontal" Spacing="8" Margin="0,2,0,0">
+                    <TextBlock Text="{Binding CharLabel}"
+                               FontSize="10" Foreground="#4a5a6a"/>
+                    <TextBlock Text="{Binding Description}"
+                               FontSize="10" Foreground="#3a4a5a"
+                               TextTrimming="CharacterEllipsis"
+                               MaxWidth="150"/>
+                  </StackPanel>
+                </Grid>
+              </DataTemplate>
+            </ListBox.ItemTemplate>
+          </ListBox>
+        </Grid>
+      </Border>
+
+      <!-- Rechte Seite: File-Preview -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+
+        <!-- Preview-Header -->
+        <Border Grid.Row="0" Background="#111827" Padding="16,8"
+                BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="*,Auto">
+            <TextBlock Text="{Binding SelectedFile.FileName, FallbackValue='Keine Datei ausgewählt'}"
+                       FontSize="12" FontWeight="Medium" Foreground="#8892a4"
+                       FontFamily="Cascadia Code,Consolas,monospace"
+                       VerticalAlignment="Center"/>
+            <Button Grid.Column="1"
+                    Content="📋  Kopieren"
+                    Classes="ghost"
+                    FontSize="11"
+                    Click="CopyPreview_Click"/>
+          </Grid>
+        </Border>
+
+        <!-- Preview-Inhalt -->
+        <TextBox Grid.Row="1"
+                 x:Name="PreviewBox"
+                 Text="{Binding PreviewContent}"
+                 Background="#0a0f16"
+                 Foreground="#c8d8e8"
+                 FontFamily="Cascadia Code,Consolas,monospace"
+                 FontSize="11.5"
+                 TextWrapping="Wrap"
+                 IsReadOnly="True"
+                 AcceptsReturn="True"
+                 Padding="20,16"
+                 Watermark="Datei in der Liste auswählen …"
+                 ScrollViewer.HorizontalScrollBarVisibility="Disabled"
+                 ScrollViewer.VerticalScrollBarVisibility="Auto"/>
+      </Grid>
+    </Grid>
+
+    <!-- ── Footer ── -->
+    <Border Grid.Row="3" Background="#12122a" Padding="16,10">
+      <Grid ColumnDefinitions="Auto,*,Auto">
+
+        <!-- Status -->
+        <Border Grid.Column="0"
+                Background="#1a2020"
+                CornerRadius="4"
+                Padding="10,4"
+                IsVisible="{Binding HasStatus}">
+          <Panel>
+            <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#f87171" IsVisible="{Binding IsError}"/>
+            <TextBlock Text="{Binding StatusText}" FontSize="11" Foreground="#6fcf97" IsVisible="{Binding !IsError}"/>
+          </Panel>
+        </Border>
+
+        <!-- Export-Pfad -->
+        <TextBlock Grid.Column="1"
+                   Text="{Binding ExportedPath}"
+                   FontSize="10" Foreground="#4a5a6a"
+                   FontFamily="Cascadia Code,Consolas,monospace"
+                   VerticalAlignment="Center"
+                   Margin="12,0"
+                   TextTrimming="CharacterEllipsis"
+                   IsVisible="{Binding HasExportedPath}"/>
+
+        <!-- Sicherheitshinweis + Schließen -->
+        <StackPanel Grid.Column="2" Orientation="Horizontal" Spacing="8">
+          <TextBlock Text="🔒  Kein Quellcode · Keine Keys"
+                     FontSize="10" Foreground="#3a4a5a"
+                     VerticalAlignment="Center"/>
+          <Button Content="Schließen"
+                  Classes="primary"
+                  FontSize="12"
+                  Click="Close_Click"/>
+        </StackPanel>
+
+      </Grid>
+    </Border>
+
+  </Grid>
+</Window>

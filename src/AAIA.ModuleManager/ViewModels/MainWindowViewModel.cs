@@ -23,6 +23,8 @@ public partial class MainWindowViewModel : ObservableObject
     public AdminMarketplaceViewModel   MarketplaceConsoleTab { get; }
     public AdminTabViewModel           AdminTab      { get; }
     public AiPanelViewModel            AiPanel       { get; }
+    /// <summary>Phase 6.3: Lokaler AI Connector-Server — Start/Stop + Patch-Approval.</summary>
+    public ConnectorTabViewModel       ConnectorTab  { get; }
 
     // ── Update-Banner ─────────────────────────────────────────────────────────
 
@@ -77,6 +79,11 @@ public partial class MainWindowViewModel : ObservableObject
         MarketplaceConsoleTab = new AdminMarketplaceViewModel(registryClient);    // Phase 5.10
         AdminTab              = new AdminTabViewModel(wpMarketplace);
         AiPanel      = new AiPanelViewModel(config);
+
+        // Phase 6.3 — Connector-Server-Tab
+        // TesterTab.AaiasConn weitergeben: ConnectorTab zeigt AAIAS-Verbindungsstatus
+        // AiServiceFactory.CreateAdapter mit AaiasConn: AaiasAgent-Target wird unterstützt
+        ConnectorTab = new ConnectorTabViewModel(config);
 
         _ = TesterTab.InitAsync(config);
         _ = CheckForUpdateAsync();

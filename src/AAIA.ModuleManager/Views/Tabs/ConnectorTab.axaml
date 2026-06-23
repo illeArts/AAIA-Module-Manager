@@ -1,0 +1,334 @@
+<UserControl xmlns="https://github.com/avaloniaui"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+             x:Class="AAIA.ModuleManager.Views.Tabs.ConnectorTab"
+             x:DataType="vm:ConnectorTabViewModel"
+             Background="#0d1117"
+             Foreground="#e0e0e0"
+             FontFamily="Inter,Segoe UI,sans-serif">
+
+  <Grid RowDefinitions="Auto,Auto,*">
+
+    <!-- ── Header ── -->
+    <Border Grid.Row="0" Background="#0e1a2a" Padding="24,16"
+            BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="*,Auto">
+        <StackPanel Spacing="3">
+          <TextBlock Text="🔌  AI Connector-Server"
+                     FontSize="16" FontWeight="Bold" Foreground="#e0e0e0"/>
+          <TextBlock Text="Lokaler HTTP-Server — externe KI-Connectors können sich verbinden und Projektkontext lesen."
+                     FontSize="11" Foreground="#8892a4"/>
+        </StackPanel>
+
+        <!-- Status-Badge -->
+        <StackPanel Grid.Column="1" Orientation="Horizontal" Spacing="8"
+                    VerticalAlignment="Center">
+
+          <!-- Online -->
+          <Border Background="#0d2010" CornerRadius="6" Padding="12,6"
+                  IsVisible="{Binding IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="8" Height="8" Fill="#6fcf97" VerticalAlignment="Center"/>
+              <TextBlock Text="Online" FontSize="11" FontWeight="SemiBold" Foreground="#6fcf97"/>
+            </StackPanel>
+          </Border>
+
+          <!-- Offline -->
+          <Border Background="#1a0808" CornerRadius="6" Padding="12,6"
+                  IsVisible="{Binding !IsRunning}">
+            <StackPanel Orientation="Horizontal" Spacing="6">
+              <Ellipse Width="8" Height="8" Fill="#f87171" VerticalAlignment="Center"/>
+              <TextBlock Text="Offline" FontSize="11" FontWeight="SemiBold" Foreground="#f87171"/>
+            </StackPanel>
+          </Border>
+
+        </StackPanel>
+      </Grid>
+    </Border>
+
+    <!-- ── Server-Steuerung ── -->
+    <Border Grid.Row="1" Background="#111827" Padding="20,14"
+            BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+      <Grid ColumnDefinitions="Auto,16,*,16,Auto,16,Auto">
+
+        <!-- Start/Stop -->
+        <StackPanel Grid.Column="0" Orientation="Horizontal" Spacing="8">
+          <Button Content="▶  Starten"
+                  Classes="primary"
+                  FontSize="12"
+                  Command="{Binding StartCommand}"/>
+          <Button Content="⏹  Stoppen"
+                  Classes="ghost"
+                  FontSize="12"
+                  Command="{Binding StopCommand}"/>
+        </StackPanel>
+
+        <!-- URL -->
+        <StackPanel Grid.Column="2" Spacing="3" VerticalAlignment="Center">
+          <TextBlock Text="ENDPUNKT" FontSize="9" Foreground="#4a5a6a"
+                     FontWeight="SemiBold" LetterSpacing="1.5"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <TextBlock Text="{Binding ServerUrl}"
+                       FontSize="11" FontFamily="Cascadia Code,Consolas,monospace"
+                       Foreground="#60a5fa" VerticalAlignment="Center"/>
+            <Button Content="📋" Classes="ghost" FontSize="10"
+                    ToolTip.Tip="URL kopieren"
+                    Command="{Binding CopyUrlCommand}"/>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Patch-Proposals-Toggle -->
+        <StackPanel Grid.Column="4" Spacing="4" VerticalAlignment="Center">
+          <TextBlock Text="PATCH-VORSCHLÄGE" FontSize="9" Foreground="#4a5a6a"
+                     FontWeight="SemiBold" LetterSpacing="1.5"/>
+          <StackPanel Orientation="Horizontal" Spacing="8">
+            <CheckBox IsChecked="{Binding AllowPatchProposals}"
+                      Content="Erlauben"
+                      FontSize="12"/>
+            <Border Background="#2a1a08" CornerRadius="4" Padding="6,2"
+                    IsVisible="{Binding AllowPatchProposals}">
+              <TextBlock Text="⚠️ Connector kann Änderungen vorschlagen"
+                         FontSize="10" Foreground="#f59e0b"/>
+            </Border>
+          </StackPanel>
+        </StackPanel>
+
+        <!-- Pending-Patches-Badge -->
+        <Border Grid.Column="6"
+                Background="#2a1a08" CornerRadius="6" Padding="10,6"
+                IsVisible="{Binding HasPendingPatches}">
+          <StackPanel Spacing="2" HorizontalAlignment="Center">
+            <TextBlock Text="{Binding PendingPatches}"
+                       FontSize="18" FontWeight="Bold" Foreground="#f59e0b"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="ausstehend"
+                       FontSize="9" Foreground="#f59e0b"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+        </Border>
+
+      </Grid>
+    </Border>
+
+    <!-- ── Haupt-Bereich: Endpunkte + Log ── -->
+    <Grid Grid.Row="2" ColumnDefinitions="300,*">
+
+      <!-- Linke Seite: Endpunkt-Übersicht + Fehler -->
+      <Grid Grid.Column="0" RowDefinitions="Auto,Auto,*"
+            Background="#0e1520">
+
+        <!-- Fehler-Box -->
+        <Border Grid.Row="0"
+                Background="#1a0808" Padding="16,10"
+                IsVisible="{Binding HasError}">
+          <StackPanel Spacing="4">
+            <TextBlock Text="❌  Fehler" FontSize="12" FontWeight="SemiBold" Foreground="#f87171"/>
+            <TextBlock Text="{Binding ErrorText}"
+                       FontSize="11" Foreground="#f87171"
+                       TextWrapping="Wrap"/>
+          </StackPanel>
+        </Border>
+
+        <!-- Endpunkt-Header -->
+        <Border Grid.Row="1" Background="#111827" Padding="12,8"
+                BorderBrush="#1e2a3a" BorderThickness="0,0,1,1">
+          <TextBlock Text="VERFÜGBARE ENDPUNKTE"
+                     FontSize="9" FontWeight="SemiBold"
+                     Foreground="#4a5a6a" LetterSpacing="1.5"/>
+        </Border>
+
+        <ScrollViewer Grid.Row="2"
+                      BorderBrush="#1e2a3a" BorderThickness="0,0,1,0">
+          <StackPanel Spacing="0">
+
+            <Border Padding="12,10" BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+              <StackPanel Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Background="#0d2010" CornerRadius="3" Padding="4,1">
+                    <TextBlock Text="GET" FontSize="9" Foreground="#6fcf97"
+                               FontFamily="Cascadia Code,Consolas,monospace"/>
+                  </Border>
+                  <TextBlock Text="/capabilities" FontSize="11"
+                             FontFamily="Cascadia Code,Consolas,monospace"
+                             Foreground="#c8d8e8"/>
+                </StackPanel>
+                <TextBlock Text="Server-Capabilities + erlaubte Aktionen"
+                           FontSize="10" Foreground="#4a5a6a"/>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="12,10" BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+              <StackPanel Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Background="#0d2010" CornerRadius="3" Padding="4,1">
+                    <TextBlock Text="GET" FontSize="9" Foreground="#6fcf97"
+                               FontFamily="Cascadia Code,Consolas,monospace"/>
+                  </Border>
+                  <TextBlock Text="/context/current" FontSize="11"
+                             FontFamily="Cascadia Code,Consolas,monospace"
+                             Foreground="#c8d8e8"/>
+                </StackPanel>
+                <TextBlock Text="Aktueller Projektzustand (kompakt)"
+                           FontSize="10" Foreground="#4a5a6a"/>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="12,10" BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+              <StackPanel Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Background="#0d2010" CornerRadius="3" Padding="4,1">
+                    <TextBlock Text="GET" FontSize="9" Foreground="#6fcf97"
+                               FontFamily="Cascadia Code,Consolas,monospace"/>
+                  </Border>
+                  <TextBlock Text="/context/project" FontSize="11"
+                             FontFamily="Cascadia Code,Consolas,monospace"
+                             Foreground="#c8d8e8"/>
+                </StackPanel>
+                <TextBlock Text="Vollständige Projekt-Zusammenfassung"
+                           FontSize="10" Foreground="#4a5a6a"/>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="12,10" BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+              <StackPanel Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Background="#0d2010" CornerRadius="3" Padding="4,1">
+                    <TextBlock Text="GET" FontSize="9" Foreground="#6fcf97"
+                               FontFamily="Cascadia Code,Consolas,monospace"/>
+                  </Border>
+                  <TextBlock Text="/handoff/latest" FontSize="11"
+                             FontFamily="Cascadia Code,Consolas,monospace"
+                             Foreground="#c8d8e8"/>
+                </StackPanel>
+                <TextBlock Text="Letztes Handoff-Paket (Manifest)"
+                           FontSize="10" Foreground="#4a5a6a"/>
+              </StackPanel>
+            </Border>
+
+            <Border Padding="12,10" BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+              <StackPanel Spacing="3">
+                <StackPanel Orientation="Horizontal" Spacing="6">
+                  <Border Background="#1a0d08" CornerRadius="3" Padding="4,1">
+                    <TextBlock Text="POST" FontSize="9" Foreground="#f59e0b"
+                               FontFamily="Cascadia Code,Consolas,monospace"/>
+                  </Border>
+                  <TextBlock Text="/patch/propose" FontSize="11"
+                             FontFamily="Cascadia Code,Consolas,monospace"
+                             Foreground="#c8d8e8"/>
+                  <Border Background="#2a1a08" CornerRadius="3" Padding="4,1"
+                          IsVisible="{Binding !AllowPatchProposals}">
+                    <TextBlock Text="deaktiviert" FontSize="9" Foreground="#f59e0b"/>
+                  </Border>
+                </StackPanel>
+                <TextBlock Text="Patch-Vorschlag (erfordert User-Genehmigung)"
+                           FontSize="10" Foreground="#4a5a6a"/>
+              </StackPanel>
+            </Border>
+
+            <!-- Sicherheitshinweis -->
+            <Border Padding="12,12" Background="#080c14">
+              <StackPanel Spacing="5">
+                <TextBlock Text="🔒  SICHERHEITSMODELL" FontSize="9"
+                           Foreground="#3a4a5a" FontWeight="SemiBold" LetterSpacing="1.5"/>
+                <TextBlock Text="Patches nie automatisch — immer User-Genehmigung."
+                           FontSize="10" Foreground="#2a3a4a" TextWrapping="Wrap"/>
+                <TextBlock Text="ETW-Signatur und Marketplace-Token: nie zugänglich."
+                           FontSize="10" Foreground="#2a3a4a" TextWrapping="Wrap"/>
+                <TextBlock Text="Private Keys sind nie im übertragenen Kontext."
+                           FontSize="10" Foreground="#2a3a4a" TextWrapping="Wrap"/>
+              </StackPanel>
+            </Border>
+
+          </StackPanel>
+        </ScrollViewer>
+      </Grid>
+
+      <!-- Rechte Seite: Verbindungs-Log -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,*">
+
+        <Border Grid.Row="0" Background="#111827" Padding="16,8"
+                BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+          <Grid ColumnDefinitions="*,Auto">
+            <StackPanel Orientation="Horizontal" Spacing="12">
+              <TextBlock Text="CONNECTOR-LOG"
+                         FontSize="9" FontWeight="SemiBold"
+                         Foreground="#4a5a6a" LetterSpacing="1.5"
+                         VerticalAlignment="Center"/>
+              <Border Background="#1e2a3a" CornerRadius="10" Padding="8,2">
+                <TextBlock Text="{Binding RequestCount, StringFormat='{}{0} Requests'}"
+                           FontSize="10" Foreground="#8892a4"/>
+              </Border>
+            </StackPanel>
+            <Button Grid.Column="1"
+                    Content="🗑  Löschen"
+                    Classes="ghost" FontSize="10"
+                    Command="{Binding ClearLogCommand}"/>
+          </Grid>
+        </Border>
+
+        <!-- Placeholder oder Log -->
+        <Panel Grid.Row="1">
+
+          <!-- Placeholder: Server gestoppt -->
+          <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                      Spacing="8"
+                      IsVisible="{Binding !IsRunning}">
+            <TextBlock Text="🔌" FontSize="32" HorizontalAlignment="Center"/>
+            <TextBlock Text="Server ist gestoppt"
+                       FontSize="13" FontWeight="SemiBold"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="Starte den Server um externe KI-Connectors zu empfangen."
+                       FontSize="11" Foreground="#4a5a6a"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Placeholder: Server läuft, kein Log-Eintrag -->
+          <StackPanel VerticalAlignment="Center" HorizontalAlignment="Center"
+                      Spacing="8"
+                      IsVisible="{Binding ShowEmptyRunning}">
+            <TextBlock Text="✅" FontSize="28" HorizontalAlignment="Center"/>
+            <TextBlock Text="Server läuft — wartet auf Connectors"
+                       FontSize="13" FontWeight="SemiBold"
+                       HorizontalAlignment="Center"/>
+            <TextBlock Text="{Binding ServerUrl}"
+                       FontSize="11" Foreground="#60a5fa"
+                       FontFamily="Cascadia Code,Consolas,monospace"
+                       HorizontalAlignment="Center"/>
+          </StackPanel>
+
+          <!-- Log-Einträge -->
+          <ScrollViewer IsVisible="{Binding HasLogEntries}">
+            <ItemsControl ItemsSource="{Binding Log}" Padding="0,4">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:ConnectorLogEntry">
+                  <Grid ColumnDefinitions="52,18,*" Margin="16,3,16,3">
+                    <TextBlock Grid.Column="0"
+                               Text="{Binding Time}"
+                               FontSize="10"
+                               FontFamily="Cascadia Code,Consolas,monospace"
+                               Foreground="#3a4a5a"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="1"
+                               Text="{Binding LevelLabel}"
+                               FontSize="11"
+                               Foreground="{Binding LevelColor}"
+                               HorizontalAlignment="Center"
+                               VerticalAlignment="Center"/>
+                    <TextBlock Grid.Column="2"
+                               Text="{Binding Message}"
+                               FontSize="11"
+                               Foreground="{Binding LevelColor}"
+                               TextWrapping="Wrap"
+                               VerticalAlignment="Center"/>
+                  </Grid>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+        </Panel>
+      </Grid>
+    </Grid>
+
+  </Grid>
+</UserControl>

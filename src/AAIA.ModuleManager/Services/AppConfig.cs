@@ -2,6 +2,8 @@ using System;
 using System.IO;
 using System.Text.Json;
 using System.Threading.Tasks;
+using AAIA.ModuleManager.Services.AiAdapter;
+using AAIA.ModuleManager.Services.AiAdapter.Connector;
 using AAIA.Shared.Contracts.Publisher;
 
 namespace AAIA.ModuleManager.Services;
@@ -93,6 +95,19 @@ public class AppConfig
     public bool AiContextSendAaiasStatus { get; set; } = true;
     /// <summary>Quellcode-Dateien automatisch einbeziehen (standardmaessig aus).</summary>
     public bool AiContextSendSourceFiles { get; set; } = false;
+
+    // ── Phase 6.0 — Zentraler AI Adapter ─────────────────────────────────────
+
+    /// <summary>
+    /// Adapter-Einstellungen: welches Target mit welchem Modus.
+    /// Standard: alles ManualHandoff, bis API-Keys konfiguriert sind.
+    /// </summary>
+    public AiAdapterSettings AiAdapter { get; set; } = new();
+
+    // ── Phase 6.2 — Connector-Server ─────────────────────────────────────────
+
+    /// <summary>Einstellungen für den lokalen AI Connector-Server.</summary>
+    public AiConnectorServerSettings AiConnector { get; set; } = new();
 
     // V2 — AAIAS connection
     public string AaiasUrl      { get; set; } = "http://localhost:5174";
