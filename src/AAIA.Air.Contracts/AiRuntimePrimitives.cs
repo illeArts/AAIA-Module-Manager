@@ -54,6 +54,9 @@ public enum AiRuntimeEventType
     BuildFinished,
     ValidationFinished,
     PackageCreated,
+    MessageSent,
+    MessageDelivered,
+    MessageAcknowledged,
     ErrorOccurred
 }
 
