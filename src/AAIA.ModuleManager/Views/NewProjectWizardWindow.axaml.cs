@@ -184,6 +184,10 @@ public partial class NewProjectWizardWindow : Window
         dlg.ShowDialog(this);
     }
 
+    // ── Fenster schließen ─────────────────────────────────────────────────────
+
+    private void Close_Click(object? s, RoutedEventArgs e) => Close();
+
     // ── Phase 6.10d: Fehler-Hilfe ─────────────────────────────────────────────
 
     private void OpenHelpForArticle(string articleId)
