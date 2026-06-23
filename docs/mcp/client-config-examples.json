@@ -1,0 +1,27 @@
+{
+  "_comment": "AAIA AI Runtime — MCP-Bridge Client-Konfigurationen. <BRIDGE_TOKEN> im Connector Tab kopieren (Button 'Client-Config kopieren'). Token ist der Bridge-Zugangsschlüssel, KEIN Projekt-Secret.",
+
+  "claude_desktop": {
+    "mcpServers": {
+      "aaia-module-manager": {
+        "url": "http://127.0.0.1:39158/mcp",
+        "headers": { "Authorization": "Bearer <BRIDGE_TOKEN>" }
+      }
+    }
+  },
+
+  "codex_config_toml": [
+    "[mcp_servers.aaia-module-manager]",
+    "url = \"http://127.0.0.1:39158/mcp\"",
+    "headers = { Authorization = \"Bearer <BRIDGE_TOKEN>\" }"
+  ],
+
+  "stdio_wrapper_later": {
+    "mcpServers": {
+      "aaia-module-manager": {
+        "command": "dotnet",
+        "args": ["run", "--project", "/PATH/TO/AAIAModuleManager.McpBridge.csproj", "--", "--stdio"]
+      }
+    }
+  }
+}

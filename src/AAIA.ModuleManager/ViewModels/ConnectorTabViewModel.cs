@@ -1,24 +1,40 @@
 using System;
+using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Collections.ObjectModel;
+using System.IO;
+using System.Linq;
+using System.Text.RegularExpressions;
+using System.Threading;
 using System.Threading.Tasks;
+using Avalonia;
+using Avalonia.Controls.ApplicationLifetimes;
 using Avalonia.Threading;
 using CommunityToolkit.Mvvm.ComponentModel;
 using CommunityToolkit.Mvvm.Input;
 using AAIA.ModuleManager.Services;
 using AAIA.ModuleManager.Services.AiAdapter.Connector;
+using AAIA.ModuleManager.Services.Ai.Integration;
+using AAIA.ModuleManager.Services.Ai.Runtime;
+using AAIA.ModuleManager.Services.Ai.Runtime.Hosts;
 using AAIA.ModuleManager.Services.Help;
 
 namespace AAIA.ModuleManager.ViewModels;
 
 /// <summary>
-/// ViewModel für den Connector-Server-Tab (Phase 6.3).
-/// Steuert den lokalen AiConnectorServer und zeigt Status + Log an.
-/// Öffnet PatchApprovalWindow wenn ein Connector einen Patch einreicht.
+/// ViewModel für den Connector-Server-Tab (Phase 6.3 + 7.0).
+/// Steuert den lokalen AiConnectorServer und die AIR MCP-Bridge.
+/// Implementiert IModuleManagerAiBridge — die einzige Stelle mit echtem App-/UI-Zustand.
 /// </summary>
-public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposable
+public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleManagerAiBridge, IDisposable
 {
-    private readonly AppConfig           _config;
-    private readonly AiConnectorServer   _server;
+    private readonly AppConfig                _config;
+    private readonly AiConnectorServer        _server;
+    private readonly AaiasConnectionService?  _aaias;
+    private          AiRuntimeConnectorPanel? _airPanel;
+
+    // AIR-Patch-Proposals, die auf UI-Entscheidung warten (proposalId → TCS)
+    private readonly ConcurrentDictionary<string, TaskCompletionSource<AiHostResult>> _airPending = new();
 
     // ── Status ────────────────────────────────────────────────────────────────
 
@@ -66,6 +82,25 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposabl
     private AiHandoffContext? _currentContext;
     private string?           _projectRoot;
 
+    // ── AIR / MCP-Bridge ─────────────────────────────────────────────────────
+
+    [ObservableProperty] private bool   _airIsRunning  = false;
+    [ObservableProperty] private string _airStatusText = "MCP-Bridge gestoppt.";
+    [ObservableProperty] private string _airUrl        = "";
+    [ObservableProperty] private string _airLastEvent  = "";
+    [ObservableProperty] private bool   _hasMcpBridge  = false;
+
+    public ObservableCollection<string> AirSessions { get; } = [];
+    public ObservableCollection<string> AirLocks    { get; } = [];
+    public ObservableCollection<string> AirTools    { get; } = [];
+    public ObservableCollection<string> AirAudit    { get; } = [];
+
+    partial void OnAirIsRunningChanged(bool value)
+    {
+        StartAirCommand.NotifyCanExecuteChanged();
+        StopAirCommand.NotifyCanExecuteChanged();
+    }
+
     // ── Patch-Approval-Callback ───────────────────────────────────────────────
 
     /// <summary>
@@ -76,14 +111,29 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposabl
 
     // ── Konstruktor ───────────────────────────────────────────────────────────
 
-    public ConnectorTabViewModel(AppConfig config)
+    public ConnectorTabViewModel(AppConfig config, AaiasConnectionService? aaias = null)
     {
         _config               = config;
+        _aaias                = aaias;
         _allowPatchProposals  = config.AiConnector.AllowPatchProposals;
 
         _server = new AiConnectorServer(config);
-        _server.ConnectorConnected   += OnConnectorConnected;
+        _server.ConnectorConnected    += OnConnectorConnected;
         _server.PatchProposalReceived += OnPatchProposalReceived;
+
+        // AIR MCP-Bridge initialisieren (deaktiviert bis StartAirAsync)
+        HasMcpBridge = true;
+        _airPanel    = new AiRuntimeConnectorPanel(config.McpBridge, this);
+        _airPanel.Log += msg => Dispatcher.UIThread.Post(() => AppendLog($"[AIR] {msg}", ConnectorLogLevel.Info));
+        _airPanel.Runtime.Events.EventPublished += e =>
+        {
+            var text = $"{e.TimestampUtc:HH:mm:ss} {e.Type} {e.Tool} ({e.ClientName})";
+            Dispatcher.UIThread.Post(() =>
+            {
+                AirLastEvent = text;
+                RefreshAirLists();
+            });
+        };
 
         if (config.AiConnector.AutoStart)
             _ = StartAsync();
@@ -99,7 +149,7 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposabl
         _server.UpdateContext(ctx, projectRoot);
     }
 
-    // ── Commands ──────────────────────────────────────────────────────────────
+    // ── Commands — Connector-Server ───────────────────────────────────────────
 
     [RelayCommand(CanExecute = nameof(CanStart))]
     private async Task StartAsync()
@@ -145,8 +195,96 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposabl
         StatusText = $"URL: {ServerUrl}";
     }
 
-    private bool CanStart() => !IsRunning;
-    private bool CanStop()  =>  IsRunning;
+    private bool CanStart()    => !IsRunning;
+    private bool CanStop()     =>  IsRunning;
+    private bool CanStartAir() => !AirIsRunning && HasMcpBridge;
+    private bool CanStopAir()  =>  AirIsRunning  && HasMcpBridge;
+
+    // ── Commands — AIR / MCP-Bridge ───────────────────────────────────────────
+
+    [RelayCommand(CanExecute = nameof(CanStartAir))]
+    private async Task StartAirAsync()
+    {
+        if (_airPanel is null) return;
+        try
+        {
+            await _airPanel.StartAsync();
+            AirIsRunning  = true;
+            AirUrl        = _airPanel.Url;
+            AirStatusText = $"MCP-Bridge läuft auf Port {_airPanel.Port}.";
+            AppendLog("MCP-Bridge gestartet.", ConnectorLogLevel.Success);
+            RefreshAirLists();
+        }
+        catch (Exception ex)
+        {
+            AirStatusText = $"Fehler: {ex.Message}";
+            AppendLog($"MCP-Bridge Start fehlgeschlagen: {ex.Message}", ConnectorLogLevel.Error);
+        }
+    }
+
+    [RelayCommand(CanExecute = nameof(CanStopAir))]
+    private async Task StopAirAsync()
+    {
+        if (_airPanel is null) return;
+        await _airPanel.StopAsync();
+        AirIsRunning  = false;
+        AirStatusText = "MCP-Bridge gestoppt.";
+        AppendLog("MCP-Bridge gestoppt.", ConnectorLogLevel.Info);
+        RefreshAirLists();
+    }
+
+    [RelayCommand]
+    private void RotateAirToken()
+    {
+        if (_airPanel is null) return;
+        _airPanel.RotateToken();
+        AppendLog("MCP-Bridge: Bridge-Token rotiert. Clients müssen neu konfiguriert werden.", ConnectorLogLevel.Warning);
+    }
+
+    [RelayCommand]
+    private void CopyClaudeConfig()
+    {
+        if (_airPanel is null) return;
+        CopyToClipboard(_airPanel.ClaudeDesktopConfig());
+        AppendLog("Claude Desktop-Config in Zwischenablage kopiert.", ConnectorLogLevel.Info);
+    }
+
+    [RelayCommand]
+    private void CopyCodexConfig()
+    {
+        if (_airPanel is null) return;
+        CopyToClipboard(_airPanel.CodexConfig());
+        AppendLog("Codex-Config in Zwischenablage kopiert.", ConnectorLogLevel.Info);
+    }
+
+    private void RefreshAirLists()
+    {
+        if (_airPanel is null) return;
+        Dispatcher.UIThread.Post(() =>
+        {
+            var sessions = _airPanel.ActiveSessions();
+            AirSessions.Clear(); foreach (var s in sessions) AirSessions.Add(s);
+
+            var locks = _airPanel.ActiveLocks();
+            AirLocks.Clear(); foreach (var l in locks) AirLocks.Add(l);
+
+            var tools = _airPanel.ActiveTools();
+            AirTools.Clear(); foreach (var t in tools) AirTools.Add(t);
+
+            var audit = _airPanel.RecentAudit(20);
+            AirAudit.Clear(); foreach (var a in audit) AirAudit.Add(a);
+        });
+    }
+
+    private static void CopyToClipboard(string text)
+    {
+        try
+        {
+            if (Application.Current?.ApplicationLifetime is IClassicDesktopStyleApplicationLifetime desktop)
+                _ = desktop.MainWindow?.Clipboard?.SetTextAsync(text);
+        }
+        catch { /* Clipboard-Fehler ignorieren */ }
+    }
 
     // ── Connector-Events (kommen aus Background-Thread) ───────────────────────
 
@@ -176,6 +314,21 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposabl
     /// <summary>Wird vom PatchApprovalWindow nach User-Entscheidung aufgerufen.</summary>
     public void OnPatchDecision(string proposalId, bool approved)
     {
+        // AIR-Pfad: Proposal kam von ApproveAndApplyPatchAsync
+        if (_airPending.TryRemove(proposalId, out var tcs))
+        {
+            PendingPatches = Math.Max(0, PendingPatches - 1);
+            var result = approved
+                ? AiHostResult.Ok(new { message = "Patch genehmigt und angewendet." })
+                : AiHostResult.Fail("Patch vom Nutzer abgelehnt.", "rejected");
+            tcs.TrySetResult(result);
+            AppendLog(
+                approved ? $"AIR-Patch {proposalId}: Genehmigt." : $"AIR-Patch {proposalId}: Abgelehnt.",
+                approved ? ConnectorLogLevel.Success : ConnectorLogLevel.Info);
+            return;
+        }
+
+        // Connector-Pfad: klassischer HTTP-Connector
         if (approved)
             _server.ApprovePatch(proposalId);
         else
@@ -185,6 +338,149 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposabl
         AppendLog(
             approved ? $"Patch {proposalId}: Genehmigt." : $"Patch {proposalId}: Abgelehnt.",
             approved ? ConnectorLogLevel.Success : ConnectorLogLevel.Info);
+    }
+
+    // ── IModuleManagerAiBridge ────────────────────────────────────────────────
+
+    /// <inheritdoc/>
+    public AaiaProjectStatus GetStatus() => new()
+    {
+        Version          = System.Reflection.Assembly.GetExecutingAssembly()
+                               .GetName().Version?.ToString(3) ?? "0.0.0",
+        ConnectorRunning = _server.IsRunning,
+        McpBridgeRunning = _airPanel?.IsRunning ?? false,
+        CurrentProject   = string.IsNullOrEmpty(_currentContext?.DisplayName)
+                               ? _currentContext?.ExtensionId
+                               : _currentContext.DisplayName,
+        PipelineStep     = _currentContext?.CurrentStep,
+        TrustLevel       = _currentContext?.TrustLevel ?? "Unsigned",
+        AaiasConnected   = _aaias?.IsConnected ?? false,
+    };
+
+    /// <inheritdoc/>
+    public ModuleManagerProjectInfo? ResolveProject(string projectPath)
+    {
+        if (_projectRoot is null || _currentContext is null) return null;
+
+        var root = Path.GetFullPath(_projectRoot);
+        string normPath;
+        try   { normPath = string.IsNullOrEmpty(projectPath) ? root : Path.GetFullPath(projectPath); }
+        catch { return null; }
+
+        if (!normPath.Equals(root, StringComparison.OrdinalIgnoreCase) &&
+            !normPath.StartsWith(root + Path.DirectorySeparatorChar, StringComparison.OrdinalIgnoreCase))
+            return null;
+
+        var projectType = _currentContext.ProjectType switch
+        {
+            "ClientPlugin" => NewProjectType.ClientPlugin,
+            "HybridModule" => NewProjectType.HybridModule,
+            "LanguagePack" => NewProjectType.LanguagePack,
+            _              => NewProjectType.ServerModule,
+        };
+
+        var csproj = Directory.Exists(root)
+            ? Directory.EnumerateFiles(root, "*.csproj", SearchOption.AllDirectories)
+                .FirstOrDefault(p =>
+                    !p.Contains(Path.DirectorySeparatorChar + "bin" + Path.DirectorySeparatorChar) &&
+                    !p.Contains(Path.DirectorySeparatorChar + "obj" + Path.DirectorySeparatorChar))
+            : null;
+
+        return new ModuleManagerProjectInfo
+        {
+            ProjectDir  = root,
+            CsprojPath  = csproj,
+            ProjectType = projectType,
+            ProjectName = _currentContext.DisplayName,
+            ExtensionId = _currentContext.ExtensionId,
+        };
+    }
+
+    /// <inheritdoc/>
+    public async Task<AiHostResult> ApproveAndApplyPatchAsync(AiPatchProposalInput input, CancellationToken ct)
+    {
+        if (ShowPatchApproval is null)
+            return AiHostResult.Fail("Patch-Approval-UI nicht verfügbar (ShowPatchApproval nicht gesetzt).", "no_ui");
+
+        // AiPatchProposalInput → AiPatchRequest konvertieren
+        var patchReq = new AiPatchRequest
+        {
+            ProtocolVersion = AiConnectorProtocol.ProtocolVersion,
+            Rationale       = input.Reason,
+            Patches         = input.Changes.Select(c => new AiPatchItem
+            {
+                Kind        = "FullFileReplacement",
+                TargetFile  = c.RelativePath,
+                Content     = c.Content,
+                Language    = Path.GetExtension(c.RelativePath).TrimStart('.'),
+                Description = $"Operation: {c.Operation}",
+            }).ToList(),
+        };
+
+        var proposalId = "air-" + Guid.NewGuid().ToString("N")[..12];
+        var tcs = new TaskCompletionSource<AiHostResult>(TaskCreationOptions.RunContinuationsAsynchronously);
+        _airPending[proposalId] = tcs;
+
+        using (ct.Register(() =>
+        {
+            if (_airPending.TryRemove(proposalId, out var pending))
+                pending.TrySetCanceled(ct);
+        }))
+        {
+            Dispatcher.UIThread.Post(() =>
+            {
+                PendingPatches++;
+                AppendLog($"AIR-Patch eingegangen: {patchReq.Patches.Count} Datei(en). Warte auf Genehmigung.", ConnectorLogLevel.Warning);
+                ShowPatchApproval?.Invoke(proposalId, patchReq);
+            });
+
+            return await tcs.Task.ConfigureAwait(false);
+        }
+    }
+
+    /// <inheritdoc/>
+    public async Task<AiHostResult> CreateProjectAsync(AiProjectCreateInput input, CancellationToken ct)
+    {
+        try
+        {
+            var projectType = input.ExtensionKind switch
+            {
+                "Plugin" or "ClientPlugin" => NewProjectType.ClientPlugin,
+                "Hybrid" or "HybridModule" => NewProjectType.HybridModule,
+                "LanguagePack"             => NewProjectType.LanguagePack,
+                _                          => NewProjectType.ServerModule,
+            };
+
+            var raw      = string.IsNullOrWhiteSpace(input.Idea) ? "NewExtension" : input.Idea;
+            var safeName = Regex.Replace(raw, @"[^a-zA-Z0-9 _-]", "").Trim().Replace(' ', '_');
+            if (safeName.Length > 40) safeName = safeName[..40];
+            if (string.IsNullOrEmpty(safeName)) safeName = "NewExtension";
+
+            var opts = new ScaffoldOptions(
+                Type:        projectType,
+                Name:        safeName,
+                Id:          safeName.ToLowerInvariant().Replace('_', '-'),
+                Description: input.Idea,
+                OutputPath:  _config.NewProjectPath,
+                PublisherId: _config.DeveloperEtwId ?? "",
+                SdkPath:     _config.SdkPath
+            );
+
+            var projectPath = await ProjectScaffoldingService.ScaffoldAsync(opts).ConfigureAwait(false);
+
+            Dispatcher.UIThread.Post(() =>
+                AppendLog($"AIR: Projekt erstellt — {projectPath}", ConnectorLogLevel.Success));
+
+            return AiHostResult.Ok(new { projectPath, projectType = projectType.ToString(), name = safeName });
+        }
+        catch (OperationCanceledException)
+        {
+            return AiHostResult.Fail("Projekt-Erstellung abgebrochen.", "cancelled");
+        }
+        catch (Exception ex)
+        {
+            return AiHostResult.Fail($"Projekt-Erstellung fehlgeschlagen: {ex.Message}", "scaffold_error");
+        }
     }
 
     // ── Log-Hilfsmethode ──────────────────────────────────────────────────────
@@ -203,10 +499,18 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IDisposabl
 
     public void Dispose()
     {
-        _server.ConnectorConnected   -= OnConnectorConnected;
+        _server.ConnectorConnected    -= OnConnectorConnected;
         _server.PatchProposalReceived -= OnPatchProposalReceived;
         _ = _server.StopAsync();
         _server.Dispose();
+
+        if (_airPanel is not null)
+            _ = _airPanel.StopAsync();
+
+        // Alle wartenden AIR-Proposals abbrechen
+        foreach (var (_, tcs) in _airPending)
+            tcs.TrySetCanceled();
+        _airPending.Clear();
     }
 }
 

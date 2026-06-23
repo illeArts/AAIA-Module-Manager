@@ -238,8 +238,28 @@ public sealed class AiConnectorServer : IDisposable
 
             ConnectorConnected?.Invoke($"{connName} ({connId})");
 
+            // Pfad früh bestimmen — unbekannte Pfade vor Permission-Check mit 404 abbrechen
+            var path   = req.Url?.AbsolutePath ?? "";
+            var method = req.HttpMethod;
+
+            var isKnownGet = method == "GET" && (
+                path.Equals(AiConnectorProtocol.Endpoints.Capabilities,   StringComparison.OrdinalIgnoreCase) ||
+                path.Equals(AiConnectorProtocol.Endpoints.ContextCurrent, StringComparison.OrdinalIgnoreCase) ||
+                path.Equals(AiConnectorProtocol.Endpoints.ContextProject, StringComparison.OrdinalIgnoreCase) ||
+                path.Equals(AiConnectorProtocol.Endpoints.HandoffLatest,  StringComparison.OrdinalIgnoreCase) ||
+                path.StartsWith(AiConnectorProtocol.Endpoints.PatchStatus, StringComparison.OrdinalIgnoreCase));
+            var isKnownPost = method == "POST" &&
+                path.Equals(AiConnectorProtocol.Endpoints.PatchPropose, StringComparison.OrdinalIgnoreCase);
+
+            if (!isKnownGet && !isKnownPost)
+            {
+                await WriteJsonAsync(resp, AiConnectorProtocol.StatusNotFound,
+                    new { error = "Endpunkt nicht gefunden.", path });
+                return;
+            }
+
             // Permission prüfen
-            var required = AiConnectorPermissionChecker.RequiredFor(req.Url?.AbsolutePath ?? "", req.HttpMethod);
+            var required = AiConnectorPermissionChecker.RequiredFor(path, method);
             var session  = AiConnectorPermissionChecker.CreateSession(
                 connId, connName,
                 allowPatchProposal: _config.AiConnector.AllowPatchProposals);
@@ -252,9 +272,7 @@ public sealed class AiConnectorServer : IDisposable
             }
 
             // Routing
-            var path = req.Url?.AbsolutePath ?? "";
-
-            if (req.HttpMethod == "GET")
+            if (method == "GET")
             {
                 if (path.Equals(AiConnectorProtocol.Endpoints.Capabilities, StringComparison.OrdinalIgnoreCase))
                     await HandleCapabilitiesAsync(resp, session);
@@ -275,7 +293,7 @@ public sealed class AiConnectorServer : IDisposable
                     await WriteJsonAsync(resp, AiConnectorProtocol.StatusNotFound,
                         new { error = "Endpunkt nicht gefunden.", path });
             }
-            else if (req.HttpMethod == "POST" &&
+            else if (method == "POST" &&
                      path.Equals(AiConnectorProtocol.Endpoints.PatchPropose, StringComparison.OrdinalIgnoreCase))
             {
                 await HandlePatchProposeAsync(req, resp);
