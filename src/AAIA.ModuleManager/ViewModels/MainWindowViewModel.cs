@@ -83,7 +83,7 @@ public partial class MainWindowViewModel : ObservableObject
         // Phase 6.3 — Connector-Server-Tab
         // TesterTab.AaiasConn weitergeben: ConnectorTab zeigt AAIAS-Verbindungsstatus
         // AiServiceFactory.CreateAdapter mit AaiasConn: AaiasAgent-Target wird unterstützt
-        ConnectorTab = new ConnectorTabViewModel(config);
+        ConnectorTab = new ConnectorTabViewModel(config, TesterTab.AaiasConn);
 
         _ = TesterTab.InitAsync(config);
         _ = CheckForUpdateAsync();

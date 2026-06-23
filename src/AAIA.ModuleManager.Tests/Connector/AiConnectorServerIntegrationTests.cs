@@ -25,7 +25,7 @@ namespace AAIA.ModuleManager.Tests.Connector;
 public sealed class AiConnectorServerIntegrationTests : IAsyncLifetime
 {
     private const int TestPort = 39197;
-    private const string ApiBase = $"http://localhost:{TestPort}/aaia/v1";
+    private static readonly string ApiBase = $"http://localhost:{TestPort}/aaia/v1";
 
     private readonly AiConnectorServer _server;
     private readonly HttpClient        _http;

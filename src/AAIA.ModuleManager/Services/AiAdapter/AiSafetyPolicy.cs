@@ -22,8 +22,8 @@ public static class AiSafetyPolicy
     [
         // PEM Private Key Block
         new(@"-----BEGIN (RSA |EC |PRIVATE KEY|OPENSSH PRIVATE).*?-----", RegexOptions.IgnoreCase),
-        // Lange Hex-Strings (potentielle Private Keys)
-        new(@"\b[0-9a-fA-F]{64,}\b"),
+        // Lange Hex-Strings (potentielle Private Keys, ab 40 Zeichen)
+        new(@"\b[0-9a-fA-F]{40,}\b"),
         // Bearer / API Token Pattern
         new(@"Bearer\s+[A-Za-z0-9\-_\.]{20,}", RegexOptions.IgnoreCase),
         // sk-... OpenAI Key Pattern

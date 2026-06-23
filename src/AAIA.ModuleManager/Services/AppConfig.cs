@@ -109,6 +109,11 @@ public class AppConfig
     /// <summary>Einstellungen für den lokalen AI Connector-Server.</summary>
     public AiConnectorServerSettings AiConnector { get; set; } = new();
 
+    // ── Phase 7.0 — AI Runtime / MCP-Bridge ──────────────────────────────────
+
+    /// <summary>Einstellungen der AI Runtime / MCP-Bridge (standardmäßig deaktiviert).</summary>
+    public Ai.Mcp.AaiaMcpBridgeOptions McpBridge { get; set; } = new();
+
     // V2 — AAIAS connection
     public string AaiasUrl      { get; set; } = "http://localhost:5174";
     public string AaiasUsername { get; set; } = "";
