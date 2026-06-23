@@ -103,7 +103,7 @@ public sealed class AiHelpContextService
         var sb = new StringBuilder();
         sb.AppendLine(BuildHeader());
         sb.AppendLine();
-        sb.AppendLine($"## Kontext-Typ: Suchergebnisse für „{SanitizeQuery(query)}"");
+        sb.AppendLine($"## Kontext-Typ: Suchergebnisse für „{SanitizeQuery(query)}“");
         sb.AppendLine();
 
         if (results.Count == 0)
@@ -136,7 +136,7 @@ public sealed class AiHelpContextService
         var sb = new StringBuilder();
         sb.AppendLine(BuildHeader());
         sb.AppendLine();
-        sb.AppendLine($"## Kontext-Typ: Pipeline-Schritt „{stepName}"");
+        sb.AppendLine($"## Kontext-Typ: Pipeline-Schritt „{stepName}“");
         sb.AppendLine();
 
         foreach (var article in articles)
@@ -258,4 +258,3 @@ public sealed class AiHelpContextService
 
     private static string SanitizeQuery(string query)
         => query.Length > 100 ? query[..100] : query;
-}
