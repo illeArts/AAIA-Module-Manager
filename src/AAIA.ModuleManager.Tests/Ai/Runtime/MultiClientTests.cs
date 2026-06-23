@@ -2,9 +2,9 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using AAIA.ModuleManager.Services.Ai.Runtime;
-using AAIA.ModuleManager.Services.Ai.Runtime.Collaboration;
-using AAIA.ModuleManager.Services.Ai.Runtime.Hosts;
+using AAIA.Air;
+using AAIA.Air.Collaboration;
+using AAIA.Air.Hosts;
 using Xunit;
 
 namespace AAIA.ModuleManager.Tests.Ai.Runtime;

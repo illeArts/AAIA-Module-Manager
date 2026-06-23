@@ -15,8 +15,8 @@ using CommunityToolkit.Mvvm.Input;
 using AAIA.ModuleManager.Services;
 using AAIA.ModuleManager.Services.AiAdapter.Connector;
 using AAIA.ModuleManager.Services.Ai.Integration;
-using AAIA.ModuleManager.Services.Ai.Runtime;
-using AAIA.ModuleManager.Services.Ai.Runtime.Hosts;
+using AAIA.Air;
+using AAIA.Air.Hosts;
 using AAIA.ModuleManager.Services.Help;
 
 namespace AAIA.ModuleManager.ViewModels;

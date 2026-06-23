@@ -97,4 +97,3 @@ public static class ProjectValidationOrchestrator
         catch { /* KI-Fehler silent schlucken */ }
     }
 }
-

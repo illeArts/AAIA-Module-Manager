@@ -2,12 +2,12 @@ using System.Linq;
 using System.Text.Json;
 using System.Threading;
 using System.Threading.Tasks;
-using AAIA.ModuleManager.Services.Ai.Runtime;
-using AAIA.ModuleManager.Services.Ai.Runtime.Collaboration;
-using AAIA.ModuleManager.Services.Ai.Runtime.Hosts;
-using AAIA.ModuleManager.Services.Ai.Runtime.Memory;
-using AAIA.ModuleManager.Services.Ai.Runtime.Tasks;
-using AAIA.ModuleManager.Services.Ai.Runtime.Workflows;
+using AAIA.Air;
+using AAIA.Air.Collaboration;
+using AAIA.Air.Hosts;
+using AAIA.Air.Memory;
+using AAIA.Air.Tasks;
+using AAIA.Air.Workflows;
 using Xunit;
 
 namespace AAIA.ModuleManager.Tests.Ai.Runtime;
@@ -168,9 +168,9 @@ public sealed class AiRuntimeExtensionsTests
     {
         var rt = BuildRuntime();
         var dev = Session(rt, "Claude", AiPermission.Read);
-        dev.Roles.Add(AAIA.ModuleManager.Services.Ai.Runtime.Roles.AiRole.Developer);
+        dev.Roles.Add(AAIA.Air.Roles.AiRole.Developer);
         var rev = Session(rt, "ChatGPT", AiPermission.Read);
-        rev.Roles.Add(AAIA.ModuleManager.Services.Ai.Runtime.Roles.AiRole.Reviewer);
+        rev.Roles.Add(AAIA.Air.Roles.AiRole.Reviewer);
 
         var suggestion = rt.Collaboration.SuggestReviewer(dev.SessionId);
         Assert.NotNull(suggestion);

@@ -42,10 +42,6 @@
     <PackageReference Include="QRCoder" Version="1.6.0" />
     <!-- Markdown-Parser für das HelpCenter -->
     <PackageReference Include="Markdig" Version="0.38.0" />
-    <!-- Phase 7.0 — Offizielles C# MCP SDK (AI Runtime / MCP-Adapter).
-         Versionen beim ersten restore prüfen; SDK-Pakete erscheinen im Lockstep. -->
-    <PackageReference Include="ModelContextProtocol" Version="1.4.0" />
-    <PackageReference Include="ModelContextProtocol.AspNetCore" Version="1.4.0" />
   </ItemGroup>
 
   <ItemGroup>
@@ -59,4 +55,8 @@
              CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
+  <ItemGroup>
+    <ProjectReference Include="..\AAIA.Air\AAIA.Air.csproj" />
+    <ProjectReference Include="..\AAIA.Air.Mcp\AAIA.Air.Mcp.csproj" />
+  </ItemGroup>
 </Project>
