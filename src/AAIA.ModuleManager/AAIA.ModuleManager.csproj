@@ -58,5 +58,6 @@
   <ItemGroup>
     <ProjectReference Include="..\AAIA.Air\AAIA.Air.csproj" />
     <ProjectReference Include="..\AAIA.Air.Mcp\AAIA.Air.Mcp.csproj" />
+    <ProjectReference Include="..\AAIA.Air.SDK\AAIA.Air.SDK.csproj" />
   </ItemGroup>
 </Project>
