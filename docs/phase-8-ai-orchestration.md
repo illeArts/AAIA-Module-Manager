@@ -12,7 +12,7 @@ und Ressourcenwahl dürfen sie weder ersetzen noch umgehen.
 |---|---|---|
 | 8.1 | Sessiongebundener Messaging-Bus | abgeschlossen |
 | 8.2 | Execution Queue und Scheduler | abgeschlossen |
-| 8.3 | Resource Manager für Capabilities, Kosten- und Lastprofile | geplant |
+| 8.3 | Resource Manager für Capabilities, Kosten- und Lastprofile | spezifiziert, nicht implementiert |
 | 8.4 | Adapter-/MCP-Oberfläche und UI | geplant, nach Permission-Entscheidung |
 
 ## 8.1 — Messaging
@@ -111,3 +111,13 @@ Approval-, Audit- und Event-Prüfung.
 - Laufende Tasks unterstützen Cancellation; Task und Execution verlassen dabei zuverlässig `InProgress`/`Running`.
 - Unerwartete Executor-Fehler setzen Task-Schritt, Task und Execution konsistent auf `Failed`.
 - Zehn Scheduler-Tests einschließlich paralleler Assignment-Anfragen sind grün.
+
+## 8.3 — Resource Manager
+
+Die vollständige Spezifikation liegt in
+[`phase-8.3-resource-manager-spec.md`](phase-8.3-resource-manager-spec.md).
+
+Festgelegt sind Ressourcenprofile, Kapazitätsvektor, Kostenbudgets, Lasttelemetrie,
+harte Auswahlgrenzen, deterministisches Ranking, Reservationszustände, erlaubte und
+verbotene Entscheidungen sowie 26 Pflicht-Tests. Es wurde noch keine Runtime-Logik
+für 8.3 implementiert.

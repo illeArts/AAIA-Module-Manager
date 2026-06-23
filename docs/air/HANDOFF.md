@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging und 8.2 Scheduling sind abgeschlossen. Tests: 135/135 grün. Nächster Schritt: Phase 8.3 Resource Manager spezifizieren.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging und 8.2 Scheduling sind abgeschlossen. Tests: 135/135 grün. Phase 8.3 Resource Manager ist spezifiziert, aber nicht implementiert.
 
 ## Wo wir stehen
 
@@ -25,9 +25,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase 8.2 Scheduler-Checkpoint mergen.
-2. Phase 8.3 Resource Manager spezifizieren: Ressourcenprofil, Kapazität, Kostenbudget und Auswahlgrenzen zuerst festlegen.
-3. Erst danach Ressourcenwahl implementieren; MCP-/UI-Freigaben bleiben ein getrenntes Inkrement.
+1. Phase-8.3-Spezifikation prüfen und fachlich freigeben.
+2. Erst danach die dokumentierte Implementierungsreihenfolge beginnen.
+3. MCP, UI und Host-Adapter bleiben vollständig außerhalb von Phase 8.3.
 
 ## Harte Regeln (nicht verletzen)
 
@@ -41,6 +41,7 @@ Implementiert und gebaut:
 
 - `docs/phase-7.0-ai-runtime-status.md` — kompletter Implementierungsstatus (Increment 1, 1.1, 1.2, 2) + verbleibende App-Verdrahtung.
 - `docs/air/air-platform-split.md` — 4-Projekt-Zielarchitektur, Datei-/Namespace-Mapping, csproj-Inhalte, Stage 2/3-Code (`AiMessage`, AIR.SDK).
+- `docs/phase-8.3-resource-manager-spec.md` — freizugebende Spezifikation für Ressourcenprofile, Kapazität, Budget, Last, Auswahlgrenzen und Pflicht-Tests.
 - `scripts/migrate-air-stage1.ps1` — Migrations-Script Stage 1 (mit Sicherheitschecks).
 - `phase-7.0-ai-runtime.md` (Repo-Wurzel `H:\AAIAGitHub\`) — die ursprüngliche, finale Spec (Runtime + MCP-Adapter, Akzeptanzkriterien).
 - Quell-Code: `src/AAIA.Air.Contracts/`, `src/AAIA.Air/`, `src/AAIA.Air.Mcp/` sowie `src/AAIA.ModuleManager/Services/Ai/Integration/`.
