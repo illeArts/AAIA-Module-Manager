@@ -1,0 +1,261 @@
+<Window xmlns="https://github.com/avaloniaui"
+        xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+        xmlns:vm="using:AAIA.ModuleManager.ViewModels"
+        x:DataType="vm:HelpCenterViewModel"
+        x:Class="AAIA.ModuleManager.Views.HelpCenterWindow"
+        x:Name="RootWindow"
+        Title="AAIA Hilfezentrum"
+        Width="1100" Height="750"
+        MinWidth="800" MinHeight="500"
+        Background="#1a1a2e"
+        WindowStartupLocation="CenterOwner">
+
+  <Window.Styles>
+    <!-- Sidebar-Kategorie-Header -->
+    <Style Selector="Expander.sidebar-cat">
+      <Setter Property="Background"     Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding"         Value="0"/>
+    </Style>
+    <!-- Sidebar-Artikel-Button -->
+    <Style Selector="Button.article-btn">
+      <Setter Property="Background"   Value="Transparent"/>
+      <Setter Property="BorderThickness" Value="0"/>
+      <Setter Property="Padding"      Value="8,4"/>
+      <Setter Property="HorizontalAlignment" Value="Stretch"/>
+      <Setter Property="HorizontalContentAlignment" Value="Left"/>
+      <Setter Property="FontSize"     Value="12"/>
+      <Setter Property="Foreground"   Value="#c0c0d0"/>
+      <Setter Property="Cursor"       Value="Hand"/>
+    </Style>
+    <Style Selector="Button.article-btn:pointerover /template/ ContentPresenter">
+      <Setter Property="Background" Value="#2a2a4a"/>
+    </Style>
+    <Style Selector="Button.article-btn.selected /template/ ContentPresenter">
+      <Setter Property="Background" Value="#3a3a6a"/>
+    </Style>
+  </Window.Styles>
+
+  <Grid>
+    <!-- Ladeindikator -->
+    <Border IsVisible="{Binding IsLoading}"
+            Background="#1a1a2e" ZIndex="10">
+      <StackPanel HorizontalAlignment="Center" VerticalAlignment="Center" Spacing="12">
+        <ProgressBar IsIndeterminate="True" Width="200"/>
+        <TextBlock Text="{Binding LoadingText}" Foreground="#888" FontSize="13"
+                   HorizontalAlignment="Center"/>
+      </StackPanel>
+    </Border>
+
+    <!-- Haupt-Layout: Sidebar | Content -->
+    <Grid IsVisible="{Binding !IsLoading}" ColumnDefinitions="260,*">
+
+      <!-- ── Sidebar ── -->
+      <Border Grid.Column="0" Background="#12122a" BorderBrush="#2a2a4a"
+              BorderThickness="0,0,1,0">
+        <DockPanel>
+
+          <!-- Suchfeld -->
+          <Border DockPanel.Dock="Top" Margin="8,10,8,6"
+                  Background="#1e1e3a" CornerRadius="6"
+                  BorderBrush="#3a3a6a" BorderThickness="1">
+            <Grid ColumnDefinitions="*,Auto">
+              <TextBox Grid.Column="0"
+                       Text="{Binding SearchQuery}"
+                       Watermark="Hilfe durchsuchen…"
+                       Background="Transparent"
+                       BorderThickness="0"
+                       Foreground="#ddd"
+                       CaretBrush="#888"
+                       Padding="8,6"/>
+              <Button Grid.Column="1"
+                      Command="{Binding ClearSearchCommand}"
+                      IsVisible="{Binding IsSearchActive}"
+                      Background="Transparent" BorderThickness="0"
+                      Foreground="#888" Padding="6,4" Cursor="Hand"
+                      Content="✕" FontSize="11"/>
+            </Grid>
+          </Border>
+
+          <!-- Suchergebnisse (überlagert Sidebar wenn aktiv) -->
+          <Border DockPanel.Dock="Top"
+                  IsVisible="{Binding IsSearchActive}"
+                  Background="#1a1a3a" BorderBrush="#3a3a6a"
+                  BorderThickness="0,0,0,1" MaxHeight="350">
+            <ScrollViewer>
+              <ItemsControl ItemsSource="{Binding SearchResults}">
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:HelpSearchResultViewModel" x:CompileBindings="False">
+                    <Button Classes="article-btn"
+                            Command="{Binding DataContext.OpenSearchResultCommand, ElementName=RootWindow}"
+                            CommandParameter="{Binding}"
+                            Padding="10,6">
+                      <StackPanel Spacing="2">
+                        <TextBlock Text="{Binding Title}" FontWeight="SemiBold"
+                                   Foreground="#e0e0f0" FontSize="12" TextWrapping="Wrap"/>
+                        <TextBlock Text="{Binding Category}" Foreground="#6666aa"
+                                   FontSize="10"/>
+                        <TextBlock Text="{Binding Excerpt}" Foreground="#888"
+                                   FontSize="11" TextWrapping="Wrap" MaxLines="2"/>
+                      </StackPanel>
+                    </Button>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </ScrollViewer>
+          </Border>
+
+          <!-- Kategorien-Baum -->
+          <ScrollViewer DockPanel.Dock="Top">
+            <ItemsControl ItemsSource="{Binding Categories}" Margin="4,4,4,12">
+              <ItemsControl.ItemTemplate>
+                <DataTemplate x:DataType="vm:HelpCategoryViewModel">
+                  <Expander IsExpanded="{Binding IsExpanded}"
+                            Margin="0,2,0,0"
+                            Classes="sidebar-cat">
+                    <Expander.Header>
+                      <TextBlock Text="{Binding Name}"
+                                 Foreground="#9090cc" FontSize="11"
+                                 FontWeight="SemiBold"
+                                 Margin="4,4,0,4"/>
+                    </Expander.Header>
+                    <ItemsControl ItemsSource="{Binding Articles}">
+                      <ItemsControl.ItemTemplate>
+                        <DataTemplate x:DataType="vm:HelpArticleItemViewModel" x:CompileBindings="False">
+                          <Button Classes="article-btn"
+                                  Classes.selected="{Binding IsSelected}"
+                                  Command="{Binding DataContext.OpenArticleCommand, ElementName=RootWindow}"
+                                  CommandParameter="{Binding Article}"
+                                  Margin="12,0,0,0">
+                            <TextBlock Text="{Binding Title}" TextWrapping="Wrap"/>
+                          </Button>
+                        </DataTemplate>
+                      </ItemsControl.ItemTemplate>
+                    </ItemsControl>
+                  </Expander>
+                </DataTemplate>
+              </ItemsControl.ItemTemplate>
+            </ItemsControl>
+          </ScrollViewer>
+
+        </DockPanel>
+      </Border>
+
+      <!-- ── Artikelbereich ── -->
+      <Grid Grid.Column="1" RowDefinitions="Auto,*,Auto">
+
+        <!-- Artikel-Header -->
+        <Border Grid.Row="0" Background="#16162e" Padding="20,14,20,12"
+                BorderBrush="#2a2a4a" BorderThickness="0,0,0,1">
+          <DockPanel>
+            <StackPanel DockPanel.Dock="Right" Orientation="Horizontal" Spacing="8">
+              <Button Command="{Binding CopyMarkdownCommand}"
+                      Background="#2a2a4a" BorderThickness="0" CornerRadius="4"
+                      Foreground="#aaa" Padding="8,4" FontSize="11" Cursor="Hand"
+                      ToolTip.Tip="Artikel als Markdown kopieren"
+                      Content="📋 Kopieren"/>
+              <Button Command="{Binding ToggleAiPanelCommand}"
+                      Background="#2a2a4a" BorderThickness="0" CornerRadius="4"
+                      Foreground="#aaa" Padding="8,4" FontSize="11" Cursor="Hand"
+                      ToolTip.Tip="KI-Hilfe-Kontext anzeigen"
+                      Content="🤖 KI-Kontext"/>
+            </StackPanel>
+            <StackPanel DockPanel.Dock="Left" Spacing="2">
+              <TextBlock Text="{Binding ArticleCategory}"
+                         Foreground="#6060aa" FontSize="11"/>
+              <TextBlock Text="{Binding ArticleTitle}"
+                         Foreground="#e8e8ff" FontSize="18" FontWeight="SemiBold"/>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+        <!-- Artikel-Content + KI-Panel -->
+        <Grid Grid.Row="1" ColumnDefinitions="*,Auto">
+
+          <!-- Markdown-Inhalt -->
+          <ScrollViewer Grid.Column="0" Padding="24,20,24,20">
+            <Panel>
+              <!-- Kein Artikel geladen -->
+              <TextBlock IsVisible="{Binding !CurrentMarkdown.Length}"
+                         Text="Wähle einen Artikel aus der Seitenleiste oder nutze die Suche."
+                         Foreground="#555" FontSize="14" TextWrapping="Wrap"
+                         VerticalAlignment="Center" HorizontalAlignment="Center"
+                         Margin="0,60,0,0"/>
+              <!-- Markdown als Text (wird via Code-Behind gerendert) -->
+              <ItemsControl x:Name="MarkdownPanel" IsVisible="{Binding CurrentMarkdown.Length}"/>
+            </Panel>
+          </ScrollViewer>
+
+          <!-- KI-Hilfe-Panel (rechts) -->
+          <Border Grid.Column="1"
+                  IsVisible="{Binding ShowAiPanel}"
+                  Width="320"
+                  Background="#12122a"
+                  BorderBrush="#2a2a4a" BorderThickness="1,0,0,0">
+            <DockPanel Margin="12">
+
+              <TextBlock DockPanel.Dock="Top" Text="🤖 KI-Kontext"
+                         Foreground="#9090cc" FontSize="13" FontWeight="SemiBold"
+                         Margin="0,0,0,8"/>
+
+              <StackPanel DockPanel.Dock="Bottom" Orientation="Horizontal"
+                          Spacing="8" Margin="0,8,0,0">
+                <Button Command="{Binding GenerateAiContextCommand}"
+                        Background="#2a2a6a" BorderThickness="0" CornerRadius="4"
+                        Foreground="#ddd" Padding="8,4" FontSize="11" Cursor="Hand"
+                        Content="Neu generieren"/>
+                <Button Command="{Binding CopyAiContextCommand}"
+                        IsEnabled="{Binding AiContextReady}"
+                        Background="#1a4a2a" BorderThickness="0" CornerRadius="4"
+                        Foreground="#ddd" Padding="8,4" FontSize="11" Cursor="Hand"
+                        Content="📋 Kopieren"/>
+              </StackPanel>
+
+              <ScrollViewer DockPanel.Dock="Top">
+                <Border Background="#1a1a3a" CornerRadius="4" Padding="10">
+                  <SelectableTextBlock Text="{Binding AiContextText}"
+                                       Foreground="#aaa" FontFamily="Consolas,Monospace"
+                                       FontSize="10" TextWrapping="Wrap"/>
+                </Border>
+              </ScrollViewer>
+
+            </DockPanel>
+          </Border>
+
+        </Grid>
+
+        <!-- Verwandte Themen + Statuszeile -->
+        <Border Grid.Row="2" Background="#14142c"
+                BorderBrush="#2a2a4a" BorderThickness="0,1,0,0"
+                Padding="20,8">
+          <DockPanel>
+            <TextBlock DockPanel.Dock="Right" Text="{Binding StatusText}"
+                       Foreground="#555" FontSize="11" VerticalAlignment="Center"/>
+            <StackPanel Orientation="Horizontal" Spacing="6" VerticalAlignment="Center"
+                        IsVisible="{Binding RelatedArticles.Count}">
+              <TextBlock Text="Verwandte Themen:" Foreground="#666" FontSize="11"/>
+              <ItemsControl ItemsSource="{Binding RelatedArticles}">
+                <ItemsControl.ItemsPanel>
+                  <ItemsPanelTemplate>
+                    <StackPanel Orientation="Horizontal" Spacing="6"/>
+                  </ItemsPanelTemplate>
+                </ItemsControl.ItemsPanel>
+                <ItemsControl.ItemTemplate>
+                  <DataTemplate x:DataType="vm:HelpArticleItemViewModel" x:CompileBindings="False">
+                    <Button Background="#2a2a4a" BorderThickness="0" CornerRadius="10"
+                            Padding="8,3" Cursor="Hand" FontSize="11"
+                            Foreground="#9090cc"
+                            Command="{Binding DataContext.OpenArticleCommand, ElementName=RootWindow}"
+                            CommandParameter="{Binding Article}"
+                            Content="{Binding Title}"/>
+                  </DataTemplate>
+                </ItemsControl.ItemTemplate>
+              </ItemsControl>
+            </StackPanel>
+          </DockPanel>
+        </Border>
+
+      </Grid>
+    </Grid>
+  </Grid>
+</Window>

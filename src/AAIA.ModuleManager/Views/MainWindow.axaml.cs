@@ -66,7 +66,8 @@ public partial class MainWindow : Window
 
     private void Help_Click(object? sender, Avalonia.Interactivity.RoutedEventArgs e)
     {
-        var dlg = new HelpWindow();
+        var vm  = new HelpCenterViewModel();
+        var dlg = new HelpCenterWindow { DataContext = vm };
         dlg.ShowDialog(this);
     }
 

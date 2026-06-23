@@ -40,10 +40,19 @@
     <PackageReference Include="CommunityToolkit.Mvvm" Version="8.3.2" />
     <!-- QR-Code für TOTP-Setup im LoginWindow -->
     <PackageReference Include="QRCoder" Version="1.6.0" />
+    <!-- Markdown-Parser für das HelpCenter -->
+    <PackageReference Include="Markdig" Version="0.38.0" />
   </ItemGroup>
 
   <ItemGroup>
     <AvaloniaResource Include="Assets\**" />
+  </ItemGroup>
+
+  <!-- Hilfezentrum-Inhalte neben die EXE kopieren -->
+  <ItemGroup>
+    <Content Include="..\..\docs\help\**\*"
+             Link="docs/help/%(RecursiveDir)%(Filename)%(Extension)"
+             CopyToOutputDirectory="PreserveNewest" />
   </ItemGroup>
 
 </Project>
