@@ -258,3 +258,4 @@ public sealed class AiHelpContextService
 
     private static string SanitizeQuery(string query)
         => query.Length > 100 ? query[..100] : query;
+}
