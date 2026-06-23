@@ -7,6 +7,7 @@ using AAIA.Air.Hosts;
 using AAIA.Air.Memory;
 using AAIA.Air.Messaging;
 using AAIA.Air.Providers;
+using AAIA.Air.Scheduling;
 using AAIA.Air.Tasks;
 using AAIA.Air.Workflows;
 
@@ -36,6 +37,9 @@ public sealed class AiRuntimeService
 
     /// <summary>Aufgaben-Ebene über den Tool-Calls (eine Aufgabe).</summary>
     public AiTaskManager         Tasks         { get; }
+
+    /// <summary>Priorisierte Execution Queue mit Rollen-/Capability-Matching.</summary>
+    public AiExecutionScheduler  Scheduler     { get; }
 
     /// <summary>Workflow-Ebene über mehreren Phasen (kompletter Ablauf).</summary>
     public AiWorkflowEngine      Workflows     { get; }
@@ -84,6 +88,7 @@ public sealed class AiRuntimeService
             };
 
         Tasks         = new AiTaskManager    { Executor = executor };
+        Scheduler     = new AiExecutionScheduler(Tasks, Sessions, Events);
         Workflows     = new AiWorkflowEngine { Executor = executor };
         Collaboration = new AiCollaborationManager(Sessions, Blackboard);
     }

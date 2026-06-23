@@ -11,7 +11,7 @@ und Ressourcenwahl dürfen sie weder ersetzen noch umgehen.
 | Inkrement | Inhalt | Status |
 |---|---|---|
 | 8.1 | Sessiongebundener Messaging-Bus | abgeschlossen |
-| 8.2 | Execution Queue und Scheduler | geplant |
+| 8.2 | Execution Queue und Scheduler | abgeschlossen |
 | 8.3 | Resource Manager für Capabilities, Kosten- und Lastprofile | geplant |
 | 8.4 | Adapter-/MCP-Oberfläche und UI | geplant, nach Permission-Entscheidung |
 
@@ -65,3 +65,49 @@ entfernt. Beim Entfernen abgelaufener Sessions können verwaiste Inboxen bereini
 - Manager und Zustandslogik liegen in `AAIA.Air`.
 - Adapter bleiben in `AAIA.Air.Mcp` oder der jeweiligen Host-Anwendung.
 - Vendor-Namen beeinflussen weder Routing noch Priorität.
+
+## 8.2 — Execution Queue und Scheduler
+
+### Zustandsmodell
+
+`Queued → Leased → Running → Completed | Failed | Cancelled`
+
+- Eine Lease reserviert einen Task zeitlich begrenzt für genau eine aktive Session.
+- Läuft eine Lease vor dem Start ab, wird der Task bis `MaxAttempts` erneut eingereiht.
+- Laufende Ausführungen werden niemals automatisch doppelt gestartet.
+- Cancellation wird über einen scheduler-eigenen Token an den bestehenden
+  `AiTaskManager` weitergereicht.
+
+### Auswahl und Fairness
+
+- Prioritäten: Low, Normal, High, Critical.
+- FIFO innerhalb derselben effektiven Priorität.
+- Aging hebt wartende Einträge schrittweise an, damit niedrige Prioritäten nicht verhungern.
+- Rollen und Client-Capabilities sind harte Filter.
+- Pro Session ist höchstens eine Lease oder Ausführung aktiv.
+- Unter gleich geeigneten Sessions wird die am längsten nicht zugewiesene Session gewählt.
+
+### Sicherheitsgrenze
+
+Der Scheduler führt keine Tool-Handler direkt aus. Er delegiert ausschließlich an
+`AiTaskManager.RunAsync`; dadurch laufen alle Schritte weiterhin über
+`AiRuntimeService.InvokeToolAsync` mit Session-, Capability-, Permission-, Lock-,
+Approval-, Audit- und Event-Prüfung.
+
+### Akzeptanzkriterien
+
+- Thread-sichere Enqueue-, Lease-, Run-, Cancel- und Recovery-Operationen.
+- Kein Claim durch inaktive oder ungeeignete Sessions.
+- Abgelaufene Leases werden deterministisch requeued oder endgültig fehlgeschlagen.
+- Cancellation hinterlässt weder Task noch Queue-Eintrag in `InProgress`.
+- Keine Modell-/Vendor-Sonderbehandlung.
+- Kein MCP- oder UI-Zugriff in diesem Inkrement.
+
+### Implementierungsstand 8.2
+
+- `AAIA.Air.Scheduling.AiExecutionScheduler` ist als `AiRuntimeService.Scheduler` integriert.
+- Queue, Priorität, FIFO+Aging, Not-before, Rollen-/Capability-Filter und faire Session-Auswahl sind umgesetzt.
+- Leases werden nach Ablauf requeued und nach `MaxAttempts` endgültig fehlgeschlagen.
+- Laufende Tasks unterstützen Cancellation; Task und Execution verlassen dabei zuverlässig `InProgress`/`Running`.
+- Unerwartete Executor-Fehler setzen Task-Schritt, Task und Execution konsistent auf `Failed`.
+- Zehn Scheduler-Tests einschließlich paralleler Assignment-Anfragen sind grün.

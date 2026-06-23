@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split und Phase 8.1 Messaging sind abgeschlossen. Tests: 125/125 grün. Nächster Schritt: Phase 8.2 Scheduler spezifizieren.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging und 8.2 Scheduling sind abgeschlossen. Tests: 135/135 grün. Nächster Schritt: Phase 8.3 Resource Manager spezifizieren.
 
 ## Wo wir stehen
 
@@ -25,15 +25,15 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase 8.1 Messaging-Checkpoint mergen.
-2. Phase 8.2 Execution Queue/Scheduler spezifizieren: Zustände, Fairness, Cancellation und Recovery zuerst festlegen.
-3. Erst danach Scheduling implementieren; Resource Manager und MCP-Freigabe bleiben getrennte Inkremente.
+1. Phase 8.2 Scheduler-Checkpoint mergen.
+2. Phase 8.3 Resource Manager spezifizieren: Ressourcenprofil, Kapazität, Kostenbudget und Auswahlgrenzen zuerst festlegen.
+3. Erst danach Ressourcenwahl implementieren; MCP-/UI-Freigaben bleiben ein getrenntes Inkrement.
 
 ## Harte Regeln (nicht verletzen)
 
 - **Keine neuen AIR-Funktionen mehr in Phase 7.0.** Nur Build-/Verdrahtungsfehler lösen.
 - **AIR ist herstellerneutral:** nirgends `if Claude` / `if GPT`. Nur Client / Capabilities / Permissions / Roles. (Vendor wird NICHT aus dem Namen abgeleitet.)
-- **Phase 8 inkrementell halten:** Messaging ist umgesetzt; Scheduler, Resource Manager und MCP-Freigabe bleiben getrennte, jeweils eigenständig geprüfte Änderungen.
+- **Phase 8 inkrementell halten:** Messaging und Scheduler sind umgesetzt; Resource Manager und MCP-Freigabe bleiben getrennte, jeweils eigenständig geprüfte Änderungen.
 - **AIR kennt keine App.** Apps (Module Manager, AAIAS, BBK, DUKI, Website, Mobile) sind Nutzer über Hosts/Contracts — nie umgekehrt.
 - **Sicherheit unverändert lassen:** Bridge-Token-Pflicht, nur 127.0.0.1, Default deaktiviert, Patch nur über Approval, Terminal nur Allowlist, keine Secrets, Path-Traversal-Schutz, Black-Tools existieren nicht.
 
