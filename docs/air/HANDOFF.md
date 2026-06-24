@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9 Durable Runtime State & Crash Recovery ist fachlich freigegeben; Contracts und In-Memory-State-Store sind als 9.1-Grundlagencheckpoint implementiert. Tests: 203/203 grün. Persistenz ist weiterhin deaktiviert und nicht mit der Runtime verdrahtet. Nächster Schritt: kanonischen Snapshot-/Journal-Codec mit echter SHA-256-Prüfung spezifikationsgetreu implementieren.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9 Durable Runtime State & Crash Recovery ist fachlich freigegeben; Contracts, In-Memory-State-Store und kanonischer Snapshot-/Journal-Codec sind implementiert. Tests: 218/218 grün. Persistenz ist weiterhin deaktiviert und nicht mit der Runtime verdrahtet. Nächster Schritt: lokalen Datei-Store mit atomischem Replace, OS-Lock und Crash-Injection implementieren.
 
 ## Wo wir stehen
 
@@ -25,9 +25,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Kanonischen Snapshot-/Journal-Codec mit echter SHA-256-Prüfung implementieren.
-2. Korruptions-, Größenlimit- und unbekannte-Event-Tests ergänzen.
-3. Danach Datei-Store, atomischen Replace und Crash-Injection separat umsetzen.
+1. Lokalen Datei-Store außerhalb von Projekt/Git mit exklusivem OS-Lock implementieren.
+2. `temp → flush → verify → atomic replace` für Snapshot und Manifest umsetzen.
+3. Crash-Injection an Write-/Flush-/Replace-Grenzen und Korruptionsfälle testen.
 4. Keine Runtime-Verdrahtung, MCP-Erweiterung oder automatische Tool-Wiederholung vorziehen.
 
 ## Harte Regeln (nicht verletzen)

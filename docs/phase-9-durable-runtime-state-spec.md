@@ -1,6 +1,6 @@
 # Phase 9 — AIR Durable Runtime State & Crash Recovery: Spezifikation
 
-> Status: fachlich freigegeben; 9.1-Grundlagencheckpoint implementiert
+> Status: fachlich freigegeben; 9.1-Store-/Codec-Checkpoint implementiert
 > Scope: lokale, geschützte Persistenz des Orchestrierungszustands; kein MCP, keine Cloud
 
 ## 1. Ausgangslage und Ziel
@@ -34,7 +34,7 @@ Phase 9 implementiert ausdrücklich nicht:
 
 | Inkrement | Inhalt | Status |
 |---|---|---|
-| 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | Grundlagen implementiert; Codec offen |
+| 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | Store/Codec implementiert; Datei-Store offen |
 | 9.2 | Durable Tasks und Execution Queue mit Recovery | spezifiziert |
 | 9.3 | Durable Budgets, Reservationshistorie und Idempotenz | spezifiziert |
 | 9.4 | Audit, lokale Diagnose und kontrollierte Wartung | spezifiziert |
@@ -231,7 +231,9 @@ Stabile Reason-Codes:
 - `state_schema_unsupported`
 - `state_snapshot_corrupt`
 - `state_journal_gap`
+- `state_journal_corrupt`
 - `state_journal_checksum_failed`
+- `state_journal_event_unknown`
 - `state_protector_unavailable`
 - `state_payload_rejected`
 - `state_recovery_required`
@@ -356,11 +358,14 @@ Umgesetzt:
 - Single-Writer mit parallelem read-only Diagnosezugriff,
 - defensive Kopien, Schema-/UTC-/Checksum-Formatprüfung, lückenlose Sequenzen,
 - Flush-Checkpoint, Snapshot-Grenze, Kompaktierung, Quota und Quarantäne,
-- 17 neue 9.1-Tests; vollständige Regression 203/203 grün.
+- kanonischer Big-Endian-Binärcodec für Snapshot und Journal,
+- echte SHA-256-Erzeugung und Fixed-Time-Verifikation über Header und Payload,
+- striktes UTF-8, Record-/Payload-Limits sowie Erkennung von Truncation,
+  nachlaufenden Bytes, unbekannten Events und Manipulation,
+- 32 neue 9.1-Tests; vollständige Regression 218/218 grün.
 
 Noch offen:
 
-- kanonischer Snapshot-/Journal-Codec und echte Prüfsummenverifikation,
 - Datei-Store, atomischer Replace, OS-Lock und Crash-Injection,
 - Verdrahtung mit Tasks, Scheduler, Ressourcen, Idempotenz und Audit,
 - lokaler Protector, Recovery-Normalisierung, UI und Wartungsaktionen.
