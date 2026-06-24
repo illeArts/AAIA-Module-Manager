@@ -22,6 +22,7 @@ public static class AiRuntimeStateReasonCodes
     public const string PayloadRejected = "state_payload_rejected";
     public const string RecoveryRequired = "state_recovery_required";
     public const string QuotaExceeded = "state_quota_exceeded";
+    public const string Disabled = "state_store_disabled";
     public const string ReadOnly = "state_store_read_only";
     public const string Quarantined = "state_store_quarantined";
 }
