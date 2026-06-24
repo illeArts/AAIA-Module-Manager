@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9.1 bis 9.3 sind abgeschlossen. Zusätzlich zu State Store und Task-/Execution-Recovery sind dauerhafte Budgets, sessionfreie Reservationshistorie, exakt-einmal Recovery-Release und clientgebundene Idempotenz ohne Request-/Result-Payload implementiert. Tests: 264/264 grün. Persistenz ist weiterhin deaktiviert und nicht mit dem Runtime-Startup verdrahtet. Nächster Schritt: Phase 9.4 Audit, lokale Diagnose und kontrollierte Wartung.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Die Inkremente 9.1 bis 9.4 sind implementiert. Phase 9 besitzt jetzt State Store, Crash-Recovery für Tasks/Executions/Ressourcen/Idempotenz, sessionfreies redigiertes Audit, lokale Diagnose sowie autorisierte Backup-/Compact-/Repair- und Recovery-Aktionen in der UI. Tests: 271/271 grün. Persistenz ist weiterhin deaktiviert und nicht mit dem Runtime-Startup verdrahtet. Nächster Schritt: produktiven lokalen Protector und Startup-/Journal-Koordination als expliziten Aktivierungs-Checkpoint spezifizieren und implementieren.
 
 ## Wo wir stehen
 
@@ -25,10 +25,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Redigierte persistente Audit-Datensätze und Recovery-Diagnose spezifikationsgetreu ergänzen.
-2. Lokale Wartungsaktionen für Backup, Compact und Repair mit Autorisierung, Begründung und Audit umsetzen.
-3. Recovery-/Store-Status für die lokale UI bereitstellen; keine neuen MCP-Tools einführen.
-4. Persistenz weiterhin nicht automatisch aktivieren, bevor Protector und Startup-Koordination abgeschlossen sind.
+1. Produktiven lokalen `IAiStateProtector` pro Betriebssystem festlegen und implementieren.
+2. Store-Open, Snapshot-/Journal-Replay und Recovery-Gate vor Runtime-/MCP-Start koordinieren.
+3. Bestätigte Mutationen erst nach dauerhaftem Journal-Flush zurückgeben.
+4. Aktivierung bleibt bis zu erfolgreichen Crash-/Startup-Tests standardmäßig ausgeschaltet.
 
 ## Harte Regeln (nicht verletzen)
 

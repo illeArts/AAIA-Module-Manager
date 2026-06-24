@@ -1,7 +1,5 @@
-using System;
 using System.Collections.Concurrent;
-using System.Collections.Generic;
-using System.Linq;
+using System.Text.RegularExpressions;
 
 namespace AAIA.Air;
 
@@ -10,7 +8,7 @@ public sealed class AiAuditEntry
 {
     public DateTime TimestampUtc { get; init; } = DateTime.UtcNow;
     public required string ClientIdentity { get; init; }
-    public required string SessionId { get; init; }
+    public string? SessionId { get; init; }
     public required string Tool { get; init; }
     public string ToolVersion { get; init; } = "";
     public string? Project { get; init; }
@@ -19,31 +17,34 @@ public sealed class AiAuditEntry
 }
 
 /// <summary>
-/// Auditiert jede Aktion mit AiClientIdentity + SessionId. Grundlage dafür, dass
-/// mehrere KIs gleichzeitig nachvollziehbar arbeiten. Fehlertexte werden maskiert.
+/// Begrenztes Audit mit defensiver Redaction. Dauerhafte Exporte enthalten keine
+/// Session-ID und höchstens 30 Tage beziehungsweise 50.000 Einträge.
 /// </summary>
-public sealed class AiAuditService
+public sealed partial class AiAuditService
 {
+    private const int MaxEntries = 50_000;
+    private const int MaxDetailLength = 2_000;
+    private static readonly TimeSpan Retention = TimeSpan.FromDays(30);
     private readonly ConcurrentQueue<AiAuditEntry> _entries = new();
-    private const int MaxEntries = 5000;
 
     public event Action<AiAuditEntry>? EntryRecorded;
 
+    public int Count => _entries.Count;
+
     public void Record(AiSession session, AiToolDefinition tool, bool success, string? detail = null)
     {
-        var entry = new AiAuditEntry
+        ArgumentNullException.ThrowIfNull(session);
+        ArgumentNullException.ThrowIfNull(tool);
+        Add(new AiAuditEntry
         {
-            ClientIdentity = session.Identity.ToString(),
+            ClientIdentity = Redact(session.Identity.ToString()) ?? "redacted",
             SessionId = session.SessionId,
-            Tool = tool.Name,
-            ToolVersion = tool.Version,
-            Project = session.CurrentProject,
+            Tool = Redact(tool.Name) ?? "redacted",
+            ToolVersion = Redact(tool.Version) ?? "",
+            Project = Redact(session.CurrentProject),
             Success = success,
-            Detail = Mask(detail)
-        };
-        _entries.Enqueue(entry);
-        while (_entries.Count > MaxEntries && _entries.TryDequeue(out _)) { }
-        EntryRecorded?.Invoke(entry);
+            Detail = Redact(detail)
+        });
     }
 
     /// <summary>Auditiert eine ausdrücklich bestätigte lokale Verwaltungsaktion.</summary>
@@ -51,31 +52,111 @@ public sealed class AiAuditService
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(actor);
         ArgumentException.ThrowIfNullOrWhiteSpace(action);
-        var entry = new AiAuditEntry
+        Add(new AiAuditEntry
         {
-            ClientIdentity = actor,
+            ClientIdentity = Redact(actor) ?? "redacted",
             SessionId = "local-admin",
-            Tool = action,
-            ToolVersion = "8.4.0",
+            Tool = Redact(action) ?? "redacted",
+            ToolVersion = "9.4.0",
             Success = success,
-            Detail = Mask(detail)
-        };
-        _entries.Enqueue(entry);
-        while (_entries.Count > MaxEntries && _entries.TryDequeue(out _)) { }
-        EntryRecorded?.Invoke(entry);
+            Detail = Redact(detail)
+        });
     }
 
     public IReadOnlyList<AiAuditEntry> Recent(int count = 100)
-        => _entries.Reverse().Take(count).ToList();
+        => _entries.Reverse().Take(Math.Clamp(count, 0, MaxEntries)).ToArray();
 
-    /// <summary>Maskiert offensichtliche Secrets in Detailtexten (defensiv).</summary>
-    private static string? Mask(string? detail)
+    internal IReadOnlyList<AiDurableAuditEntry> CaptureDurableEntries(DateTime nowUtc)
     {
-        if (string.IsNullOrEmpty(detail)) return detail;
-        var masked = System.Text.RegularExpressions.Regex.Replace(
-            detail,
-            @"(?i)(token|secret|key|password|bearer)\s*[:=]\s*\S+",
-            "$1=***");
-        return masked;
+        EnsureUtc(nowUtc);
+        var cutoff = nowUtc - Retention;
+        return _entries
+            .Where(entry => entry.TimestampUtc >= cutoff && entry.TimestampUtc <= nowUtc)
+            .OrderBy(entry => entry.TimestampUtc)
+            .TakeLast(MaxEntries)
+            .Select(entry => new AiDurableAuditEntry
+            {
+                TimestampUtc = entry.TimestampUtc,
+                Actor = Redact(entry.ClientIdentity) ?? "redacted",
+                Action = Redact(entry.Tool) ?? "redacted",
+                Version = Redact(entry.ToolVersion) ?? "",
+                Project = Redact(entry.Project),
+                Success = entry.Success,
+                Detail = Redact(entry.Detail)
+            }).ToArray();
     }
+
+    internal int RestoreDurableEntries(IEnumerable<AiDurableAuditEntry> entries, DateTime nowUtc)
+    {
+        ArgumentNullException.ThrowIfNull(entries);
+        EnsureUtc(nowUtc);
+        var cutoff = nowUtc - Retention;
+        var restored = entries.Select(entry =>
+        {
+            ArgumentNullException.ThrowIfNull(entry);
+            EnsureUtc(entry.TimestampUtc);
+            ArgumentException.ThrowIfNullOrWhiteSpace(entry.Actor);
+            ArgumentException.ThrowIfNullOrWhiteSpace(entry.Action);
+            return new AiAuditEntry
+            {
+                TimestampUtc = entry.TimestampUtc,
+                ClientIdentity = Redact(entry.Actor) ?? "redacted",
+                SessionId = null,
+                Tool = Redact(entry.Action) ?? "redacted",
+                ToolVersion = Redact(entry.Version) ?? "",
+                Project = Redact(entry.Project),
+                Success = entry.Success,
+                Detail = Redact(entry.Detail)
+            };
+        }).Where(entry => entry.TimestampUtc >= cutoff && entry.TimestampUtc <= nowUtc)
+          .OrderBy(entry => entry.TimestampUtc)
+          .TakeLast(MaxEntries)
+          .ToArray();
+
+        if (!_entries.IsEmpty)
+            throw new InvalidOperationException("Audit kann nur in einen leeren Dienst wiederhergestellt werden.");
+        foreach (var entry in restored) _entries.Enqueue(entry);
+        return restored.Length;
+    }
+
+    internal void ClearDurableRestore()
+    {
+        while (_entries.TryDequeue(out _)) { }
+    }
+
+    private void Add(AiAuditEntry entry)
+    {
+        _entries.Enqueue(entry);
+        var cutoff = DateTime.UtcNow - Retention;
+        while (_entries.TryPeek(out var oldest) &&
+               (_entries.Count > MaxEntries || oldest.TimestampUtc < cutoff))
+            _entries.TryDequeue(out _);
+        if (EntryRecorded is not { } handlers) return;
+        foreach (Action<AiAuditEntry> handler in handlers.GetInvocationList())
+        {
+            try { handler(entry); }
+            catch { /* Beobachter dürfen Audit und Laufzeitaktion nicht brechen. */ }
+        }
+    }
+
+    public static string? Redact(string? value)
+    {
+        if (string.IsNullOrEmpty(value)) return value;
+        var redacted = SecretAssignmentRegex().Replace(value, "$1=***");
+        redacted = BearerRegex().Replace(redacted, "Bearer ***");
+        return redacted.Length <= MaxDetailLength ? redacted : redacted[..MaxDetailLength];
+    }
+
+    private static void EnsureUtc(DateTime value)
+    {
+        if (value.Kind != DateTimeKind.Utc)
+            throw new ArgumentException("Audit-Zeitpunkt muss UTC sein.");
+    }
+
+    [GeneratedRegex(@"(?i)\b(token|secret|api[-_]?key|password|private[-_]?key)\s*[:=]\s*[^\s,;]+",
+        RegexOptions.CultureInvariant)]
+    private static partial Regex SecretAssignmentRegex();
+
+    [GeneratedRegex(@"(?i)\bbearer\s+[A-Za-z0-9._~+/=-]+", RegexOptions.CultureInvariant)]
+    private static partial Regex BearerRegex();
 }

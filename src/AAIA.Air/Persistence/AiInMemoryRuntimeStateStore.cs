@@ -2,6 +2,15 @@ using System.Runtime.CompilerServices;
 
 namespace AAIA.Air.Persistence;
 
+internal sealed class AiInMemoryStateBackup
+{
+    public AiRuntimeStateManifest? Manifest { get; init; }
+    public AiRuntimeStateSnapshot? Snapshot { get; init; }
+    public IReadOnlyList<AiRuntimeJournalEntry> Journal { get; init; } = Array.Empty<AiRuntimeJournalEntry>();
+    public DateTime CreatedAtUtc { get; init; }
+    public long ThroughSequence { get; init; }
+}
+
 /// <summary>Gemeinsamer, isolierbarer Speicher für mehrere In-Memory-Store-Instanzen.</summary>
 public sealed class AiInMemoryRuntimeStateStoreBackend
 {
@@ -15,6 +24,7 @@ public sealed class AiInMemoryRuntimeStateStoreBackend
     internal long LastFlushedSequenceValue { get; set; }
     internal bool Quarantined { get; set; }
     internal string? QuarantineReasonValue { get; set; }
+    internal Dictionary<string, AiInMemoryStateBackup> Backups { get; } = new(StringComparer.Ordinal);
 
     public string StoreId { get; }
 
@@ -41,7 +51,7 @@ public sealed class AiInMemoryRuntimeStateStoreBackend
 /// Single-Writer, defensive Kopien, Sequenzen, Quarantäne und Quoten ab, schreibt
 /// aber ausdrücklich keine Dateien.
 /// </summary>
-public sealed class AiInMemoryRuntimeStateStore : IAiRuntimeStateStore
+public sealed class AiInMemoryRuntimeStateStore : IAiRuntimeStateStore, IAiRuntimeStateMaintenanceStore
 {
     private readonly AiInMemoryRuntimeStateStoreBackend _backend;
     private readonly long _maxStoreBytes;
@@ -82,6 +92,93 @@ public sealed class AiInMemoryRuntimeStateStore : IAiRuntimeStateStore
             if (writerToken is not null) _backend.WriterToken = writerToken;
             return ValueTask.FromResult<IAiRuntimeStateStoreSession>(
                 new Session(_backend, _maxStoreBytes, runtimeInstanceId, mode, writerToken));
+        }
+    }
+
+    public ValueTask<AiRuntimeStateDiagnostics> GetDiagnosticsAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        lock (_backend.Gate)
+        {
+            var manifest = _backend.Manifest;
+            return ValueTask.FromResult(new AiRuntimeStateDiagnostics
+            {
+                StoreId = StoreId,
+                Status = _backend.Quarantined
+                    ? AiRuntimeRecoveryStatus.Quarantined
+                    : AiRuntimeRecoveryStatus.Ready,
+                SchemaVersion = manifest?.SchemaVersion,
+                LastSequence = _backend.LastSequence,
+                SnapshotSequence = _backend.Snapshot?.Sequence ?? 0,
+                StoreSizeBytes = (_backend.Snapshot?.Payload.LongLength ?? 0) +
+                                 _backend.Journal.Sum(entry => entry.Payload.LongLength),
+                LastUpdatedAtUtc = manifest?.UpdatedAtUtc,
+                ReasonCode = _backend.Quarantined ? AiRuntimeStateReasonCodes.Quarantined : null,
+                RedactedMessage = _backend.Quarantined
+                    ? AiAuditService.Redact(_backend.QuarantineReasonValue)
+                    : null
+            });
+        }
+    }
+
+    public ValueTask<AiStateStoreBackupResult> CreateBackupAsync(
+        string runtimeInstanceId,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runtimeInstanceId);
+        ct.ThrowIfCancellationRequested();
+        lock (_backend.Gate)
+        {
+            if (_backend.WriterToken is not null)
+                throw Error(AiRuntimeStateReasonCodes.StoreLocked, "State Store besitzt bereits einen Writer.");
+            var id = $"backup-{DateTime.UtcNow:yyyyMMddHHmmss}-{Guid.NewGuid():N}";
+            var createdAt = DateTime.UtcNow;
+            _backend.Backups.Add(id, new AiInMemoryStateBackup
+            {
+                Manifest = _backend.Manifest is null ? null : Clone(_backend.Manifest),
+                Snapshot = _backend.Snapshot is null ? null : Clone(_backend.Snapshot),
+                Journal = _backend.Journal.Select(Clone).ToArray(),
+                CreatedAtUtc = createdAt,
+                ThroughSequence = _backend.LastSequence
+            });
+            return ValueTask.FromResult(new AiStateStoreBackupResult
+            {
+                BackupId = id,
+                CreatedAtUtc = createdAt,
+                ThroughSequence = _backend.LastSequence
+            });
+        }
+    }
+
+    public ValueTask<AiStateStoreRepairResult> RepairAsync(
+        string runtimeInstanceId,
+        string backupId,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runtimeInstanceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupId);
+        ct.ThrowIfCancellationRequested();
+        lock (_backend.Gate)
+        {
+            if (_backend.WriterToken is not null)
+                throw Error(AiRuntimeStateReasonCodes.StoreLocked, "State Store besitzt bereits einen Writer.");
+            if (!_backend.Backups.ContainsKey(backupId))
+                throw Error(AiRuntimeStateReasonCodes.BackupMissing,
+                    "Verpflichtendes Backup wurde nicht gefunden.");
+            if (!_backend.Quarantined)
+                return ValueTask.FromResult(new AiStateStoreRepairResult
+                {
+                    Repaired = false,
+                    BackupId = backupId,
+                    ReasonCode = AiRuntimeStateReasonCodes.RepairNotRequired
+                });
+            _backend.Quarantined = false;
+            _backend.QuarantineReasonValue = null;
+            return ValueTask.FromResult(new AiStateStoreRepairResult
+            {
+                Repaired = true,
+                BackupId = backupId
+            });
         }
     }
 

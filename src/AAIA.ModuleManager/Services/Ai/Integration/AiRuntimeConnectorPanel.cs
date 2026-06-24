@@ -5,6 +5,8 @@ using System.Threading;
 using System.Threading.Tasks;
 using AAIA.Air.Mcp;
 using AAIA.Air;
+using AAIA.Air.Contracts;
+using AAIA.Air.Persistence;
 
 namespace AAIA.ModuleManager.Services.Ai.Integration;
 
@@ -17,6 +19,8 @@ namespace AAIA.ModuleManager.Services.Ai.Integration;
 public sealed class AiRuntimeConnectorPanel
 {
     private readonly AiRuntimeComposition _composition;
+    private AiRuntimeStateMaintenanceService? _stateMaintenance;
+    private AiRecoveryDecisionService? _recoveryDecisions;
 
     public AiRuntimeConnectorPanel(AaiaMcpBridgeOptions options, IModuleManagerAiBridge bridge)
     {
@@ -113,6 +117,93 @@ public sealed class AiRuntimeConnectorPanel
             .ToList();
     }
 
+    public void ConfigureStateMaintenance(
+        IAiRuntimeStateStore store,
+        IAiStateMaintenanceAuthorizer authorizer,
+        string runtimeInstanceId)
+        => _stateMaintenance = new AiRuntimeStateMaintenanceService(
+            store, _composition.Runtime.Audit, authorizer, runtimeInstanceId);
+
+    public void ConfigureRecoveryDecisions(IAiRecoveryAuthorizer authorizer)
+        => _recoveryDecisions = new AiRecoveryDecisionService(_composition.Runtime, authorizer);
+
+    public async ValueTask<AiRuntimeStateDiagnostics> StateDiagnosticsAsync(CancellationToken ct = default)
+    {
+        var diagnostics = _stateMaintenance is null
+            ? new AiRuntimeStateDiagnostics
+            {
+                StoreId = "unconfigured",
+                Status = AiRuntimeRecoveryStatus.Disabled,
+                ReasonCode = AiRuntimeStateReasonCodes.Disabled,
+                RedactedMessage = "Lokale Persistenz ist nicht konfiguriert."
+            }
+            : await _stateMaintenance.GetDiagnosticsAsync(ct).ConfigureAwait(false);
+        var recoveryCount = _composition.Runtime.Scheduler.List()
+            .Count(item => item.State == AiExecutionState.RecoveryRequired);
+        if (recoveryCount == 0 || diagnostics.Status is AiRuntimeRecoveryStatus.Quarantined or
+            AiRuntimeRecoveryStatus.RecoveryFailed)
+            return diagnostics;
+        return new AiRuntimeStateDiagnostics
+        {
+            StoreId = diagnostics.StoreId,
+            Status = AiRuntimeRecoveryStatus.RecoveryRequired,
+            SchemaVersion = diagnostics.SchemaVersion,
+            LastSequence = diagnostics.LastSequence,
+            SnapshotSequence = diagnostics.SnapshotSequence,
+            StoreSizeBytes = diagnostics.StoreSizeBytes,
+            LastUpdatedAtUtc = diagnostics.LastUpdatedAtUtc,
+            ReasonCode = AiRuntimeStateReasonCodes.RecoveryRequired,
+            RedactedMessage = $"{recoveryCount} Execution(s) benötigen lokale Recovery-Entscheidung."
+        };
+    }
+
+    public ValueTask<AiStateMaintenanceOperationResult> BackupStateAsync(
+        string actor, string reason, bool confirmed, CancellationToken ct = default)
+        => RequiredStateMaintenance().BackupAsync(actor, reason, confirmed, ct);
+
+    public ValueTask<AiStateMaintenanceOperationResult> CompactStateAsync(
+        string actor, string reason, bool confirmed, CancellationToken ct = default)
+        => RequiredStateMaintenance().CompactAsync(actor, reason, confirmed, ct);
+
+    public ValueTask<AiStateMaintenanceOperationResult> RepairStateAsync(
+        string actor, string reason, bool confirmed, CancellationToken ct = default)
+        => RequiredStateMaintenance().RepairAsync(actor, reason, confirmed, ct);
+
+    public bool ResolveRecoveryAsFailed(string executionId, string actor, string reason)
+    {
+        try
+        {
+            var success = RequiredRecoveryDecisions().ResolveAsFailed(executionId, actor, reason);
+            _composition.Runtime.Audit.RecordAdministrative(
+                actor, "air.state.recovery.fail", success, $"Execution {executionId}: {reason}");
+            return success;
+        }
+        catch (Exception ex)
+        {
+            _composition.Runtime.Audit.RecordAdministrative(
+                actor, "air.state.recovery.fail", false, ex.Message);
+            throw;
+        }
+    }
+
+    public AiExecutionSnapshot CreateRecoveryRetry(string executionId, string actor, string reason)
+    {
+        try
+        {
+            var retry = RequiredRecoveryDecisions().CreateRetry(executionId, actor);
+            _composition.Runtime.Audit.RecordAdministrative(
+                actor, "air.state.recovery.retry", true,
+                $"Execution {executionId} -> {retry.Request.Id}: {reason}");
+            return retry;
+        }
+        catch (Exception ex)
+        {
+            _composition.Runtime.Audit.RecordAdministrative(
+                actor, "air.state.recovery.retry", false, ex.Message);
+            throw;
+        }
+    }
+
     // ── Lokale, bestätigte Admin-Aktionen; niemals über MCP aufrufbar ───────
     public bool TryCancelExecution(
         string executionId, string actor, string reason, bool isAdministrator, bool confirmed, out string? error)
@@ -172,6 +263,14 @@ public sealed class AiRuntimeConnectorPanel
         error = message;
         return false;
     }
+
+    private AiRuntimeStateMaintenanceService RequiredStateMaintenance()
+        => _stateMaintenance ?? throw new AiStateStoreException(
+            AiRuntimeStateReasonCodes.Disabled, "Lokale Persistenz ist nicht konfiguriert.");
+
+    private AiRecoveryDecisionService RequiredRecoveryDecisions()
+        => _recoveryDecisions ?? throw new AiStateStoreException(
+            AiRuntimeStateReasonCodes.Disabled, "Lokale Recovery-Aktionen sind nicht konfiguriert.");
 
     private bool AuthorizeAdministrativeAction(
         string actor, string reason, bool isAdministrator, bool confirmed, string action, out string? error)

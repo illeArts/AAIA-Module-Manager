@@ -1,6 +1,6 @@
 # Phase 9 — AIR Durable Runtime State & Crash Recovery: Spezifikation
 
-> Status: fachlich freigegeben; 9.1 bis 9.3 abgeschlossen
+> Status: fachlich freigegeben; Inkremente 9.1 bis 9.4 abgeschlossen, Aktivierungs-Checkpoint offen
 > Scope: lokale, geschützte Persistenz des Orchestrierungszustands; kein MCP, keine Cloud
 
 ## 1. Ausgangslage und Ziel
@@ -37,7 +37,7 @@ Phase 9 implementiert ausdrücklich nicht:
 | 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | abgeschlossen |
 | 9.2 | Durable Tasks und Execution Queue mit Recovery | abgeschlossen |
 | 9.3 | Durable Budgets, Reservationshistorie und Idempotenz | abgeschlossen |
-| 9.4 | Audit, lokale Diagnose und kontrollierte Wartung | spezifiziert |
+| 9.4 | Audit, lokale Diagnose und kontrollierte Wartung | abgeschlossen |
 
 Jedes Inkrement erhält einen eigenen Commit-Checkpoint. Keine Persistenz wird aktiviert,
 bevor Schema-, Korruptions- und Recovery-Tests des betreffenden Inkrements grün sind.
@@ -382,12 +382,20 @@ Umgesetzt:
 - expliziter Settlement-Reason-Code `runtime_recovery`; Profile und Telemetrie bleiben flüchtig,
 - stabile, clientgebundene Idempotenz über SHA-256-Input-Fingerprints und Resultat-IDs,
 - 24-Stunden-TTL, deterministische Begrenzung auf 10.000 Einträge und keine Request-/Result-Payloads,
-- 78 neue Phase-9-Tests; vollständige Regression 264/264 grün.
+- sessionfreies, redigiertes Audit mit 30-Tage-/50.000-Einträge-Grenze,
+- Store-/Recovery-Diagnose mit Schema, Sequenzen, Größe und redigierten Fehlern,
+- optionale host-neutrale Wartungsgrenze für Backup und Repair,
+- unveränderliche lokale Datei-Backups vor Compact und Repair,
+- fail-closed Repair: nur sicherer Crash-Tail wird normalisiert; sonst bleiben Original und Quarantäne erhalten,
+- Owner/Admin-Autorisierung, Begründung, Bestätigung und Audit für jede Wartungsaktion,
+- lokale UI für Diagnose, Backup, Compact, Repair und Entscheidungen zu `RecoveryRequired`,
+- keine neuen MCP-Werkzeuge oder MCP-Permissions,
+- 85 neue Phase-9-Tests; vollständige Regression 271/271 grün.
 
 Noch offen:
 
-- Audit, lokale Diagnose und kontrollierte Wartung (Phase 9.4),
-- Runtime-Startup-/Journal-Koordination, lokaler Protector, UI und Wartungsaktionen.
+- Runtime-Startup-/Journal-Koordination und lokaler produktiver Protector,
+- expliziter Aktivierungs-Checkpoint mit Recovery-Gate vor MCP-/Scheduler-Start.
 
 Persistenz bleibt bis zu diesen Schritten deaktiviert und ist nicht mit
 `AiRuntimeService` verbunden.

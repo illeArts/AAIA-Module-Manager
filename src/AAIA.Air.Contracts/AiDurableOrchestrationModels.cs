@@ -84,6 +84,18 @@ public sealed class AiDurableIdempotencyRecord
     public DateTime ExpiresAtUtc { get; init; }
 }
 
+/// <summary>Sessionfreier, redigierter Audit-Datensatz.</summary>
+public sealed class AiDurableAuditEntry
+{
+    public DateTime TimestampUtc { get; init; }
+    public required string Actor { get; init; }
+    public required string Action { get; init; }
+    public string Version { get; init; } = "";
+    public string? Project { get; init; }
+    public bool Success { get; init; }
+    public string? Detail { get; init; }
+}
+
 /// <summary>Versionierte Nutzlast eines AIR-Orchestrierungs-Snapshots.</summary>
 public sealed class AiDurableOrchestrationSnapshot
 {
@@ -99,6 +111,8 @@ public sealed class AiDurableOrchestrationSnapshot
         = Array.Empty<AiDurableReservationSnapshot>();
     public IReadOnlyList<AiDurableIdempotencyRecord> IdempotencyRecords { get; init; }
         = Array.Empty<AiDurableIdempotencyRecord>();
+    public IReadOnlyList<AiDurableAuditEntry> AuditEntries { get; init; }
+        = Array.Empty<AiDurableAuditEntry>();
 }
 
 public sealed class AiOrchestrationRestoreReport
@@ -112,6 +126,7 @@ public sealed class AiOrchestrationRestoreReport
     public int ReservationCount { get; init; }
     public int RecoveryReleasedReservations { get; init; }
     public int IdempotencyRecordCount { get; init; }
+    public int AuditEntryCount { get; init; }
 }
 
 /// <summary>Host-Grenze für lokale Owner/Admin-Entscheidungen nach einem Crash.</summary>
