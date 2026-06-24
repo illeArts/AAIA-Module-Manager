@@ -28,6 +28,7 @@ public static class AiRuntimeStateReasonCodes
     public const string Quarantined = "state_store_quarantined";
     public const string BackupMissing = "state_backup_missing";
     public const string RepairNotRequired = "state_repair_not_required";
+    public const string PersistenceFailed = "state_persistence_failed";
 }
 
 public enum AiStateStoreOpenMode

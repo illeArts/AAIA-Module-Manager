@@ -16,11 +16,12 @@ namespace AAIA.ModuleManager.Services.Ai.Integration;
 /// Client-Config und Statusanzeigen bereit. Bewusst framework-neutral (kein MVVM-Base),
 /// damit das ViewModel nur Methoden/Properties bindet.
 /// </summary>
-public sealed class AiRuntimeConnectorPanel
+public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
 {
     private readonly AiRuntimeComposition _composition;
     private AiRuntimeStateMaintenanceService? _stateMaintenance;
     private AiRecoveryDecisionService? _recoveryDecisions;
+    private AiRuntimePersistenceCoordinator? _persistenceCoordinator;
 
     public AiRuntimeConnectorPanel(AaiaMcpBridgeOptions options, IModuleManagerAiBridge bridge)
     {
@@ -40,7 +41,21 @@ public sealed class AiRuntimeConnectorPanel
     public string? LastEvent { get; private set; }
 
     // ── Bridge-Steuerung ─────────────────────────────────────────────────────
-    public Task StartAsync(CancellationToken ct = default) => _composition.Server.StartAsync(ct);
+    public async Task StartAsync(CancellationToken ct = default)
+    {
+        if (_persistenceCoordinator is not null)
+        {
+            var status = await _persistenceCoordinator.InitializeAsync(ct).ConfigureAwait(false);
+            if (status == AiRuntimeRecoveryStatus.RecoveryRequired)
+                throw new AiStateStoreException(AiRuntimeStateReasonCodes.RecoveryRequired,
+                    "Lokale Recovery-Entscheidungen sind vor dem MCP-Start erforderlich.");
+            if (status is not (AiRuntimeRecoveryStatus.Ready or AiRuntimeRecoveryStatus.Disabled))
+                throw new AiStateStoreException(
+                    _persistenceCoordinator.FailureReasonCode ?? AiRuntimeStateReasonCodes.SnapshotCorrupt,
+                    "Runtime-Recovery wurde nicht erfolgreich abgeschlossen.");
+        }
+        await _composition.Server.StartAsync(ct).ConfigureAwait(false);
+    }
     public Task StopAsync(CancellationToken ct = default)  => _composition.Server.StopAsync(ct);
     public string RotateToken() => _composition.Auth.Rotate();
 
@@ -124,6 +139,19 @@ public sealed class AiRuntimeConnectorPanel
         => _stateMaintenance = new AiRuntimeStateMaintenanceService(
             store, _composition.Runtime.Audit, authorizer, runtimeInstanceId);
 
+    public void ConfigurePersistence(
+        IAiRuntimeStateStore store,
+        IAiStateProtector protector,
+        AiRuntimePersistenceOptions options,
+        LocalStateMaintenanceAuthorizer authorizer,
+        string runtimeInstanceId)
+    {
+        ConfigureStateMaintenance(store, authorizer, runtimeInstanceId);
+        ConfigureRecoveryDecisions(authorizer);
+        _persistenceCoordinator = new AiRuntimePersistenceCoordinator(
+            _composition.Runtime, store, protector, options, runtimeInstanceId, authorizer);
+    }
+
     public void ConfigureRecoveryDecisions(IAiRecoveryAuthorizer authorizer)
         => _recoveryDecisions = new AiRecoveryDecisionService(_composition.Runtime, authorizer);
 
@@ -140,6 +168,25 @@ public sealed class AiRuntimeConnectorPanel
             : await _stateMaintenance.GetDiagnosticsAsync(ct).ConfigureAwait(false);
         var recoveryCount = _composition.Runtime.Scheduler.List()
             .Count(item => item.State == AiExecutionState.RecoveryRequired);
+        if (_persistenceCoordinator is not null &&
+            _persistenceCoordinator.Status is not (AiRuntimeRecoveryStatus.Ready or AiRuntimeRecoveryStatus.Disabled))
+        {
+            return new AiRuntimeStateDiagnostics
+            {
+                StoreId = diagnostics.StoreId,
+                Status = _persistenceCoordinator.Status,
+                SchemaVersion = diagnostics.SchemaVersion,
+                LastSequence = diagnostics.LastSequence,
+                SnapshotSequence = diagnostics.SnapshotSequence,
+                StoreSizeBytes = diagnostics.StoreSizeBytes,
+                LastUpdatedAtUtc = diagnostics.LastUpdatedAtUtc,
+                ReasonCode = _persistenceCoordinator.FailureReasonCode ??
+                             (recoveryCount > 0 ? AiRuntimeStateReasonCodes.RecoveryRequired : null),
+                RedactedMessage = recoveryCount > 0
+                    ? $"{recoveryCount} Execution(s) benötigen lokale Recovery-Entscheidung."
+                    : "Runtime-Persistenz ist noch nicht freigegeben."
+            };
+        }
         if (recoveryCount == 0 || diagnostics.Status is AiRuntimeRecoveryStatus.Quarantined or
             AiRuntimeRecoveryStatus.RecoveryFailed)
             return diagnostics;
@@ -159,15 +206,18 @@ public sealed class AiRuntimeConnectorPanel
 
     public ValueTask<AiStateMaintenanceOperationResult> BackupStateAsync(
         string actor, string reason, bool confirmed, CancellationToken ct = default)
-        => RequiredStateMaintenance().BackupAsync(actor, reason, confirmed, ct);
+        => RunMaintenanceAsync(token => RequiredStateMaintenance().BackupAsync(
+            actor, reason, confirmed, token), ct);
 
     public ValueTask<AiStateMaintenanceOperationResult> CompactStateAsync(
         string actor, string reason, bool confirmed, CancellationToken ct = default)
-        => RequiredStateMaintenance().CompactAsync(actor, reason, confirmed, ct);
+        => RunMaintenanceAsync(token => RequiredStateMaintenance().CompactAsync(
+            actor, reason, confirmed, token), ct);
 
     public ValueTask<AiStateMaintenanceOperationResult> RepairStateAsync(
         string actor, string reason, bool confirmed, CancellationToken ct = default)
-        => RequiredStateMaintenance().RepairAsync(actor, reason, confirmed, ct);
+        => RunMaintenanceAsync(token => RequiredStateMaintenance().RepairAsync(
+            actor, reason, confirmed, token), ct);
 
     public bool ResolveRecoveryAsFailed(string executionId, string actor, string reason)
     {
@@ -176,6 +226,8 @@ public sealed class AiRuntimeConnectorPanel
             var success = RequiredRecoveryDecisions().ResolveAsFailed(executionId, actor, reason);
             _composition.Runtime.Audit.RecordAdministrative(
                 actor, "air.state.recovery.fail", success, $"Execution {executionId}: {reason}");
+            if (success && _persistenceCoordinator?.Status == AiRuntimeRecoveryStatus.RecoveryRequired)
+                _persistenceCoordinator.CompleteRecoveryAsync().AsTask().GetAwaiter().GetResult();
             return success;
         }
         catch (Exception ex)
@@ -194,6 +246,8 @@ public sealed class AiRuntimeConnectorPanel
             _composition.Runtime.Audit.RecordAdministrative(
                 actor, "air.state.recovery.retry", true,
                 $"Execution {executionId} -> {retry.Request.Id}: {reason}");
+            if (_persistenceCoordinator?.Status == AiRuntimeRecoveryStatus.RecoveryRequired)
+                _persistenceCoordinator.CompleteRecoveryAsync().AsTask().GetAwaiter().GetResult();
             return retry;
         }
         catch (Exception ex)
@@ -213,9 +267,25 @@ public sealed class AiRuntimeConnectorPanel
         var execution = _composition.Runtime.Scheduler.Get(executionId);
         if (execution is null)
             return AuditFailure(actor, "air.admin.execution.cancel", "Execution nicht gefunden.", out error);
-        var success = _composition.Runtime.Scheduler.Cancel(executionId);
+        bool success;
+        try
+        {
+            success = _composition.Runtime.Scheduler.Cancel(executionId);
+        }
+        catch (Exception ex) when (ex is AiStateStoreException or IOException or UnauthorizedAccessException)
+        {
+            _composition.Runtime.Audit.RecordAdministrative(
+                actor, "air.admin.execution.cancel", false, ex.Message);
+            error = ex.Message;
+            return false;
+        }
         var detail = $"Execution {executionId}: {reason}";
         _composition.Runtime.Audit.RecordAdministrative(actor, "air.admin.execution.cancel", success, detail);
+        if (success && !PersistLocalMutation("air.admin.execution.cancel.audit", out var persistenceError))
+        {
+            error = persistenceError;
+            return false;
+        }
         error = success ? null : "Execution ist bereits abgeschlossen.";
         return success;
     }
@@ -245,6 +315,11 @@ public sealed class AiRuntimeConnectorPanel
             _composition.Runtime.Audit.RecordAdministrative(
                 actor, "air.admin.resource.budget", true,
                 $"Budget {budget.Id} Scope={budget.Scope}: {reason}");
+            if (!PersistLocalMutation("air.admin.resource.budget.audit", out var persistenceError))
+            {
+                error = persistenceError;
+                return false;
+            }
             error = null;
             return true;
         }
@@ -272,6 +347,39 @@ public sealed class AiRuntimeConnectorPanel
         => _recoveryDecisions ?? throw new AiStateStoreException(
             AiRuntimeStateReasonCodes.Disabled, "Lokale Recovery-Aktionen sind nicht konfiguriert.");
 
+    private bool PersistLocalMutation(string operationType, out string? error)
+    {
+        if (_persistenceCoordinator is null ||
+            _persistenceCoordinator.Status == AiRuntimeRecoveryStatus.Disabled)
+        {
+            error = null;
+            return true;
+        }
+        if (_persistenceCoordinator.Status != AiRuntimeRecoveryStatus.Ready)
+        {
+            error = "Runtime-Persistenz ist nicht für lokale Mutationen freigegeben.";
+            return false;
+        }
+        try
+        {
+            _persistenceCoordinator.PersistMutationAsync(operationType).AsTask().GetAwaiter().GetResult();
+            error = null;
+            return true;
+        }
+        catch (Exception ex) when (ex is AiStateStoreException or IOException or UnauthorizedAccessException)
+        {
+            error = $"Durable Bestätigung fehlgeschlagen: {ex.Message}";
+            return false;
+        }
+    }
+
+    private ValueTask<AiStateMaintenanceOperationResult> RunMaintenanceAsync(
+        Func<CancellationToken, ValueTask<AiStateMaintenanceOperationResult>> operation,
+        CancellationToken ct)
+        => _persistenceCoordinator is null
+            ? operation(ct)
+            : _persistenceCoordinator.RunExclusiveMaintenanceAsync(operation, ct);
+
     private bool AuthorizeAdministrativeAction(
         string actor, string reason, bool isAdministrator, bool confirmed, string action, out string? error)
     {
@@ -297,4 +405,11 @@ public sealed class AiRuntimeConnectorPanel
 
     /// <summary>Direkter Zugriff auf die Runtime (z. B. für erweiterte UI-Panels).</summary>
     public AiRuntimeService Runtime => _composition.Runtime;
+
+    public async ValueTask DisposeAsync()
+    {
+        await _composition.Server.StopAsync().ConfigureAwait(false);
+        if (_persistenceCoordinator is not null)
+            await _persistenceCoordinator.DisposeAsync().ConfigureAwait(false);
+    }
 }

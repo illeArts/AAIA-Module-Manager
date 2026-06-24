@@ -160,7 +160,7 @@ internal static class AaiaPhase8ToolsBootstrap
                                 submittedByClientId: inv.Session.ClientId);
                             return AiToolResult.Ok(ExecutionView(execution));
                         }
-                        catch (InvalidOperationException ex)
+                        catch (InvalidOperationException ex) when (ex is not AiStateStoreException)
                         {
                             return AiToolResult.Fail(ex.Message, AiPhase8ErrorCodes.ExecutionRejected);
                         }

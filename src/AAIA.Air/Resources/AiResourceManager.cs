@@ -48,6 +48,8 @@ public sealed class AiResourceManager
     private readonly TimeSpan _telemetryMaxAge;
     private readonly AiRuntimeEventBus? _events;
 
+    internal Action<string>? DurableMutationRequired { get; set; }
+
     public AiResourceRegistry Registry { get; } = new();
 
     public AiResourceManager(
@@ -71,13 +73,16 @@ public sealed class AiResourceManager
         if (budget.Scope != AiBudgetScope.Runtime && string.IsNullOrWhiteSpace(budget.ScopeId))
             throw new ArgumentException("Nicht-globale Budgets benötigen eine ScopeId.", nameof(budget));
 
+        AiResourceBudgetSnapshot snapshot;
         lock (_gate)
         {
             if (_budgets.ContainsKey(budget.Id)) throw new InvalidOperationException("Budget ist bereits registriert.");
             var state = new BudgetState { Budget = budget };
             _budgets[budget.Id] = state;
-            return BudgetSnapshot(state);
+            snapshot = BudgetSnapshot(state);
         }
+        DurableMutationRequired?.Invoke("resource.budget.set");
+        return snapshot;
     }
 
     public IReadOnlyList<AiResourceBudgetSnapshot> ListBudgets()
@@ -173,6 +178,7 @@ public sealed class AiResourceManager
             Message = decision.Reservation!.Id,
             Data = new Dictionary<string, object?> { ["resourceId"] = decision.SelectedResourceId }
         });
+        DurableMutationRequired?.Invoke("resource.reservation.created");
         return decision;
     }
 
@@ -184,7 +190,10 @@ public sealed class AiResourceManager
 
     public int ExpireReservations()
     {
-        lock (_gate) return ExpireReservationsLocked(UtcNow);
+        int expired;
+        lock (_gate) expired = ExpireReservationsLocked(UtcNow);
+        if (expired > 0) DurableMutationRequired?.Invoke("resource.reservation.expired");
+        return expired;
     }
 
     public AiResourceReservation? GetReservation(string reservationId)
@@ -485,6 +494,9 @@ public sealed class AiResourceManager
             Message = snapshot.Id,
             Data = new Dictionary<string, object?> { ["resourceId"] = snapshot.ResourceId }
         });
+        DurableMutationRequired?.Invoke(target == AiReservationState.Committed
+            ? "resource.reservation.committed"
+            : "resource.reservation.released");
         return true;
     }
 

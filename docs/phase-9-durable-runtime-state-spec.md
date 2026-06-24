@@ -1,6 +1,6 @@
 # Phase 9 — AIR Durable Runtime State & Crash Recovery: Spezifikation
 
-> Status: fachlich freigegeben; Inkremente 9.1 bis 9.4 abgeschlossen, Aktivierungs-Checkpoint offen
+> Status: abgeschlossen; unter Windows explizit aktivierbar, andere Plattformen ohne nativen Protector fail-closed
 > Scope: lokale, geschützte Persistenz des Orchestrierungszustands; kein MCP, keine Cloud
 
 ## 1. Ausgangslage und Ziel
@@ -239,6 +239,9 @@ Stabile Reason-Codes:
 - `state_recovery_required`
 - `state_quota_exceeded`
 - `state_store_disabled`
+- `state_persistence_failed`
+- `state_backup_missing`
+- `state_repair_not_required`
 
 ## 11. Betriebsgrenzen
 
@@ -390,12 +393,18 @@ Umgesetzt:
 - Owner/Admin-Autorisierung, Begründung, Bestätigung und Audit für jede Wartungsaktion,
 - lokale UI für Diagnose, Backup, Compact, Repair und Entscheidungen zu `RecoveryRequired`,
 - keine neuen MCP-Werkzeuge oder MCP-Permissions,
-- 85 neue Phase-9-Tests; vollständige Regression 271/271 grün.
+- produktiver Windows-DPAPI-Protector im Current-User-Scope mit kontextgebundener Entropie,
+- fail-closed `state_protector_unavailable` auf Plattformen ohne nativen Protector,
+- Single-Writer-Startup-Koordinator vor MCP-Start mit Snapshot- und Journal-Replay,
+- vollständige Orchestrierungs-Checkpoints als bekannte, prüfsummengeschützte Journal-Events,
+- `Recovering`/`RecoveryRequired`/`RecoveryFailed`-Gate vor mutierenden Tools und Scheduler-Freigabe,
+- Journal-Flush vor erfolgreicher Bestätigung aktueller Task-, Execution-, Idempotenz-, Budget- und Reservationsmutationen,
+- Recovery-Checkpoint vor `Ready`; unbekannte Journal-Events stoppen den Start fail-closed,
+- opt-in `AirPersistence.Enabled`; Standard bleibt ausgeschaltet,
+- 94 neue Phase-9-Tests; vollständige Regression 280/280 grün.
 
-Noch offen:
+Plattformgrenze:
 
-- Runtime-Startup-/Journal-Koordination und lokaler produktiver Protector,
-- expliziter Aktivierungs-Checkpoint mit Recovery-Gate vor MCP-/Scheduler-Start.
-
-Persistenz bleibt bis zu diesen Schritten deaktiviert und ist nicht mit
-`AiRuntimeService` verbunden.
+- Windows kann Phase 9 über `AirPersistence.Enabled` bewusst aktivieren.
+- macOS/Linux starten bei aktivierter Persistenz ohne nativen Keychain-Adapter nicht; es gibt keinen schwachen Fallback.
+- Persistenz bleibt in jeder Neuinstallation standardmäßig deaktiviert.

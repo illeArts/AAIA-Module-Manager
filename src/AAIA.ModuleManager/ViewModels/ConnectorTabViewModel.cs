@@ -156,13 +156,23 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         var stateStore = new AiLocalFileRuntimeStateStore(
             AiLocalFileRuntimeStateStore.GetDefaultRootPath("module-manager"),
             "module-manager",
-            new AiRuntimePersistenceOptions { Enabled = false });
+            config.AirPersistence);
         var stateAuthorizer = new LocalStateMaintenanceAuthorizer(() => IsAirAdmin);
-        _airPanel.ConfigureStateMaintenance(
-            stateStore,
-            stateAuthorizer,
-            $"module-manager-{Environment.ProcessId}");
-        _airPanel.ConfigureRecoveryDecisions(stateAuthorizer);
+        var runtimeInstanceId = $"module-manager-{Environment.ProcessId}";
+        if (config.AirPersistence.Enabled)
+        {
+            _airPanel.ConfigurePersistence(
+                stateStore,
+                new AiLocalUserStateProtector(),
+                config.AirPersistence,
+                stateAuthorizer,
+                runtimeInstanceId);
+        }
+        else
+        {
+            _airPanel.ConfigureStateMaintenance(stateStore, stateAuthorizer, runtimeInstanceId);
+            _airPanel.ConfigureRecoveryDecisions(stateAuthorizer);
+        }
         _airPanel.Log += msg => Dispatcher.UIThread.Post(() => AppendLog($"[AIR] {msg}", ConnectorLogLevel.Info));
         _airPanel.Runtime.Events.EventPublished += e =>
         {
@@ -794,7 +804,7 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         _server.Dispose();
 
         if (_airPanel is not null)
-            _ = _airPanel.StopAsync();
+            _ = _airPanel.DisposeAsync().AsTask();
 
         // Alle wartenden AIR-Proposals abbrechen
         foreach (var (_, tcs) in _airPending)

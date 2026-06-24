@@ -38,6 +38,8 @@ public sealed class AiExecutionScheduler
     private long _assignmentSequence;
     private bool _recoveryBlocked;
 
+    internal Action<string>? DurableTransitionRequired { get; set; }
+
     public AiExecutionScheduler(
         AiTaskManager tasks,
         AiSessionManager sessions,
@@ -108,6 +110,7 @@ public sealed class AiExecutionScheduler
             Message = request.Id,
             Data = new Dictionary<string, object?> { ["taskId"] = taskId, ["priority"] = priority.ToString() }
         });
+        DurableTransitionRequired?.Invoke("execution.queued");
         return Snapshot(item);
     }
 
@@ -182,6 +185,7 @@ public sealed class AiExecutionScheduler
         if (lease is null || selectedSession is null || selectedItem is null) return false;
         _events.Publish(AiRuntimeEventType.ExecutionLeased, selectedSession, message: lease.RequestId,
             data: new Dictionary<string, object?> { ["taskId"] = lease.TaskId, ["attempt"] = lease.Attempt });
+        DurableTransitionRequired?.Invoke("execution.leased");
         return true;
     }
 
@@ -314,6 +318,7 @@ public sealed class AiExecutionScheduler
         }
 
         _events.Publish(finalEvent, session, message: requestId);
+        DurableTransitionRequired?.Invoke("execution.settled");
 
         lock (_gate) return Snapshot(item);
     }
@@ -349,6 +354,7 @@ public sealed class AiExecutionScheduler
         _events.Publish(requeued ? AiRuntimeEventType.ExecutionRecovered : AiRuntimeEventType.ExecutionFailed,
             session, message: item.Request.Id,
             data: new Dictionary<string, object?> { ["resourceReason"] = decision.ReasonCode });
+        DurableTransitionRequired?.Invoke("execution.resource-decision");
         lock (_gate) return Snapshot(item);
     }
 
@@ -387,6 +393,7 @@ public sealed class AiExecutionScheduler
 
         if (eventType.HasValue)
             _events.Publish(eventType.Value, session, message: requestId);
+        if (handled) DurableTransitionRequired?.Invoke("execution.cancelled");
         return handled;
     }
 
@@ -415,6 +422,7 @@ public sealed class AiExecutionScheduler
         foreach (var entry in recovered)
             _events.Publish(entry.Failed ? AiRuntimeEventType.ExecutionFailed : AiRuntimeEventType.ExecutionRecovered,
                 entry.Session, message: entry.RequestId);
+        if (recovered.Count > 0) DurableTransitionRequired?.Invoke("execution.lease-recovered");
         return recovered.Count;
     }
 

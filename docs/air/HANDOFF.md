@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Die Inkremente 9.1 bis 9.4 sind implementiert. Phase 9 besitzt jetzt State Store, Crash-Recovery für Tasks/Executions/Ressourcen/Idempotenz, sessionfreies redigiertes Audit, lokale Diagnose sowie autorisierte Backup-/Compact-/Repair- und Recovery-Aktionen in der UI. Tests: 271/271 grün. Persistenz ist weiterhin deaktiviert und nicht mit dem Runtime-Startup verdrahtet. Nächster Schritt: produktiven lokalen Protector und Startup-/Journal-Koordination als expliziten Aktivierungs-Checkpoint spezifizieren und implementieren.
+**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 9 besitzt State Store, Crash-Recovery für Tasks/Executions/Ressourcen/Idempotenz, redigiertes Audit, Diagnose/Wartung, Windows-DPAPI-Protector sowie einen Single-Writer-Startup-Koordinator mit Journal-Flush-Gate vor MCP-Start und erfolgreicher Mutationsbestätigung. Tests: 280/280 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Windows ist produktiv unterstützt, macOS/Linux bleiben ohne nativen Keychain-Protector fail-closed. Nächster Schritt: Post-Phase-9-Roadmap fachlich festlegen, bevor weitere Runtime-Funktionen gebaut werden.
 
 ## Wo wir stehen
 
@@ -25,10 +25,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Produktiven lokalen `IAiStateProtector` pro Betriebssystem festlegen und implementieren.
-2. Store-Open, Snapshot-/Journal-Replay und Recovery-Gate vor Runtime-/MCP-Start koordinieren.
-3. Bestätigte Mutationen erst nach dauerhaftem Journal-Flush zurückgeben.
-4. Aktivierung bleibt bis zu erfolgreichen Crash-/Startup-Tests standardmäßig ausgeschaltet.
+1. Phase-9-Checkpoint fachlich abnehmen und auf Windows opt-in testen.
+2. Entscheiden, ob als Nächstes native Keychain-Protectoren für macOS/Linux oder ein neuer Phase-10-Scope priorisiert werden.
+3. Keine weiteren Runtime-Funktionen ohne neue freigegebene Spezifikation beginnen.
 
 ## Harte Regeln (nicht verletzen)
 
