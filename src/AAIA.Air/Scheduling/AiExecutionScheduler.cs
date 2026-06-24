@@ -538,6 +538,17 @@ public sealed class AiExecutionScheduler
                    _items.Remove(requestId);
     }
 
+    internal void ClearDurableRestore()
+    {
+        lock (_gate)
+        {
+            _items.Clear();
+            _sessionLastAssigned.Clear();
+            _assignmentSequence = 0;
+            _recoveryBlocked = false;
+        }
+    }
+
     private void RefreshRecoveryBlock()
         => _recoveryBlocked = _items.Values.Any(item => item.State == AiExecutionState.RecoveryRequired);
 

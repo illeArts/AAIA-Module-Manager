@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9.1 State Store und Phase 9.2 Durable Tasks/Execution Queue sind abgeschlossen. Persistierbare DTOs, geschützte Inputs, deterministischer Import/Export, Recovery-Normalisierung, Scheduler-Sperre und autorisierte Fail-/Retry-Entscheidungen sind implementiert. Tests: 256/256 grün. Persistenz ist weiterhin deaktiviert und nicht mit dem Runtime-Startup verdrahtet. Nächster Schritt: Phase 9.3 dauerhafte Budgets, Reservationshistorie und Idempotenz.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9.1 bis 9.3 sind abgeschlossen. Zusätzlich zu State Store und Task-/Execution-Recovery sind dauerhafte Budgets, sessionfreie Reservationshistorie, exakt-einmal Recovery-Release und clientgebundene Idempotenz ohne Request-/Result-Payload implementiert. Tests: 264/264 grün. Persistenz ist weiterhin deaktiviert und nicht mit dem Runtime-Startup verdrahtet. Nächster Schritt: Phase 9.4 Audit, lokale Diagnose und kontrollierte Wartung.
 
 ## Wo wir stehen
 
@@ -25,10 +25,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Budgetdefinitionen sowie `Spent` und `Reserved` dauerhaft und exakt rekonstruierbar machen.
-2. Offene Reservations beim Recovery genau einmal mit `runtime_recovery` freigeben.
-3. Begrenzte, Session-unabhängige Idempotenzdatensätze mit TTL und Input-Fingerprint persistieren.
-4. Keine MCP-/UI-Erweiterung und noch keine automatische Runtime-Startup-Aktivierung einführen.
+1. Redigierte persistente Audit-Datensätze und Recovery-Diagnose spezifikationsgetreu ergänzen.
+2. Lokale Wartungsaktionen für Backup, Compact und Repair mit Autorisierung, Begründung und Audit umsetzen.
+3. Recovery-/Store-Status für die lokale UI bereitstellen; keine neuen MCP-Tools einführen.
+4. Persistenz weiterhin nicht automatisch aktivieren, bevor Protector und Startup-Koordination abgeschlossen sind.
 
 ## Harte Regeln (nicht verletzen)
 

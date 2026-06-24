@@ -16,6 +16,7 @@ public static class AiResourceReasonCodes
     public const string CostUnitMismatch = "cost_unit_mismatch";
     public const string PinnedResourceUnavailable = "pinned_resource_unavailable";
     public const string ResourceUnhealthy = "resource_unhealthy";
+    public const string RuntimeRecovery = "runtime_recovery";
 }
 
 public sealed class AiResourceCapacity
@@ -92,7 +93,7 @@ public sealed class AiResourceRequest
 
 public sealed class AiResourceBudget
 {
-    public string Id { get; } = Guid.NewGuid().ToString("N")[..12];
+    public string Id { get; init; } = Guid.NewGuid().ToString("N")[..12];
     public AiBudgetScope Scope { get; init; }
     public string? ScopeId { get; init; }
     public required string CostUnit { get; init; }
@@ -135,7 +136,7 @@ public sealed class AiResourceReservation
     public required string ResourceId { get; init; }
     public required string ExecutionRequestId { get; init; }
     public required string TaskId { get; init; }
-    public required string SessionId { get; init; }
+    public string? SessionId { get; init; }
     public AiReservationState State { get; init; }
     public required string CostUnit { get; init; }
     public decimal EstimatedCost { get; init; }
@@ -143,6 +144,7 @@ public sealed class AiResourceReservation
     public DateTime ReservedAtUtc { get; init; }
     public DateTime ExpiresAtUtc { get; init; }
     public DateTime? SettledAtUtc { get; init; }
+    public string? SettlementReasonCode { get; init; }
 }
 
 public sealed class AiResourceDecision

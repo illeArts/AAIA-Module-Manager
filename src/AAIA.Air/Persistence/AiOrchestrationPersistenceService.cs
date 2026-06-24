@@ -16,6 +16,9 @@ public sealed partial class AiOrchestrationPersistenceService
     private const int MaxTasks = 10_000;
     private const int MaxExecutions = 10_000;
     private const int MaxStepsPerTask = 1_000;
+    private const int MaxBudgets = 10_000;
+    private const int MaxReservations = 100_000;
+    private const int MaxIdempotencyRecords = 10_000;
     private const int MaxMetadataLength = 4_000;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -30,12 +33,14 @@ public sealed partial class AiOrchestrationPersistenceService
     private readonly string _storeId;
     private readonly object _recoveryGate = new();
     private readonly IAiRecoveryAuthorizer? _recoveryAuthorizer;
+    private readonly TimeProvider _time;
 
     public AiOrchestrationPersistenceService(
         AiRuntimeService runtime,
         IAiStateProtector protector,
         string storeId,
-        IAiRecoveryAuthorizer? recoveryAuthorizer = null)
+        IAiRecoveryAuthorizer? recoveryAuthorizer = null,
+        TimeProvider? timeProvider = null)
     {
         _runtime = runtime ?? throw new ArgumentNullException(nameof(runtime));
         _protector = protector ?? throw new AiStateStoreException(
@@ -44,6 +49,7 @@ public sealed partial class AiOrchestrationPersistenceService
         ArgumentException.ThrowIfNullOrWhiteSpace(storeId);
         _storeId = storeId;
         _recoveryAuthorizer = recoveryAuthorizer;
+        _time = timeProvider ?? TimeProvider.System;
     }
 
     public async ValueTask<AiRuntimeStateSnapshot> CaptureAsync(
@@ -146,11 +152,25 @@ public sealed partial class AiOrchestrationPersistenceService
             };
         }).ToArray();
 
+        var resourceState = _runtime.Resources.CaptureDurableState();
+        foreach (var budget in resourceState.Budgets) ValidateBudgetMetadata(budget);
+        foreach (var reservation in resourceState.Reservations) ValidateReservationMetadata(reservation);
+        var idempotencyRecords = _runtime.Idempotency.CaptureDurableRecords(createdAtUtc);
+        foreach (var record in idempotencyRecords) ValidateIdempotencyMetadata(record);
+        if (resourceState.Budgets.Count > MaxBudgets ||
+            resourceState.Reservations.Count > MaxReservations ||
+            idempotencyRecords.Count > MaxIdempotencyRecords)
+            throw new AiStateStoreException(AiRuntimeStateReasonCodes.QuotaExceeded,
+                "Durabler Ressourcen- oder Idempotenzzustand überschreitet die Objektgrenze.");
+
         var payload = JsonSerializer.SerializeToUtf8Bytes(new AiDurableOrchestrationSnapshot
         {
             CreatedAtUtc = createdAtUtc,
             Tasks = durableTasks,
-            Executions = durableExecutions
+            Executions = durableExecutions,
+            Budgets = resourceState.Budgets,
+            Reservations = resourceState.Reservations,
+            IdempotencyRecords = idempotencyRecords
         }, JsonOptions);
         return AiRuntimeStateCodec.CreateSnapshot(
             sequence, createdAtUtc, payload,
@@ -164,7 +184,9 @@ public sealed partial class AiOrchestrationPersistenceService
     {
         ArgumentNullException.ThrowIfNull(stateSnapshot);
         AiRuntimeStateCodec.VerifySnapshot(stateSnapshot, maxPayloadBytes);
-        if (_runtime.Tasks.Count != 0 || _runtime.Scheduler.List().Count != 0)
+        if (_runtime.Tasks.Count != 0 || _runtime.Scheduler.List().Count != 0 ||
+            _runtime.Resources.ListBudgets().Count != 0 || _runtime.Resources.ListReservations().Count != 0 ||
+            _runtime.Idempotency.Count != 0)
             throw new InvalidOperationException("Restore benötigt eine leere Runtime.");
 
         AiDurableOrchestrationSnapshot durable;
@@ -254,6 +276,9 @@ public sealed partial class AiOrchestrationPersistenceService
         var executionIds = new HashSet<string>(StringComparer.Ordinal);
         foreach (var execution in durable.Executions)
             ValidateExecution(execution, executionIds, taskIds);
+        foreach (var budget in durable.Budgets) ValidateBudgetMetadata(budget);
+        foreach (var reservation in durable.Reservations) ValidateReservationMetadata(reservation);
+        foreach (var record in durable.IdempotencyRecords) ValidateIdempotencyMetadata(record);
 
         // Eine laufende Execution macht auch den zugehörigen Task recovery-pflichtig.
         foreach (var execution in durable.Executions.Where(execution =>
@@ -274,6 +299,21 @@ public sealed partial class AiOrchestrationPersistenceService
         try
         {
             var executionReport = _runtime.Scheduler.RestoreDurableExecutions(durable.Executions);
+            int releasedReservations;
+            int idempotencyCount;
+            try
+            {
+                var recoveredAtUtc = _time.GetUtcNow().UtcDateTime;
+                releasedReservations = _runtime.Resources.RestoreDurableState(
+                    durable.Budgets, durable.Reservations, recoveredAtUtc);
+                idempotencyCount = _runtime.Idempotency.RestoreDurableRecords(
+                    durable.IdempotencyRecords, recoveredAtUtc);
+            }
+            catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+            {
+                throw new AiStateStoreException(AiRuntimeStateReasonCodes.SnapshotCorrupt,
+                    "Ressourcen- oder Idempotenzzustand ist inkonsistent.", ex);
+            }
             var totalRecovery = taskRecoveryRequired + executionReport.RecoveryRequired;
             foreach (var execution in _runtime.Scheduler.List()
                          .Where(item => item.State == AiExecutionState.RecoveryRequired))
@@ -291,11 +331,18 @@ public sealed partial class AiOrchestrationPersistenceService
                 ExecutionCount = durable.Executions.Count,
                 ReleasedClaims = releasedClaims,
                 ReleasedLeases = executionReport.ReleasedLeases,
-                RecoveryRequiredCount = totalRecovery
+                RecoveryRequiredCount = totalRecovery,
+                BudgetCount = durable.Budgets.Count,
+                ReservationCount = durable.Reservations.Count,
+                RecoveryReleasedReservations = releasedReservations,
+                IdempotencyRecordCount = idempotencyCount
             };
         }
         catch
         {
+            _runtime.Idempotency.ClearDurableRestore();
+            _runtime.Resources.ClearDurableRestore();
+            _runtime.Scheduler.ClearDurableRestore();
             _runtime.Tasks.ClearDurableRestore();
             throw;
         }
@@ -386,8 +433,11 @@ public sealed partial class AiOrchestrationPersistenceService
             throw new AiStateStoreException(AiRuntimeStateReasonCodes.SchemaUnsupported,
                 "Orchestrierungs-Schema wird nicht unterstützt.");
         EnsureUtc(snapshot.CreatedAtUtc, "Snapshot.CreatedAtUtc");
-        if (snapshot.Tasks is null || snapshot.Executions is null ||
-            snapshot.Tasks.Count > MaxTasks || snapshot.Executions.Count > MaxExecutions)
+        if (snapshot.Tasks is null || snapshot.Executions is null || snapshot.Budgets is null ||
+            snapshot.Reservations is null || snapshot.IdempotencyRecords is null ||
+            snapshot.Tasks.Count > MaxTasks || snapshot.Executions.Count > MaxExecutions ||
+            snapshot.Budgets.Count > MaxBudgets || snapshot.Reservations.Count > MaxReservations ||
+            snapshot.IdempotencyRecords.Count > MaxIdempotencyRecords)
             throw new AiStateStoreException(AiRuntimeStateReasonCodes.QuotaExceeded,
                 "Orchestrierungs-Snapshot überschreitet die Objektgrenze.");
     }
@@ -514,6 +564,46 @@ public sealed partial class AiOrchestrationPersistenceService
             throw Corrupt("Ungültige Resource-Capabilities.");
         foreach (var capability in value.RequiredCapabilities)
             EnsureSafeMetadata(capability, "Resource.RequiredCapability");
+    }
+
+    private static void ValidateBudgetMetadata(AiDurableBudgetSnapshot snapshot)
+    {
+        if (snapshot is null || snapshot.Budget is null) throw Corrupt("Budget fehlt.");
+        EnsureSafeMetadata(snapshot.Budget.Id, "Budget.Id");
+        EnsureSafeMetadata(snapshot.Budget.ScopeId, "Budget.ScopeId");
+        EnsureSafeMetadata(snapshot.Budget.CostUnit, "Budget.CostUnit");
+        EnsureUtc(snapshot.Budget.WindowStartsAtUtc, "Budget.WindowStartsAtUtc");
+        EnsureUtc(snapshot.Budget.WindowEndsAtUtc, "Budget.WindowEndsAtUtc");
+    }
+
+    private static void ValidateReservationMetadata(AiDurableReservationSnapshot snapshot)
+    {
+        if (snapshot is null) throw Corrupt("Reservation fehlt.");
+        EnsureSafeMetadata(snapshot.Id, "Reservation.Id");
+        EnsureSafeMetadata(snapshot.ResourceId, "Reservation.ResourceId");
+        EnsureSafeMetadata(snapshot.ExecutionRequestId, "Reservation.ExecutionRequestId");
+        EnsureSafeMetadata(snapshot.TaskId, "Reservation.TaskId");
+        EnsureSafeMetadata(snapshot.CostUnit, "Reservation.CostUnit");
+        EnsureSafeMetadata(snapshot.SettlementReasonCode, "Reservation.SettlementReasonCode");
+        if (snapshot.BudgetIds is null || snapshot.BudgetIds.Count > MaxBudgets)
+            throw Corrupt("Reservation besitzt eine ungültige Budgetliste.");
+        foreach (var budgetId in snapshot.BudgetIds)
+            EnsureSafeMetadata(budgetId, "Reservation.BudgetId");
+        EnsureUtc(snapshot.ReservedAtUtc, "Reservation.ReservedAtUtc");
+        EnsureUtc(snapshot.ExpiresAtUtc, "Reservation.ExpiresAtUtc");
+        EnsureOptionalUtc(snapshot.SettledAtUtc, "Reservation.SettledAtUtc");
+    }
+
+    private static void ValidateIdempotencyMetadata(AiDurableIdempotencyRecord record)
+    {
+        if (record is null) throw Corrupt("Idempotenzdatensatz fehlt.");
+        EnsureSafeMetadata(record.ClientFingerprint, "Idempotency.ClientFingerprint");
+        EnsureSafeMetadata(record.Operation, "Idempotency.Operation");
+        EnsureSafeMetadata(record.IdempotencyId, "Idempotency.Id");
+        EnsureSafeMetadata(record.InputFingerprint, "Idempotency.InputFingerprint");
+        EnsureSafeMetadata(record.ResultId, "Idempotency.ResultId");
+        EnsureUtc(record.CreatedAtUtc, "Idempotency.CreatedAtUtc");
+        EnsureUtc(record.ExpiresAtUtc, "Idempotency.ExpiresAtUtc");
     }
 
     private void AuthorizeRecovery(string actorId, string action)
