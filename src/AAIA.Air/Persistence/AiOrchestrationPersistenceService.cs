@@ -20,6 +20,7 @@ public sealed partial class AiOrchestrationPersistenceService
     private const int MaxReservations = 100_000;
     private const int MaxIdempotencyRecords = 10_000;
     private const int MaxAuditEntries = 50_000;
+    private const int MaxAppliedOperations = 10_000;
     private const int MaxMetadataLength = 4_000;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -372,9 +373,11 @@ public sealed partial class AiOrchestrationPersistenceService
         EnsureUtc(snapshot.CreatedAtUtc, "Snapshot.CreatedAtUtc");
         if (snapshot.Tasks is null || snapshot.Executions is null || snapshot.Budgets is null ||
             snapshot.Reservations is null || snapshot.IdempotencyRecords is null || snapshot.AuditEntries is null ||
+            snapshot.AppliedOperations is null ||
             snapshot.Tasks.Count > MaxTasks || snapshot.Executions.Count > MaxExecutions ||
             snapshot.Budgets.Count > MaxBudgets || snapshot.Reservations.Count > MaxReservations ||
-            snapshot.IdempotencyRecords.Count > MaxIdempotencyRecords || snapshot.AuditEntries.Count > MaxAuditEntries)
+            snapshot.IdempotencyRecords.Count > MaxIdempotencyRecords || snapshot.AuditEntries.Count > MaxAuditEntries ||
+            snapshot.AppliedOperations.Count > MaxAppliedOperations)
             throw new AiStateStoreException(AiRuntimeStateReasonCodes.QuotaExceeded,
                 "Orchestrierungs-Snapshot überschreitet die Objektgrenze.");
     }

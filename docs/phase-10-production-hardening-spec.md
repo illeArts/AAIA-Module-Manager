@@ -1,6 +1,6 @@
 # Phase 10 — AIR Production Hardening & Portable Hosting: Spezifikation
 
-> Status: fachlich spezifiziert, noch nicht implementiert
+> Status: fachlich spezifiziert; 10.1-Foundation implementiert, produktive Migration noch offen
 > Scope: effiziente Durability, native Plattform-Sicherheit, app-neutraler Lifecycle und Betriebsnachweis
 
 ## 1. Ausgangslage und Ziel
@@ -35,7 +35,7 @@ Phase 10 implementiert ausdrücklich nicht:
 
 | Inkrement | Inhalt | Status |
 |---|---|---|
-| 10.1 | Typisiertes Delta-Journal und gebündelte Snapshots | spezifiziert |
+| 10.1 | Typisiertes Delta-Journal und gebündelte Snapshots | Foundation umgesetzt; produktive Migration offen |
 | 10.2 | Native Protectoren, Rotation und Protector-Migration | spezifiziert |
 | 10.3 | App-neutraler Runtime-Lifecycle und Readiness-Gates | spezifiziert |
 | 10.4 | Conformance-, Last-, Soak- und Betriebsnachweis | spezifiziert |
@@ -43,6 +43,15 @@ Phase 10 implementiert ausdrücklich nicht:
 Jedes Inkrement erhält einen eigenen PR. Die bestehenden vollständigen Checkpoints bleiben
 während 10.1 als lesbarer Migrationspfad erhalten und werden erst nach grüner Replay- und
 Crash-Matrix nicht mehr neu geschrieben.
+
+### Implementierungsstand 10.1
+
+Die Foundation umfasst BCL-only Contracts, eine geschlossene Registry aller Eventfamilien,
+den prüfsummenvalidierten Journal-Codec, einen deterministischen Reducer mit Sequenz- und
+Operation-ID-Schutz sowie ein threadsicheres In-Memory-Referenzjournal. Phase-9-Snapshots
+bleiben als Replay-Basis lesbar. Der produktive Single Writer schreibt weiterhin vollständige
+Phase-9-Checkpoints; zentrale Mutationstransaktion, Snapshot-Trigger, Compact und Umschaltung
+des produktiven Schreibpfads folgen erst mit grüner Migrations- und Crash-Matrix.
 
 ## 4. Architekturgrenzen
 

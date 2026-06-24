@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 9 besitzt State Store, Crash-Recovery für Tasks/Executions/Ressourcen/Idempotenz, redigiertes Audit, Diagnose/Wartung, Windows-DPAPI-Protector sowie einen Single-Writer-Startup-Koordinator mit Journal-Flush-Gate vor MCP-Start und erfolgreicher Mutationsbestätigung. Tests: 280/280 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Phase 10 „Production Hardening & Portable Hosting“ ist fachlich spezifiziert, aber nicht implementiert. Nächster Schritt: Phase 10.1 Typisiertes Delta-Journal und gebündelte Snapshots implementieren.
+**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 10.1 besitzt jetzt BCL-only Delta-Contracts, eine geschlossene Event-Registry, prüfsummenvalidierten Codec, deterministischen Reducer und ein threadsicheres In-Memory-Referenzjournal. Phase-9-Snapshots bleiben lesbar; der produktive Writer schreibt weiterhin vollständige Checkpoints. Tests: 295/295 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Nächster Schritt: zentrale durable Mutationstransaktion und Snapshot-Bündelung implementieren, dann den produktiven Schreibpfad erst nach grüner Migrations-/Crash-Matrix umschalten.
 
 ## Wo wir stehen
 
@@ -25,9 +25,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase 10.1 mit BCL-only Delta-Contracts und einer geschlossenen Event-Registry beginnen.
-2. Zentrale durable Mutation-Transaktion und exakt-einmal Replay zuerst gegen den In-Memory-Store testen.
-3. Phase-9-Checkpoint lesbar halten; noch keine neuen Events produktiv schreiben, bevor Migrationstests grün sind.
+1. Zentrale durable Mutationstransaktion auf dem bestehenden Single Writer implementieren: Sequenz zuweisen, Delta flushen, dann In-Memory anwenden und bestätigen.
+2. Snapshot-Trigger und Compact zunächst gegen In-Memory-/Fake-Store einschließlich Crash-Injection testen.
+3. Phase-9-Checkpoint lesbar halten; noch keine neuen Events produktiv schreiben, bevor Migrations- und Crash-Matrix grün sind.
 4. Keine neuen MCP-Tools, Permissions oder Orchestrierungsfunktionen einführen.
 
 ## Harte Regeln (nicht verletzen)
