@@ -6,6 +6,7 @@ Neue Dateien werden aus [`PHASE_FINAL_TEMPLATE.md`](PHASE_FINAL_TEMPLATE.md) erz
 
 ## Neue Abschlüsse
 
+- [Phase 10.1.2 — Durable Mutation Transaction & Snapshot Batching](phase-10-1-2-final.md)
 - [Phase 11.5.1 — Dokumentations-Foundation](phase-11-5-1-final.md)
 
 Bestehende ältere Abschluss- und Statusdokumente liegen vorerst weiterhin im Wurzelverzeichnis

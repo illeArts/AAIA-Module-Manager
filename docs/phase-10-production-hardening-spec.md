@@ -1,6 +1,7 @@
 # Phase 10 — AIR Production Hardening & Portable Hosting: Spezifikation
 
-> Status: fachlich spezifiziert; 10.1-Foundation implementiert, produktive Migration noch offen
+> Status: fachlich spezifiziert; 10.1.2 Transaktion und Snapshot-Batching implementiert,
+> produktive Writer-Migration noch offen
 > Scope: effiziente Durability, native Plattform-Sicherheit, app-neutraler Lifecycle und Betriebsnachweis
 
 ## 1. Ausgangslage und Ziel
@@ -35,7 +36,7 @@ Phase 10 implementiert ausdrücklich nicht:
 
 | Inkrement | Inhalt | Status |
 |---|---|---|
-| 10.1 | Typisiertes Delta-Journal und gebündelte Snapshots | Foundation umgesetzt; produktive Migration offen |
+| 10.1 | Typisiertes Delta-Journal und gebündelte Snapshots | 10.1.2 umgesetzt; produktive Migration offen |
 | 10.2 | Native Protectoren, Rotation und Protector-Migration | spezifiziert |
 | 10.3 | App-neutraler Runtime-Lifecycle und Readiness-Gates | spezifiziert |
 | 10.4 | Conformance-, Last-, Soak- und Betriebsnachweis | spezifiziert |
@@ -47,11 +48,13 @@ Crash-Matrix nicht mehr neu geschrieben.
 ### Implementierungsstand 10.1
 
 Die Foundation umfasst BCL-only Contracts, eine geschlossene Registry aller Eventfamilien,
-den prüfsummenvalidierten Journal-Codec, einen deterministischen Reducer mit Sequenz- und
-Operation-ID-Schutz sowie ein threadsicheres In-Memory-Referenzjournal. Phase-9-Snapshots
-bleiben als Replay-Basis lesbar. Der produktive Single Writer schreibt weiterhin vollständige
-Phase-9-Checkpoints; zentrale Mutationstransaktion, Snapshot-Trigger, Compact und Umschaltung
-des produktiven Schreibpfads folgen erst mit grüner Migrations- und Crash-Matrix.
+den prüfsummenvalidierten Journal-Codec und einen deterministischen Reducer. In 10.1.2 kam
+die Store-basierte Referenztransaktion hinzu: vollständige Vorabvalidierung, Append und Flush
+vor In-Memory-Apply, exakt-einmal Operation-IDs, Snapshot nach 1.000 Events oder 10 Minuten,
+Verify und Manifest-Flush vor Compact sowie expliziter Shutdown-Snapshot. Phase-9-Snapshots
+und `orchestration.checkpoint` bleiben als Replay-Basis lesbar. Der produktive Single Writer
+schreibt weiterhin vollständige Phase-9-Checkpoints; seine Umschaltung folgt getrennt in
+10.1.3 erst nach grüner Aktivierungs- und Rollback-Matrix.
 
 ## 4. Architekturgrenzen
 

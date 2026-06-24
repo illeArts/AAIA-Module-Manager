@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 10.1 besitzt jetzt BCL-only Delta-Contracts, eine geschlossene Event-Registry, prüfsummenvalidierten Codec, deterministischen Reducer und ein threadsicheres In-Memory-Referenzjournal. Phase-9-Snapshots bleiben lesbar; der produktive Writer schreibt weiterhin vollständige Checkpoints. Tests: 295/295 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Nächster Schritt: zentrale durable Mutationstransaktion und Snapshot-Bündelung implementieren, dann den produktiven Schreibpfad erst nach grüner Migrations-/Crash-Matrix umschalten.
+**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 10.1.2 besitzt jetzt eine Store-basierte Durable-Mutation-Transaktion mit Append → Flush → Apply, exakt-einmal Operation-IDs, Snapshot-Batching, Verify-vor-Compact, Shutdown-Snapshot und Phase-9-Checkpoint-Replay. Datei-Crash-Tails und vollständige Crash-Frames sind getestet. Der produktive Writer schreibt weiterhin vollständige Phase-9-Checkpoints. Tests: 310/310 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Nächster Schritt: Phase 10.1.3 produktive Writer-Migration mit Aktivierungs-, Rollback- und Recovery-Matrix.
 
 **Dokumentationsregel ab jetzt:** Jede technische Phase aktualisiert die betroffenen Benutzer-,
 Entwickler-, Admin-, Architektur- und Website-Hilfebereiche und erhält einen Abschlussnachweis
@@ -32,9 +32,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Zentrale durable Mutationstransaktion auf dem bestehenden Single Writer implementieren: Sequenz zuweisen, Delta flushen, dann In-Memory anwenden und bestätigen.
-2. Snapshot-Trigger und Compact zunächst gegen In-Memory-/Fake-Store einschließlich Crash-Injection testen.
-3. Phase-9-Checkpoint lesbar halten; noch keine neuen Events produktiv schreiben, bevor Migrations- und Crash-Matrix grün sind.
+1. Phase 10.1.3 spezifizieren und umsetzen: produktiven Phase-9-Writer kontrolliert auf typisierte Deltas migrieren.
+2. Aktivierungs-, Rollback- und Neustartmatrix einschließlich altem Checkpoint, neuem Snapshot und gemischtem Journal testen.
+3. Phase-9-Original vor Migration sichern; Umschaltung nur nach Snapshot-Verify und vollständig grüner Regression.
 4. Keine neuen MCP-Tools, Permissions oder Orchestrierungsfunktionen einführen.
 
 ## Harte Regeln (nicht verletzen)
