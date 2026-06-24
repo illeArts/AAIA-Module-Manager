@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9 Durable Runtime State & Crash Recovery ist fachlich freigegeben; Contracts, In-Memory-State-Store und kanonischer Snapshot-/Journal-Codec sind implementiert. Tests: 218/218 grün. Persistenz ist weiterhin deaktiviert und nicht mit der Runtime verdrahtet. Nächster Schritt: lokalen Datei-Store mit atomischem Replace, OS-Lock und Crash-Injection implementieren.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9.1 State Store ist abgeschlossen: Contracts, In-Memory-Store, kanonischer Codec und lokaler Datei-Store mit OS-Lock/Atomic-Replace/Crash-Tail-Recovery sind implementiert. Tests: 240/240 grün. Persistenz ist weiterhin deaktiviert und nicht mit der Runtime verdrahtet. Nächster Schritt: Phase 9.2 Durable Tasks/Execution Queue mit Snapshot-DTOs und `RecoveryRequired` beginnen.
 
 ## Wo wir stehen
 
@@ -25,10 +25,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Lokalen Datei-Store außerhalb von Projekt/Git mit exklusivem OS-Lock implementieren.
-2. `temp → flush → verify → atomic replace` für Snapshot und Manifest umsetzen.
-3. Crash-Injection an Write-/Flush-/Replace-Grenzen und Korruptionsfälle testen.
-4. Keine Runtime-Verdrahtung, MCP-Erweiterung oder automatische Tool-Wiederholung vorziehen.
+1. Persistierbare Task-/Execution-Snapshot-DTOs ohne Sessions, Locks oder Handler definieren.
+2. `RecoveryRequired` für vor dem Crash laufende Tasks/Executions einführen.
+3. Deterministischen Snapshot-Export/Import zunächst gegen den In-Memory-Store testen.
+4. Keine MCP-Erweiterung oder automatische Wiederholung laufender Tools einführen.
 
 ## Harte Regeln (nicht verletzen)
 

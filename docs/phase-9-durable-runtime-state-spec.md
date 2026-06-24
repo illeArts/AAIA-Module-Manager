@@ -1,6 +1,6 @@
 # Phase 9 — AIR Durable Runtime State & Crash Recovery: Spezifikation
 
-> Status: fachlich freigegeben; 9.1-Store-/Codec-Checkpoint implementiert
+> Status: fachlich freigegeben; 9.1 State Store abgeschlossen
 > Scope: lokale, geschützte Persistenz des Orchestrierungszustands; kein MCP, keine Cloud
 
 ## 1. Ausgangslage und Ziel
@@ -34,7 +34,7 @@ Phase 9 implementiert ausdrücklich nicht:
 
 | Inkrement | Inhalt | Status |
 |---|---|---|
-| 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | Store/Codec implementiert; Datei-Store offen |
+| 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | abgeschlossen |
 | 9.2 | Durable Tasks und Execution Queue mit Recovery | spezifiziert |
 | 9.3 | Durable Budgets, Reservationshistorie und Idempotenz | spezifiziert |
 | 9.4 | Audit, lokale Diagnose und kontrollierte Wartung | spezifiziert |
@@ -238,6 +238,7 @@ Stabile Reason-Codes:
 - `state_payload_rejected`
 - `state_recovery_required`
 - `state_quota_exceeded`
+- `state_store_disabled`
 
 ## 11. Betriebsgrenzen
 
@@ -362,11 +363,16 @@ Umgesetzt:
 - echte SHA-256-Erzeugung und Fixed-Time-Verifikation über Header und Payload,
 - striktes UTF-8, Record-/Payload-Limits sowie Erkennung von Truncation,
   nachlaufenden Bytes, unbekannten Events und Manipulation,
-- 32 neue 9.1-Tests; vollständige Regression 218/218 grün.
+- lokaler Module-Manager-Datei-Store außerhalb von Projekt-/Git-Verzeichnissen,
+- exklusiver Writer-Lock bei parallelem read-only Diagnosezugriff,
+- atomisches `temp → flush → verify → replace` für Manifest, Snapshot und Kompaktierung,
+- append-only Journal mit Disk-Flush, Crash-Tail-Quarantäne und lückenloser Recovery,
+- explizite Unix-Owner-Rechte; unter Windows usergebundener LocalAppData-Standardpfad,
+- Fault-Injection an Replace- und Journal-Grenzen sowie fail-closed Korruptionsprüfung,
+- 54 neue Phase-9-Tests; vollständige Regression 240/240 grün.
 
 Noch offen:
 
-- Datei-Store, atomischer Replace, OS-Lock und Crash-Injection,
 - Verdrahtung mit Tasks, Scheduler, Ressourcen, Idempotenz und Audit,
 - lokaler Protector, Recovery-Normalisierung, UI und Wartungsaktionen.
 
