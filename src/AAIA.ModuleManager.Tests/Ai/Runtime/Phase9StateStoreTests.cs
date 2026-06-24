@@ -6,7 +6,6 @@ namespace AAIA.ModuleManager.Tests.Ai.Runtime;
 
 public sealed class Phase9StateStoreTests
 {
-    private const string Checksum = "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa";
     private static readonly DateTime Now = new(2026, 6, 24, 6, 0, 0, DateTimeKind.Utc);
 
     [Fact]
@@ -273,23 +272,12 @@ public sealed class Phase9StateStoreTests
             FeatureFlags = flags ?? new Dictionary<string, bool>()
         };
 
-    private static AiRuntimeJournalEntry Entry(long sequence, string operationId, byte[]? payload = null) => new()
-    {
-        Sequence = sequence,
-        OperationId = operationId,
-        EventType = "test.event",
-        OccurredAtUtc = Now,
-        Payload = payload ?? Array.Empty<byte>(),
-        ChecksumSha256 = Checksum
-    };
+    private static AiRuntimeJournalEntry Entry(long sequence, string operationId, byte[]? payload = null)
+        => AiRuntimeStateCodec.CreateJournalEntry(
+            sequence, operationId, "test.event", Now, false, payload ?? Array.Empty<byte>());
 
-    private static AiRuntimeStateSnapshot Snapshot(long sequence, byte[]? payload = null) => new()
-    {
-        Sequence = sequence,
-        CreatedAtUtc = Now,
-        Payload = payload ?? Array.Empty<byte>(),
-        ChecksumSha256 = Checksum
-    };
+    private static AiRuntimeStateSnapshot Snapshot(long sequence, byte[]? payload = null)
+        => AiRuntimeStateCodec.CreateSnapshot(sequence, Now, payload ?? Array.Empty<byte>());
 
     private static async Task<IReadOnlyList<AiRuntimeJournalEntry>> ReadAll(
         IAiRuntimeStateStoreSession session,
