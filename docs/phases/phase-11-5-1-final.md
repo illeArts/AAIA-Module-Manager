@@ -50,7 +50,9 @@ Es wurde kein Produktcode geändert; die bestehende Code-Regression bleibt 295/2
 
 ## 8. Bekannte Grenzen / offene Punkte
 
-- DUKI, BBK, Prompti, Lector, VSI und die ETW-Langform benötigen fachliche Definitionen.
+- DUKI, BBK, Prompti, Lector und VSI sind historisch rekonstruiert; ihre aktuellen
+  Implementierungsstände und teilweise Langformen benötigen Repository-Prüfung.
+- Die ETW-Langform bleibt fachlich offen.
 - Bestehende Texte unter `docs/help/` und `aaia-developer-docs` sind noch nicht inventarisiert.
 - Website-Routen, Suche, Versionierung, PDF und In-App-Ausgabe sind noch nicht implementiert.
 
@@ -82,7 +84,8 @@ Persistenz-, Backup-, Recovery- und Updateanleitungen fehlen noch.
 ## 14. KI-Handoff-Kontext für Claude/Codex/ChatGPT
 
 Dokumentation ist ab sofort verpflichtendes Phasenergebnis. `docs/README.md` ist der Einstieg,
-`docs/glossary/index.md` die Terminologiequelle und
+`docs/glossary/index.md` die Terminologiequelle, `docs/glossary/term-status.md` die Trennung
+von historischer Bedeutung und aktuellem Nachweis und
 `docs/phases/PHASE_FINAL_TEMPLATE.md` die Abschlussregel. Unbestätigte Definitionen nicht
 erraten. Keine Secrets oder privaten Pfade aufnehmen. Der technische nächste Schritt bleibt
 die Phase-10-Mutationstransaktion und Snapshot-Bündelung.

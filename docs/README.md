@@ -29,6 +29,14 @@ Website, PDF, In-App-Hilfe und KI-Handoffs wiederverwendet.
 Eine Phase ist dokumentarisch nicht abgeschlossen, solange ihre Abschlussdatei oder die
 begründete Kennzeichnung „keine externe Dokumentationsauswirkung“ fehlt.
 
+## Dokumentationswahrheit
+
+Begriffe und Komponenten dürfen nur mit nachweisbarem Status beschrieben werden. Historische
+Quellen belegen frühere Bedeutung, aber nicht automatisch eine heutige Implementierung. Die
+verbindlichen Status-, Beleg- und Formulierungsregeln stehen in
+[`DOCUMENTATION_TRUTH_RULE.md`](DOCUMENTATION_TRUTH_RULE.md); historische und offene
+Kernbegriffe werden zusätzlich in [`glossary/term-status.md`](glossary/term-status.md) kontrolliert.
+
 ## Wiederverwendung
 
 - **Website:** `/handbuch` nutzt Benutzertexte, `/docs` Entwickler- und Architekturtexte,

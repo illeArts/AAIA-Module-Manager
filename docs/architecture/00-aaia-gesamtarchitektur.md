@@ -40,3 +40,15 @@ Module Manager, AAIAS und weitere Apps sind Hosts/Nutzer
 
 Die API-, Datenbank- und Deployment-Topologie wird erst nach Abgleich mit den jeweiligen
 Produkt-Repositories als verbindliche Gesamtarchitektur ergänzt.
+
+## Ausstehendes Plattform-Alignment
+
+Ältere AAIA-, AAIAS- und AAIAC-Dokumente entstanden vor den heutigen Trust-, Signatur-,
+Marketplace-, AIR-, MCP-, Handoff- und Release-Funktionen des Module Managers. Sie sind daher
+historische Quellen, aber keine automatisch gültige Zielarchitektur.
+
+Nach Abschluss der laufenden Module-Manager- und Production-Hardening-Arbeiten ist ein eigener
+Architekturabgleich erforderlich. Er muss AAIA, AAIAS und AAIAC gegen die dann freigegebenen
+Contracts, Sicherheitsketten, Rollen, Paketformate und Betriebsanforderungen prüfen und
+Migrationen spezifizieren. „Phase 14 — AAIA/AAIAS/AAIAC Architecture Alignment“ ist dafür ein
+Planungsvorschlag, noch keine formell freigegebene Phase.

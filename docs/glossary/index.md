@@ -1,7 +1,8 @@
 # AAIA-Glossar
 
-> Stand: Foundation. „Definition ausstehend“ bedeutet, dass der Name im Projekt vorkommt,
-> aber Langform oder Produktgrenze in diesem Repository noch nicht verbindlich belegt ist.
+> Stand: Foundation. Status und Beleglage historischer Begriffe stehen in
+> [`term-status.md`](term-status.md). „Definition ausstehend“ bedeutet, dass Langform oder
+> Produktgrenze noch nicht verbindlich belegt ist.
 
 Jeder Eintrag nennt Kurzbeschreibung, Zielgruppe, Beispiel und Querverweise. Technische
 Sicherheitsentscheidungen werden durch das Glossar nicht ersetzt.
@@ -79,41 +80,44 @@ Sicherheitsentscheidungen werden durch das Glossar nicht ersetzt.
 
 ## DUKI
 
-- **Kurzbeschreibung:** Name einer vorgesehenen AAIA-Anwendung bzw. eines AIR-Hosts; verbindliche
-  Langform, Nutzerfunktion und Produktgrenze sind noch zu dokumentieren.
+- **Kurzbeschreibung:** Historische Bezeichnung für den operativen AAIA-Operator für
+  kontrollierte Desktop- und Systemaktionen. Langform und aktueller Produktstatus sind offen.
 - **Relevant für:** Architektur und Produktplanung.
-- **Beispiel:** DUKI kann AIR-Contracts konsumieren, ohne Teil des AIR-Kerns zu werden.
+- **Beispiel:** Historisch führt DUKI freigegebene Aktionen aus, während BBK Wissen liefert.
 - **Siehe auch:** AIR, Host, BBK.
 
 ## BBK
 
-- **Kurzbeschreibung:** Name einer vorgesehenen AAIA-Anwendung bzw. eines AIR-Hosts; verbindliche
-  Langform, Nutzerfunktion und Produktgrenze sind noch zu dokumentieren.
+- **Kurzbeschreibung:** Historische Bezeichnung für den Bibliotheks-/Wissensagenten von AAIA;
+  die Langform und der aktuelle Produktstatus sind offen.
 - **Relevant für:** Architektur und Produktplanung.
-- **Beispiel:** BBK wird in der Plattformarchitektur als möglicher AIR-Nutzer geführt.
+- **Beispiel:** Historische Trennung: BBK liefert Wissen, DUKI führt aus.
 - **Siehe auch:** AIR, Host, DUKI.
 
 ## Prompti
 
-- **Kurzbeschreibung:** AAIA-Produkt-/Komponentenname; Definition, Besitzer und Systemgrenze
-  sind in diesem Repository noch nicht verbindlich belegt.
+- **Kurzbeschreibung:** Historische Kommunikations- und Aufgabenübersetzungsschicht, die nach
+  einer Sicherheitsprüfung Benutzersprache in strukturierte WorkOrders oder Vorschläge überführt.
 - **Relevant für:** Produktplanung und Glossarpflege.
-- **Beispiel:** Vor Veröffentlichung muss Prompti einer Architekturkomponente zugeordnet werden.
+- **Beispiel:** Prompti ist historisch nicht der Gatekeeper, sondern verarbeitet bereits
+  sicherheitsgeprüfte Eingaben.
 - **Siehe auch:** AAIA, Runtime.
 
 ## Lector
 
-- **Kurzbeschreibung:** AAIA-Produkt-/Komponentenname; Definition, Besitzer und Systemgrenze
-  sind in diesem Repository noch nicht verbindlich belegt.
+- **Kurzbeschreibung:** Historische Voice-/Sprachschicht für Mikrofon, Wake Word, STT,
+  Sicherheitsübergabe und TTS/Antwort; aktueller Implementierungsstatus offen.
 - **Relevant für:** Produktplanung und Glossarpflege.
-- **Beispiel:** Öffentliche Hilfetexte dürfen Lector erst nach bestätigter Definition erklären.
+- **Beispiel:** Lector übergibt erkannte Sprache nach der Sicherheitsgrenze an Prompti/AAIA.
 - **Siehe auch:** AAIA, Runtime.
 
 ## VSI
 
-- **Kurzbeschreibung:** AAIA-Abkürzung; Langform, Aufgabe und Systemgrenze sind noch zu bestätigen.
+- **Kurzbeschreibung:** Visual System Intelligence; historische visuelle Analyse-, Layout-,
+  Animations- und Design-Unterstützungsschicht. Aktueller Implementierungsstatus offen.
 - **Relevant für:** Produktplanung und Glossarpflege.
-- **Beispiel:** VSI bleibt bis zur fachlichen Freigabe als offene Definition gekennzeichnet.
+- **Beispiel:** Historische VSI-Texte beschreiben visuelle Prüfung ohne direkte Lösch- oder
+  Shell-Cleanup-Befugnis.
 - **Siehe auch:** AAIA.
 
 ## Marketplace

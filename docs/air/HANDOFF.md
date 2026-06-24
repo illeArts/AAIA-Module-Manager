@@ -6,7 +6,8 @@
 Entwickler-, Admin-, Architektur- und Website-Hilfebereiche und erhält einen Abschlussnachweis
 nach `docs/phases/PHASE_FINAL_TEMPLATE.md`. Phase 11.5 baut daraus das versionierbare
 Dokumentationssystem; die Foundation wird früh vorgezogen, ohne den Phase-10-Runtime-Scope
-oder dessen nächsten Implementierungsschritt zu verändern.
+oder dessen nächsten Implementierungsschritt zu verändern. Historische Begriffe und aktueller
+Implementierungsstatus bleiben nach `docs/DOCUMENTATION_TRUTH_RULE.md` strikt getrennt.
 
 ## Wo wir stehen
 

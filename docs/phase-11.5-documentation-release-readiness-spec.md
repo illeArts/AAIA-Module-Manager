@@ -51,6 +51,7 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 - Zielgruppe, Produktversion und letzter geprüfter Stand müssen erkennbar sein.
 - Veraltete Inhalte werden markiert oder ersetzt, nicht kommentarlos parallel geführt.
 - Begriffe verwenden die Schreibweise des zentralen Glossars.
+- Komponentenstatus und historische Aussagen folgen `DOCUMENTATION_TRUTH_RULE.md`.
 - Website, PDF und In-App-Hilfe müssen auf dieselbe kanonische Quelle zurückführbar sein.
 
 ## 6. Inkremente
@@ -58,7 +59,7 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | Inkrement | Inhalt | Status |
 |---|---|---|
 | 11.5.1 | Struktur, Bereichsindizes, Glossar und Phasenabschluss-Vorlage | umgesetzt |
-| 11.5.2 | Quelleninventar, Besitzer, Versionsmetadaten und Linkprüfung | geplant |
+| 11.5.2 | Quelleninventar, Besitzer, Versionsmetadaten und Linkprüfung | begonnen: historische Begriffskontrolle vorhanden |
 | 11.5.3 | Benutzer-, Entwickler- und Admin-Kernpfade vervollständigen | geplant |
 | 11.5.4 | Website-Routen, Suche und versionierte Veröffentlichung | geplant |
 | 11.5.5 | PDF- und In-App-Ausgabe sowie Release-Conformance | geplant |
