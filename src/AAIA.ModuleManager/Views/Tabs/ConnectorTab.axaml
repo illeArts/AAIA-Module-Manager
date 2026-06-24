@@ -574,6 +574,48 @@
             </Border>
           </Grid>
 
+          <!-- Ausschließlich lokale, bestätigte Admin-Aktionen; kein MCP-Pfad -->
+          <Border Background="#0b1018" Padding="18,12"
+                  BorderBrush="#253044" BorderThickness="0,1,0,0"
+                  IsVisible="{Binding IsAirAdmin}">
+            <StackPanel Spacing="10">
+              <StackPanel Orientation="Horizontal" Spacing="10">
+                <TextBlock Text="LOKALE AIR-ADMIN-AKTIONEN" FontSize="9" FontWeight="SemiBold"
+                           Foreground="#f59e0b" LetterSpacing="1.5" VerticalAlignment="Center"/>
+                <TextBlock Text="Jede Aktion benötigt Begründung und Bestätigung. Nicht über MCP verfügbar."
+                           FontSize="10" Foreground="#64748b" VerticalAlignment="Center"/>
+              </StackPanel>
+
+              <Grid ColumnDefinitions="170,Auto,18,170,Auto,Auto,18,90,120,Auto" RowDefinitions="Auto,Auto">
+                <TextBox Grid.Column="0" Watermark="Execution-ID"
+                         Text="{Binding AirAdminExecutionId}"/>
+                <Button Grid.Column="1" Content="Execution abbrechen" Classes="ghost"
+                        Command="{Binding CancelAirExecutionCommand}"/>
+
+                <TextBox Grid.Column="3" Watermark="Resource-ID"
+                         Text="{Binding AirAdminResourceId}"/>
+                <ToggleSwitch Grid.Column="4" Margin="8,0" Content="Enabled"
+                              IsChecked="{Binding AirAdminResourceEnabled}"/>
+                <Button Grid.Column="5" Content="Status setzen" Classes="ghost"
+                        Command="{Binding SetAirResourceEnabledCommand}"/>
+
+                <TextBox Grid.Column="7" Watermark="Einheit"
+                         Text="{Binding AirBudgetCostUnit}"/>
+                <NumericUpDown Grid.Column="8" Margin="8,0" Minimum="0" Maximum="1000000000"
+                               Value="{Binding AirBudgetHardLimit}" Watermark="24h-Limit"/>
+                <Button Grid.Column="9" Content="Runtime-Budget anlegen" Classes="ghost"
+                        Command="{Binding CreateAirBudgetCommand}"/>
+
+                <TextBox Grid.Row="1" Grid.Column="0" Grid.ColumnSpan="10" Margin="0,8,0,0"
+                         Watermark="Begründung (Pflicht, maximal 500 Zeichen)"
+                         MaxLength="500" Text="{Binding AirAdminReason}"/>
+              </Grid>
+
+              <TextBlock Text="{Binding AirAdminStatus}" FontSize="10" Foreground="#fbbf24"
+                         TextWrapping="Wrap"/>
+            </StackPanel>
+          </Border>
+
           <!-- Letztes Event -->
           <Border Background="#060a10" Padding="24,8"
                   IsVisible="{Binding AirIsRunning}">

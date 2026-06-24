@@ -113,6 +113,89 @@ public sealed class AiRuntimeConnectorPanel
             .ToList();
     }
 
+    // ── Lokale, bestätigte Admin-Aktionen; niemals über MCP aufrufbar ───────
+    public bool TryCancelExecution(
+        string executionId, string actor, string reason, bool isAdministrator, bool confirmed, out string? error)
+    {
+        if (!AuthorizeAdministrativeAction(
+                actor, reason, isAdministrator, confirmed, "air.admin.execution.cancel", out error)) return false;
+        var execution = _composition.Runtime.Scheduler.Get(executionId);
+        if (execution is null)
+            return AuditFailure(actor, "air.admin.execution.cancel", "Execution nicht gefunden.", out error);
+        var success = _composition.Runtime.Scheduler.Cancel(executionId);
+        var detail = $"Execution {executionId}: {reason}";
+        _composition.Runtime.Audit.RecordAdministrative(actor, "air.admin.execution.cancel", success, detail);
+        error = success ? null : "Execution ist bereits abgeschlossen.";
+        return success;
+    }
+
+    public bool TrySetResourceEnabled(
+        string resourceId, bool enabled, string actor, string reason,
+        bool isAdministrator, bool confirmed, out string? error)
+    {
+        if (!AuthorizeAdministrativeAction(
+                actor, reason, isAdministrator, confirmed, "air.admin.resource.enabled", out error)) return false;
+        var success = _composition.Runtime.Resources.Registry.SetEnabled(resourceId, enabled);
+        var detail = $"Resource {resourceId} Enabled={enabled}: {reason}";
+        _composition.Runtime.Audit.RecordAdministrative(actor, "air.admin.resource.enabled", success, detail);
+        error = success ? null : "Ressource nicht gefunden.";
+        return success;
+    }
+
+    public bool TryCreateBudget(
+        AiResourceBudget budget, string actor, string reason,
+        bool isAdministrator, bool confirmed, out string? error)
+    {
+        if (!AuthorizeAdministrativeAction(
+                actor, reason, isAdministrator, confirmed, "air.admin.resource.budget", out error)) return false;
+        try
+        {
+            _composition.Runtime.Resources.SetBudget(budget);
+            _composition.Runtime.Audit.RecordAdministrative(
+                actor, "air.admin.resource.budget", true,
+                $"Budget {budget.Id} Scope={budget.Scope}: {reason}");
+            error = null;
+            return true;
+        }
+        catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
+        {
+            _composition.Runtime.Audit.RecordAdministrative(
+                actor, "air.admin.resource.budget", false, $"Budget abgelehnt: {ex.Message}");
+            error = ex.Message;
+            return false;
+        }
+    }
+
+    private bool AuditFailure(string actor, string action, string message, out string? error)
+    {
+        _composition.Runtime.Audit.RecordAdministrative(actor, action, false, message);
+        error = message;
+        return false;
+    }
+
+    private bool AuthorizeAdministrativeAction(
+        string actor, string reason, bool isAdministrator, bool confirmed, string action, out string? error)
+    {
+        if (!isAdministrator)
+            error = "Lokale Administratorrechte erforderlich.";
+        else if (!confirmed)
+            error = "Aktion wurde nicht bestätigt.";
+        else if (string.IsNullOrWhiteSpace(actor) || string.IsNullOrWhiteSpace(reason) || reason.Length > 500)
+            error = "Akteur und Begründung (maximal 500 Zeichen) sind erforderlich.";
+        else
+        {
+            error = null;
+            return true;
+        }
+
+        _composition.Runtime.Audit.RecordAdministrative(
+            string.IsNullOrWhiteSpace(actor) ? "local-unknown" : actor,
+            action,
+            false,
+            error);
+        return false;
+    }
+
     /// <summary>Direkter Zugriff auf die Runtime (z. B. für erweiterte UI-Panels).</summary>
     public AiRuntimeService Runtime => _composition.Runtime;
 }

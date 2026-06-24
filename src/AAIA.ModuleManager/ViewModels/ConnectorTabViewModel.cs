@@ -18,6 +18,7 @@ using AAIA.ModuleManager.Services.Ai.Integration;
 using AAIA.Air;
 using AAIA.Air.Hosts;
 using AAIA.ModuleManager.Services.Help;
+using AAIA.Shared.Contracts.Publisher;
 
 namespace AAIA.ModuleManager.ViewModels;
 
@@ -92,6 +93,15 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
     [ObservableProperty] private bool   _airAllowCollaboration;
     [ObservableProperty] private bool   _airAllowScheduling;
     [ObservableProperty] private bool   _airAllowResourceRead;
+    [ObservableProperty] private string _airAdminExecutionId = "";
+    [ObservableProperty] private string _airAdminResourceId = "";
+    [ObservableProperty] private bool   _airAdminResourceEnabled = true;
+    [ObservableProperty] private string _airAdminReason = "";
+    [ObservableProperty] private string _airBudgetCostUnit = "EUR";
+    [ObservableProperty] private decimal _airBudgetHardLimit;
+    [ObservableProperty] private string _airAdminStatus = "";
+
+    public bool IsAirAdmin => _config.DeveloperRole is DeveloperRole.Owner or DeveloperRole.Admin;
 
     public ObservableCollection<string> AirSessions { get; } = [];
     public ObservableCollection<string> AirLocks    { get; } = [];
@@ -118,6 +128,9 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
     /// Parameter: proposalId, patchRequest.
     /// </summary>
     public Action<string, AiPatchRequest>? ShowPatchApproval { get; set; }
+
+    /// <summary>Lokaler Bestätigungsdialog für AIR-Admin-Aktionen.</summary>
+    public Func<string, string, Task<bool>>? ConfirmAirAdminAction { get; set; }
 
     // ── Konstruktor ───────────────────────────────────────────────────────────
 
@@ -270,6 +283,70 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         AppendLog("Codex-Config in Zwischenablage kopiert.", ConnectorLogLevel.Info);
     }
 
+    [RelayCommand]
+    private async Task CancelAirExecutionAsync()
+    {
+        if (_airPanel is null) return;
+        if (!ValidateAirAdminInput(AirAdminExecutionId, out var validation))
+        {
+            AirAdminStatus = validation;
+            return;
+        }
+        if (!await ConfirmAirAdminAsync("Execution abbrechen",
+                $"Execution {AirAdminExecutionId} wirklich abbrechen?")) return;
+
+        var success = _airPanel.TryCancelExecution(
+            AirAdminExecutionId.Trim(), AirAdminActor(), AirAdminReason.Trim(),
+            IsAirAdmin, true, out var error);
+        CompleteAirAdminAction(success, error, "Execution wurde abgebrochen.");
+    }
+
+    [RelayCommand]
+    private async Task SetAirResourceEnabledAsync()
+    {
+        if (_airPanel is null) return;
+        if (!ValidateAirAdminInput(AirAdminResourceId, out var validation))
+        {
+            AirAdminStatus = validation;
+            return;
+        }
+        var state = AirAdminResourceEnabled ? "aktivieren" : "deaktivieren";
+        if (!await ConfirmAirAdminAsync("Ressourcenstatus ändern",
+                $"Ressource {AirAdminResourceId} wirklich {state}?")) return;
+
+        var success = _airPanel.TrySetResourceEnabled(
+            AirAdminResourceId.Trim(), AirAdminResourceEnabled, AirAdminActor(), AirAdminReason.Trim(),
+            IsAirAdmin, true, out var error);
+        CompleteAirAdminAction(success, error, $"Ressource wurde {state}.");
+    }
+
+    [RelayCommand]
+    private async Task CreateAirBudgetAsync()
+    {
+        if (_airPanel is null) return;
+        if (!ValidateAirAdminInput(AirBudgetCostUnit, out var validation) || AirBudgetHardLimit < 0)
+        {
+            AirAdminStatus = AirBudgetHardLimit < 0 ? "Budgetlimit darf nicht negativ sein." : validation;
+            return;
+        }
+        if (!await ConfirmAirAdminAsync("Runtime-Budget setzen",
+                $"Neues 24h-Runtime-Budget über {AirBudgetHardLimit} {AirBudgetCostUnit} anlegen?")) return;
+
+        var now = DateTime.UtcNow;
+        var budget = new AiResourceBudget
+        {
+            Scope = AiBudgetScope.Runtime,
+            CostUnit = AirBudgetCostUnit.Trim(),
+            Window = AiBudgetWindow.Day,
+            HardLimit = AirBudgetHardLimit,
+            WindowStartsAtUtc = now,
+            WindowEndsAtUtc = now.AddDays(1)
+        };
+        var success = _airPanel.TryCreateBudget(
+            budget, AirAdminActor(), AirAdminReason.Trim(), IsAirAdmin, true, out var error);
+        CompleteAirAdminAction(success, error, "Runtime-Budget wurde angelegt.");
+    }
+
     private void RefreshAirLists()
     {
         if (_airPanel is null) return;
@@ -303,6 +380,49 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         if (_airPanel is null) return;
         _airPanel.SetPhase8McpAccess(AirAllowCollaboration, AirAllowScheduling, AirAllowResourceRead);
         _ = _config.SaveAsync();
+        RefreshAirLists();
+    }
+
+    private bool ValidateAirAdminInput(string value, out string error)
+    {
+        if (!IsAirAdmin)
+        {
+            error = "Lokale Administratorrechte erforderlich.";
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(value) || string.IsNullOrWhiteSpace(AirAdminReason))
+        {
+            error = "Technische ID/Wert und Begründung sind erforderlich.";
+            return false;
+        }
+        if (AirAdminReason.Length > 500)
+        {
+            error = "Begründung darf maximal 500 Zeichen enthalten.";
+            return false;
+        }
+        error = "";
+        return true;
+    }
+
+    private async Task<bool> ConfirmAirAdminAsync(string title, string message)
+    {
+        if (ConfirmAirAdminAction is null)
+        {
+            AirAdminStatus = "Bestätigungsdialog ist nicht verfügbar.";
+            return false;
+        }
+        var confirmed = await ConfirmAirAdminAction(title, message);
+        if (!confirmed) AirAdminStatus = "Aktion wurde nicht bestätigt.";
+        return confirmed;
+    }
+
+    private string AirAdminActor()
+        => _config.DeveloperDisplayName ?? _config.DeveloperEtwId ?? "local-admin";
+
+    private void CompleteAirAdminAction(bool success, string? error, string successMessage)
+    {
+        AirAdminStatus = success ? successMessage : error ?? "Admin-Aktion fehlgeschlagen.";
+        AppendLog(AirAdminStatus, success ? ConnectorLogLevel.Success : ConnectorLogLevel.Error);
         RefreshAirLists();
     }
 

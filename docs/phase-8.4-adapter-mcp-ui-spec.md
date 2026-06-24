@@ -1,7 +1,6 @@
 # Phase 8.4 — AIR Adapter, MCP und UI: Spezifikation
 
-> Status: fachlich freigegeben; sicherer MCP-/Beobachtungs-Checkpoint implementiert,
-> lokale bestätigte Admin-Aktionen noch offen
+> Status: implementiert; fachliche und technische Abnahme im Implementierungs-PR offen
 > Scope: kontrollierte Freigabe bestehender Phase-8-Funktionen; keine neue Orchestrierungslogik
 
 ## 1. Ziel
@@ -259,10 +258,8 @@ Umgesetzt:
 - redigierte Ressourcenliste und aggregierter Ressourcenstatus,
 - interner, herstellerneutraler Host-Adapter für Profile und Telemetrie,
 - lokale read-only UI-Ansichten und getrennte MCP-Freigabeschalter,
-- 15 neue Adapter-, Isolation-, Idempotenz- und Host-Tests.
-
-Noch offen vor Abschluss von Phase 8.4:
-
-- lokal bestätigte Admin-Aktionen für Execution-Cancel, Resource Enable/Disable und Budgets,
-- die verbleibenden UI-/Parallelitätsfälle aus der Pflicht-Testmatrix,
-- abschließende vollständige Abnahme des Implementierungs-PRs.
+- lokale Owner/Admin-Aktionen für Execution-Cancel, Resource Enable/Disable und
+  Runtime-Budgets mit Pflichtbegründung, Bestätigungsdialog und Audit,
+- 25 neue Adapter-, Isolation-, Idempotenz-, Host- und Admin-Tests; zusammen mit den
+  bestehenden Auth-, Messaging-, Scheduler- und Resource-Tests sind alle 30
+  Pflichtfälle abgedeckt.

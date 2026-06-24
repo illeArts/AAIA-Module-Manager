@@ -46,6 +46,25 @@ public sealed class AiAuditService
         EntryRecorded?.Invoke(entry);
     }
 
+    /// <summary>Auditiert eine ausdrücklich bestätigte lokale Verwaltungsaktion.</summary>
+    public void RecordAdministrative(string actor, string action, bool success, string? detail = null)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(actor);
+        ArgumentException.ThrowIfNullOrWhiteSpace(action);
+        var entry = new AiAuditEntry
+        {
+            ClientIdentity = actor,
+            SessionId = "local-admin",
+            Tool = action,
+            ToolVersion = "8.4.0",
+            Success = success,
+            Detail = Mask(detail)
+        };
+        _entries.Enqueue(entry);
+        while (_entries.Count > MaxEntries && _entries.TryDequeue(out _)) { }
+        EntryRecorded?.Invoke(entry);
+    }
+
     public IReadOnlyList<AiAuditEntry> Recent(int count = 100)
         => _entries.Reverse().Take(count).ToList();
 

@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling und 8.3 Resource Manager sind abgeschlossen. Phase 8.4 ist in Umsetzung: sicherer MCP-/Beobachtungs-Checkpoint implementiert, 176/176 Tests grün. Nächster Schritt: lokal bestätigte Admin-Aktionen und verbleibende Pflicht-Tests abschließen.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling, 8.3 Resource Manager und 8.4 Adapter/MCP/UI sind implementiert. Tests: 186/186 grün. Nächster Schritt: Phase-8.4-Implementierungs-PR technisch abnehmen und mergen.
 
 ## Wo wir stehen
 
@@ -25,9 +25,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Lokale Bestätigung und Admin-Autorisierung für Execution-Cancel implementieren.
-2. Resource Enable/Disable und Budgetänderung ausschließlich lokal, bestätigt und auditiert umsetzen.
-3. Verbleibende UI-/Parallelitätsfälle der 8.4-Pflicht-Testmatrix ergänzen.
+1. Phase-8.4-Implementierungs-PR prüfen und Pflichtcheck abwarten.
+2. PR nach grüner technischer Abnahme mergen.
+3. Danach den nächsten Architekturabschnitt separat spezifizieren.
 4. Keine Resource-Mutationen, Telemetrie oder Reservationssteuerung über MCP freigeben.
 
 ## Harte Regeln (nicht verletzen)

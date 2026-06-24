@@ -163,6 +163,43 @@ public sealed class Phase8AdapterTests
     }
 
     [Fact]
+    public async Task ForeignSession_CannotAcknowledgeMessage()
+    {
+        var composition = Create(new AaiaMcpBridgeOptions { AllowCollaboration = true });
+        var sender = Session(composition, "sender");
+        var receiver = Session(composition, "receiver");
+        var stranger = Session(composition, "stranger");
+        var sent = await Call(composition, sender, "aaia.message.send", new
+        {
+            receiver = receiver.SessionId, idempotencyId = "private-message"
+        });
+
+        var result = await Call(composition, stranger, "aaia.message.acknowledge", new
+        {
+            messageId = sent.Json.RootElement.GetProperty("messageId").GetString()
+        });
+
+        Assert.False(result.Success);
+        Assert.Equal(AiPhase8ErrorCodes.NotFound, result.Json.RootElement.GetProperty("code").GetString());
+    }
+
+    [Fact]
+    public async Task ConcurrentDuplicateMessageRequest_CreatesOneDelivery()
+    {
+        var composition = Create(new AaiaMcpBridgeOptions { AllowCollaboration = true });
+        var sender = Session(composition, "sender");
+        var receiver = Session(composition, "receiver");
+        var input = new { receiver = receiver.SessionId, payload = "once", idempotencyId = "parallel" };
+
+        var calls = await Task.WhenAll(Enumerable.Range(0, 20)
+            .Select(_ => Call(composition, sender, "aaia.message.send", input)));
+        var inbox = await Call(composition, receiver, "aaia.message.inbox", new { });
+
+        Assert.All(calls, call => Assert.True(call.Success));
+        Assert.Single(inbox.Json.RootElement.GetProperty("messages").EnumerateArray());
+    }
+
+    [Fact]
     public async Task ExecutionViewsAndCancellation_AreOwnerIsolated()
     {
         var composition = Create(new AaiaMcpBridgeOptions { AllowScheduling = true });
@@ -205,6 +242,64 @@ public sealed class Phase8AdapterTests
         Assert.Equal(
             first.Json.RootElement.GetProperty("executionId").GetString(),
             second.Json.RootElement.GetProperty("executionId").GetString());
+    }
+
+    [Fact]
+    public async Task ExecutionList_DoesNotExposeForeignEntries()
+    {
+        var composition = Create(new AaiaMcpBridgeOptions { AllowScheduling = true });
+        var owner = Session(composition, "owner");
+        var stranger = Session(composition, "stranger");
+        var task = composition.Runtime.Tasks.Create("Private queue entry");
+        Assert.True((await Call(composition, owner, "aaia.execution.enqueue", new
+        {
+            taskId = task.Id, idempotencyId = "owned-list"
+        })).Success);
+
+        var list = await Call(composition, stranger, "aaia.execution.list", new { });
+
+        Assert.Empty(list.Json.RootElement.GetProperty("executions").EnumerateArray());
+    }
+
+    [Fact]
+    public async Task Enqueue_RejectsUnknownTask()
+    {
+        var composition = Create(new AaiaMcpBridgeOptions { AllowScheduling = true });
+        var session = Session(composition, "scheduler");
+
+        var result = await Call(composition, session, "aaia.execution.enqueue", new
+        {
+            taskId = "missing-task", idempotencyId = "missing"
+        });
+
+        Assert.False(result.Success);
+        Assert.Equal(AiPhase8ErrorCodes.ExecutionRejected,
+            result.Json.RootElement.GetProperty("code").GetString());
+        Assert.Empty(composition.Runtime.Scheduler.List());
+    }
+
+    [Fact]
+    public async Task EnqueuePayload_CannotForceLeaseWorkerOrReservation()
+    {
+        var composition = Create(new AaiaMcpBridgeOptions { AllowScheduling = true });
+        var session = Session(composition, "scheduler");
+        var task = composition.Runtime.Tasks.Create("Safe queue entry");
+
+        var result = await Call(composition, session, "aaia.execution.enqueue", new
+        {
+            taskId = task.Id,
+            idempotencyId = "no-force",
+            sessionId = "attacker-selected-worker",
+            lease = new { sessionId = "attacker-selected-worker" },
+            reservationId = "forced-reservation"
+        });
+        var execution = composition.Runtime.Scheduler.Get(
+            result.Json.RootElement.GetProperty("executionId").GetString()!)!;
+
+        Assert.True(result.Success);
+        Assert.Equal(AiExecutionState.Queued, execution.State);
+        Assert.Null(execution.Lease);
+        Assert.Null(execution.ResourceReservationId);
     }
 
     [Fact]
