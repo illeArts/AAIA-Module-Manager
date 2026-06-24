@@ -2,6 +2,13 @@
 
 **Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 10.1 besitzt jetzt BCL-only Delta-Contracts, eine geschlossene Event-Registry, prüfsummenvalidierten Codec, deterministischen Reducer und ein threadsicheres In-Memory-Referenzjournal. Phase-9-Snapshots bleiben lesbar; der produktive Writer schreibt weiterhin vollständige Checkpoints. Tests: 295/295 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Nächster Schritt: zentrale durable Mutationstransaktion und Snapshot-Bündelung implementieren, dann den produktiven Schreibpfad erst nach grüner Migrations-/Crash-Matrix umschalten.
 
+**Dokumentationsregel ab jetzt:** Jede technische Phase aktualisiert die betroffenen Benutzer-,
+Entwickler-, Admin-, Architektur- und Website-Hilfebereiche und erhält einen Abschlussnachweis
+nach `docs/phases/PHASE_FINAL_TEMPLATE.md`. Phase 11.5 baut daraus das versionierbare
+Dokumentationssystem; die Foundation wird früh vorgezogen, ohne den Phase-10-Runtime-Scope
+oder dessen nächsten Implementierungsschritt zu verändern. Historische Begriffe und aktueller
+Implementierungsstatus bleiben nach `docs/DOCUMENTATION_TRUTH_RULE.md` strikt getrennt.
+
 ## Wo wir stehen
 
 Implementiert und gebaut:
@@ -46,6 +53,8 @@ Implementiert und gebaut:
 - `docs/phase-8.4-adapter-mcp-ui-spec.md` — Spezifikation für Permissions, MCP-Werkzeuge, Adaptergrenzen, UI-Freigaben und 30 Pflicht-Tests.
 - `docs/phase-9-durable-runtime-state-spec.md` — Spezifikation für lokalen State Store, Journal, geschützte Payloads, Crash-Recovery und 40 Pflicht-Tests.
 - `docs/phase-10-production-hardening-spec.md` — Spezifikation für Delta-Journal, native Protectoren, portablen Lifecycle und Betriebsnachweis.
+- `docs/phase-11.5-documentation-release-readiness-spec.md` — Dokumentationssystem, feste Phasenabschlussregel und spätere Website-/PDF-/In-App-Ausgaben.
+- `docs/README.md` — kanonischer Einstieg in Benutzer-, Entwickler-, Admin-, Architektur-, Troubleshooting-, Glossar- und Website-Dokumentation.
 - `scripts/migrate-air-stage1.ps1` — Migrations-Script Stage 1 (mit Sicherheitschecks).
 - `phase-7.0-ai-runtime.md` (Repo-Wurzel `H:\AAIAGitHub\`) — die ursprüngliche, finale Spec (Runtime + MCP-Adapter, Akzeptanzkriterien).
 - Quell-Code: `src/AAIA.Air.Contracts/`, `src/AAIA.Air/`, `src/AAIA.Air.Mcp/` sowie `src/AAIA.ModuleManager/Services/Ai/Integration/`.
