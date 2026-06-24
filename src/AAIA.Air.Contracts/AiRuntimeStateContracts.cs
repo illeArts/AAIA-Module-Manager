@@ -26,12 +26,59 @@ public static class AiRuntimeStateReasonCodes
     public const string Disabled = "state_store_disabled";
     public const string ReadOnly = "state_store_read_only";
     public const string Quarantined = "state_store_quarantined";
+    public const string BackupMissing = "state_backup_missing";
+    public const string RepairNotRequired = "state_repair_not_required";
 }
 
 public enum AiStateStoreOpenMode
 {
     ReadOnly,
     ReadWrite
+}
+
+public enum AiRuntimeRecoveryStatus
+{
+    Disabled,
+    Ready,
+    Recovering,
+    RecoveryRequired,
+    RecoveryFailed,
+    Quarantined
+}
+
+public sealed class AiRuntimeStateDiagnostics
+{
+    public required string StoreId { get; init; }
+    public AiRuntimeRecoveryStatus Status { get; init; }
+    public int? SchemaVersion { get; init; }
+    public long LastSequence { get; init; }
+    public long SnapshotSequence { get; init; }
+    public long StoreSizeBytes { get; init; }
+    public DateTime? LastUpdatedAtUtc { get; init; }
+    public string? ReasonCode { get; init; }
+    public string? RedactedMessage { get; init; }
+}
+
+public sealed class AiStateStoreBackupResult
+{
+    public required string BackupId { get; init; }
+    public DateTime CreatedAtUtc { get; init; }
+    public long ThroughSequence { get; init; }
+}
+
+public sealed class AiStateStoreRepairResult
+{
+    public bool Repaired { get; init; }
+    public required string BackupId { get; init; }
+    public string? ReasonCode { get; init; }
+}
+
+public sealed class AiStateMaintenanceOperationResult
+{
+    public required string Action { get; init; }
+    public bool Success { get; init; }
+    public string? BackupId { get; init; }
+    public string? ReasonCode { get; init; }
 }
 
 public sealed class AiStateStoreException : InvalidOperationException
@@ -137,6 +184,24 @@ public interface IAiRuntimeStateStore
         AiStateStoreOpenMode mode,
         string runtimeInstanceId,
         CancellationToken ct = default);
+}
+
+/// <summary>Optionale Host-Grenze für lokale, explizit autorisierte Wartung.</summary>
+public interface IAiRuntimeStateMaintenanceStore
+{
+    ValueTask<AiRuntimeStateDiagnostics> GetDiagnosticsAsync(CancellationToken ct = default);
+    ValueTask<AiStateStoreBackupResult> CreateBackupAsync(
+        string runtimeInstanceId,
+        CancellationToken ct = default);
+    ValueTask<AiStateStoreRepairResult> RepairAsync(
+        string runtimeInstanceId,
+        string backupId,
+        CancellationToken ct = default);
+}
+
+public interface IAiStateMaintenanceAuthorizer
+{
+    bool IsAuthorized(string actorId, string action, bool confirmed, out string? denialReason);
 }
 
 public interface IAiRuntimeStateStoreSession : IAsyncDisposable

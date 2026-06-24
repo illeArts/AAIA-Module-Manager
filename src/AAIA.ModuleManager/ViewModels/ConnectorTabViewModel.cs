@@ -16,7 +16,9 @@ using AAIA.ModuleManager.Services;
 using AAIA.ModuleManager.Services.AiAdapter.Connector;
 using AAIA.ModuleManager.Services.Ai.Integration;
 using AAIA.Air;
+using AAIA.Air.Contracts;
 using AAIA.Air.Hosts;
+using AAIA.ModuleManager.Services.Ai.Persistence;
 using AAIA.ModuleManager.Services.Help;
 using AAIA.Shared.Contracts.Publisher;
 
@@ -100,6 +102,7 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
     [ObservableProperty] private string _airBudgetCostUnit = "EUR";
     [ObservableProperty] private decimal _airBudgetHardLimit;
     [ObservableProperty] private string _airAdminStatus = "";
+    [ObservableProperty] private string _airStateStatus = "Persistenzdiagnose wird geladen …";
 
     public bool IsAirAdmin => _config.DeveloperRole is DeveloperRole.Owner or DeveloperRole.Admin;
 
@@ -150,6 +153,16 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         // AIR MCP-Bridge initialisieren (deaktiviert bis StartAirAsync)
         HasMcpBridge = true;
         _airPanel    = new AiRuntimeConnectorPanel(config.McpBridge, this);
+        var stateStore = new AiLocalFileRuntimeStateStore(
+            AiLocalFileRuntimeStateStore.GetDefaultRootPath("module-manager"),
+            "module-manager",
+            new AiRuntimePersistenceOptions { Enabled = false });
+        var stateAuthorizer = new LocalStateMaintenanceAuthorizer(() => IsAirAdmin);
+        _airPanel.ConfigureStateMaintenance(
+            stateStore,
+            stateAuthorizer,
+            $"module-manager-{Environment.ProcessId}");
+        _airPanel.ConfigureRecoveryDecisions(stateAuthorizer);
         _airPanel.Log += msg => Dispatcher.UIThread.Post(() => AppendLog($"[AIR] {msg}", ConnectorLogLevel.Info));
         _airPanel.Runtime.Events.EventPublished += e =>
         {
@@ -347,6 +360,102 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         CompleteAirAdminAction(success, error, "Runtime-Budget wurde angelegt.");
     }
 
+    [RelayCommand]
+    private async Task FailAirRecoveryAsync()
+    {
+        if (_airPanel is null) return;
+        if (!ValidateAirAdminInput(AirAdminExecutionId, out var validation))
+        {
+            AirAdminStatus = validation;
+            return;
+        }
+        if (!await ConfirmAirAdminAsync("Recovery abschließen",
+                $"Execution {AirAdminExecutionId} nach Sichtprüfung als fehlgeschlagen abschließen?")) return;
+        try
+        {
+            var success = _airPanel.ResolveRecoveryAsFailed(
+                AirAdminExecutionId.Trim(), AirAdminActor(), AirAdminReason.Trim());
+            CompleteAirAdminAction(success,
+                success ? null : "Execution ist nicht recovery-pflichtig.",
+                "Recovery wurde als fehlgeschlagen abgeschlossen.");
+        }
+        catch (Exception ex) when (ex is AiStateStoreException or InvalidOperationException)
+        {
+            CompleteAirAdminAction(false, ex.Message, "");
+        }
+    }
+
+    [RelayCommand]
+    private async Task RetryAirRecoveryAsync()
+    {
+        if (_airPanel is null) return;
+        if (!ValidateAirAdminInput(AirAdminExecutionId, out var validation))
+        {
+            AirAdminStatus = validation;
+            return;
+        }
+        if (!await ConfirmAirAdminAsync("Recovery-Retry erzeugen",
+                $"Für Execution {AirAdminExecutionId} neue Task-/Execution-IDs erzeugen?")) return;
+        try
+        {
+            var retry = _airPanel.CreateRecoveryRetry(
+                AirAdminExecutionId.Trim(), AirAdminActor(), AirAdminReason.Trim());
+            CompleteAirAdminAction(true, null,
+                $"Recovery-Retry {retry.Request.Id} wurde erzeugt und nicht automatisch gestartet.");
+        }
+        catch (Exception ex) when (ex is AiStateStoreException or InvalidOperationException)
+        {
+            CompleteAirAdminAction(false, ex.Message, "");
+        }
+    }
+
+    [RelayCommand]
+    private async Task BackupAirStateAsync()
+        => await ExecuteAirStateMaintenanceAsync(
+            "State Store sichern", "Lokales AIR-State-Backup erstellen?",
+            (actor, reason) => _airPanel!.BackupStateAsync(actor, reason, true));
+
+    [RelayCommand]
+    private async Task CompactAirStateAsync()
+        => await ExecuteAirStateMaintenanceAsync(
+            "State Store kompaktieren", "Backup erstellen und bestätigtes Journal kompaktieren?",
+            (actor, reason) => _airPanel!.CompactStateAsync(actor, reason, true));
+
+    [RelayCommand]
+    private async Task RepairAirStateAsync()
+        => await ExecuteAirStateMaintenanceAsync(
+            "State Store reparieren", "Unveränderliches Backup erstellen und quarantänisierten Store prüfen/reparieren?",
+            (actor, reason) => _airPanel!.RepairStateAsync(actor, reason, true));
+
+    private async Task ExecuteAirStateMaintenanceAsync(
+        string title,
+        string confirmation,
+        Func<string, string, ValueTask<AiStateMaintenanceOperationResult>> operation)
+    {
+        if (_airPanel is null) return;
+        if (!ValidateAirMaintenanceInput(out var validation))
+        {
+            AirAdminStatus = validation;
+            return;
+        }
+        if (!await ConfirmAirAdminAsync(title, confirmation)) return;
+        try
+        {
+            var result = await operation(AirAdminActor(), AirAdminReason.Trim());
+            AirAdminStatus = result.Success
+                ? $"{title} abgeschlossen. Backup: {result.BackupId ?? "—"}"
+                : $"{title} ohne Änderung: {result.ReasonCode ?? "unbekannt"}";
+        }
+        catch (Exception ex) when (ex is AiStateStoreException or InvalidOperationException or IOException)
+        {
+            AirAdminStatus = $"{title} fehlgeschlagen: {ex.Message}";
+        }
+        AppendLog(AirAdminStatus, AirAdminStatus.Contains("fehlgeschlagen", StringComparison.Ordinal)
+            ? ConnectorLogLevel.Error : ConnectorLogLevel.Info);
+        await RefreshAirStateStatusAsync();
+        RefreshAirLists();
+    }
+
     private void RefreshAirLists()
     {
         if (_airPanel is null) return;
@@ -373,6 +482,20 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
             var resources = _airPanel.Resources();
             AirResources.Clear(); foreach (var resource in resources) AirResources.Add(resource);
         });
+        _ = RefreshAirStateStatusAsync();
+    }
+
+    private async Task RefreshAirStateStatusAsync()
+    {
+        if (_airPanel is null) return;
+        var diagnostics = await _airPanel.StateDiagnosticsAsync();
+        var size = diagnostics.StoreSizeBytes / 1024d;
+        Dispatcher.UIThread.Post(() => AirStateStatus =
+            $"{diagnostics.Status} · Schema {diagnostics.SchemaVersion?.ToString() ?? "—"} · " +
+            $"Sequenz {diagnostics.LastSequence} · Snapshot {diagnostics.SnapshotSequence} · {size:F1} KiB" +
+            (string.IsNullOrWhiteSpace(diagnostics.RedactedMessage)
+                ? ""
+                : $" · {diagnostics.RedactedMessage}"));
     }
 
     private void PersistPhase8McpAccess()
@@ -398,6 +521,22 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         if (AirAdminReason.Length > 500)
         {
             error = "Begründung darf maximal 500 Zeichen enthalten.";
+            return false;
+        }
+        error = "";
+        return true;
+    }
+
+    private bool ValidateAirMaintenanceInput(out string error)
+    {
+        if (!IsAirAdmin)
+        {
+            error = "Lokale Administratorrechte erforderlich.";
+            return false;
+        }
+        if (string.IsNullOrWhiteSpace(AirAdminReason) || AirAdminReason.Length > 500)
+        {
+            error = "Begründung (maximal 500 Zeichen) ist erforderlich.";
             return false;
         }
         error = "";

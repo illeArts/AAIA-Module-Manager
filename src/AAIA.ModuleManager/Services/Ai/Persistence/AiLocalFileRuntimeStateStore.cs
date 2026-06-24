@@ -1,6 +1,7 @@
 using System.Buffers.Binary;
 using System.Runtime.CompilerServices;
 using System.Text.Json;
+using AAIA.Air;
 using AAIA.Air.Contracts;
 using AAIA.Air.Messaging;
 using AAIA.Air.Persistence;
@@ -28,7 +29,7 @@ public interface IAiFileStateStoreFaultInjector
 /// Lokaler Phase-9-State-Store. Er liegt außerhalb von Projektverzeichnissen,
 /// verwendet einen exklusiven Writer-Lock und ersetzt Manifest/Snapshot atomar.
 /// </summary>
-public sealed class AiLocalFileRuntimeStateStore : IAiRuntimeStateStore
+public sealed class AiLocalFileRuntimeStateStore : IAiRuntimeStateStore, IAiRuntimeStateMaintenanceStore
 {
     private static readonly JsonSerializerOptions JsonOptions = new()
     {
@@ -134,6 +135,153 @@ public sealed class AiLocalFileRuntimeStateStore : IAiRuntimeStateStore
         }
     }
 
+    public async ValueTask<AiRuntimeStateDiagnostics> GetDiagnosticsAsync(CancellationToken ct = default)
+    {
+        ct.ThrowIfCancellationRequested();
+        if (!Directory.Exists(_rootPath))
+            return new AiRuntimeStateDiagnostics
+            {
+                StoreId = StoreId,
+                Status = AiRuntimeRecoveryStatus.Disabled,
+                ReasonCode = AiRuntimeStateReasonCodes.Disabled,
+                RedactedMessage = "State Store existiert noch nicht."
+            };
+
+        var quarantinePath = Path.Combine(_rootPath, "quarantine.json");
+        if (File.Exists(quarantinePath))
+        {
+            var record = ReadQuarantineRecord(quarantinePath);
+            return new AiRuntimeStateDiagnostics
+            {
+                StoreId = StoreId,
+                Status = AiRuntimeRecoveryStatus.Quarantined,
+                LastSequence = record?.LastSequence ?? 0,
+                StoreSizeBytes = StoreSizeForDiagnostics(),
+                LastUpdatedAtUtc = record?.QuarantinedAtUtc,
+                ReasonCode = AiRuntimeStateReasonCodes.Quarantined,
+                RedactedMessage = AiAuditService.Redact(record?.Reason ?? "quarantine_record_unreadable")
+            };
+        }
+
+        await using var session = await OpenAsync(AiStateStoreOpenMode.ReadOnly, "diagnostics", ct)
+            .ConfigureAwait(false);
+        var manifest = await session.LoadManifestAsync(ct).ConfigureAwait(false);
+        var snapshot = await session.LoadSnapshotAsync(ct).ConfigureAwait(false);
+        return new AiRuntimeStateDiagnostics
+        {
+            StoreId = StoreId,
+            Status = AiRuntimeRecoveryStatus.Ready,
+            SchemaVersion = manifest?.SchemaVersion ?? snapshot?.SchemaVersion,
+            LastSequence = manifest?.LastSequence ?? snapshot?.Sequence ?? 0,
+            SnapshotSequence = snapshot?.Sequence ?? 0,
+            StoreSizeBytes = StoreSizeForDiagnostics(),
+            LastUpdatedAtUtc = manifest?.UpdatedAtUtc ?? snapshot?.CreatedAtUtc
+        };
+    }
+
+    public ValueTask<AiStateStoreBackupResult> CreateBackupAsync(
+        string runtimeInstanceId,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runtimeInstanceId);
+        ct.ThrowIfCancellationRequested();
+        if (!Directory.Exists(_rootPath))
+            throw new DirectoryNotFoundException("State Store existiert nicht.");
+
+        using var maintenanceLock = AcquireMaintenanceLock();
+        var createdAt = DateTime.UtcNow;
+        var backupId = $"backup-{createdAt:yyyyMMddHHmmss}-{Guid.NewGuid():N}";
+        var backupRoot = Path.Combine(_rootPath, "backups");
+        var target = Path.Combine(backupRoot, backupId);
+        var temp = target + ".tmp";
+        Directory.CreateDirectory(backupRoot);
+        SecureDirectory(backupRoot);
+        Directory.CreateDirectory(temp);
+        SecureDirectory(temp);
+        try
+        {
+            foreach (var name in new[] { "manifest.json", "snapshot.bin", "journal.bin", "quarantine.json" })
+            {
+                var source = Path.Combine(_rootPath, name);
+                if (!File.Exists(source)) continue;
+                var destination = Path.Combine(temp, name);
+                using var input = new FileStream(source, FileMode.Open, FileAccess.Read, FileShare.Read);
+                using var output = new FileStream(destination, FileMode.CreateNew, FileAccess.Write, FileShare.None,
+                    4096, FileOptions.WriteThrough);
+                input.CopyTo(output);
+                output.Flush(flushToDisk: true);
+                SecureFile(destination);
+            }
+            var throughSequence = ReadLastSequenceBestEffort();
+            var metadata = new BackupRecord
+            {
+                BackupId = backupId,
+                CreatedAtUtc = createdAt,
+                ThroughSequence = throughSequence
+            };
+            var metadataPath = Path.Combine(temp, "backup.json");
+            File.WriteAllBytes(metadataPath, JsonSerializer.SerializeToUtf8Bytes(metadata, JsonOptions));
+            SecureFile(metadataPath);
+            Directory.Move(temp, target);
+            return ValueTask.FromResult(new AiStateStoreBackupResult
+            {
+                BackupId = backupId,
+                CreatedAtUtc = createdAt,
+                ThroughSequence = throughSequence
+            });
+        }
+        finally
+        {
+            try { if (Directory.Exists(temp)) Directory.Delete(temp, recursive: true); }
+            catch { /* nächste Wartung kann verwaiste Temp-Verzeichnisse entfernen */ }
+        }
+    }
+
+    public async ValueTask<AiStateStoreRepairResult> RepairAsync(
+        string runtimeInstanceId,
+        string backupId,
+        CancellationToken ct = default)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(runtimeInstanceId);
+        ValidateBackupId(backupId);
+        ct.ThrowIfCancellationRequested();
+        if (!_options.Enabled)
+            throw new AiStateStoreException(AiRuntimeStateReasonCodes.Disabled,
+                "Lokale AIR-Persistenz ist deaktiviert.");
+        var backupPath = Path.Combine(_rootPath, "backups", backupId);
+        if (!Directory.Exists(backupPath) || !File.Exists(Path.Combine(backupPath, "backup.json")))
+            throw new AiStateStoreException(
+                AiRuntimeStateReasonCodes.BackupMissing,
+                "Verpflichtendes Backup wurde nicht gefunden.");
+        var quarantinePath = Path.Combine(_rootPath, "quarantine.json");
+        if (!File.Exists(quarantinePath))
+            return new AiStateStoreRepairResult
+            {
+                Repaired = false,
+                BackupId = backupId,
+                ReasonCode = AiRuntimeStateReasonCodes.RepairNotRequired
+            };
+
+        FileStream? maintenanceLock = AcquireMaintenanceLock();
+        try
+        {
+            await using var session = new Session(
+                _rootPath, StoreId, runtimeInstanceId, AiStateStoreOpenMode.ReadWrite,
+                maintenanceLock, _options, _faults, allowQuarantinedMaintenance: true);
+            maintenanceLock = null;
+            session.CompleteRepair();
+            return new AiStateStoreRepairResult
+            {
+                Repaired = true,
+                BackupId = backupId
+            };
+        }
+        finally
+        {
+            maintenanceLock?.Dispose();
+        }
+    }
+
     private sealed class Session : IAiRuntimeStateStoreSession
     {
         private readonly object _gate = new();
@@ -182,7 +330,8 @@ public sealed class AiLocalFileRuntimeStateStore : IAiRuntimeStateStore
             AiStateStoreOpenMode mode,
             FileStream lockStream,
             AiRuntimePersistenceOptions options,
-            IAiFileStateStoreFaultInjector? faults)
+            IAiFileStateStoreFaultInjector? faults,
+            bool allowQuarantinedMaintenance = false)
         {
             _root = root;
             StoreId = storeId;
@@ -198,13 +347,25 @@ public sealed class AiLocalFileRuntimeStateStore : IAiRuntimeStateStore
 
             if (mode == AiStateStoreOpenMode.ReadWrite)
             {
-                if (File.Exists(_quarantinePath))
+                if (File.Exists(_quarantinePath) && !allowQuarantinedMaintenance)
                     throw new AiStateStoreException(
                         AiRuntimeStateReasonCodes.Quarantined, "State Store ist quarantänisiert.");
                 CleanupStaleTemps();
                 RecoverCrashTail();
             }
             _lastSequence = DetermineLastSequence(allowCrashTail: mode == AiStateStoreOpenMode.ReadOnly);
+        }
+
+        public void CompleteRepair()
+        {
+            lock (_gate)
+            {
+                CheckUsable(CancellationToken.None);
+                if (!File.Exists(_quarantinePath)) return;
+                // Der Konstruktor hat Snapshot, Journal und Sequenzen bereits fail-closed validiert
+                // und ausschließlich einen sicheren Crash-Tail normalisiert.
+                File.Delete(_quarantinePath);
+            }
         }
 
         public ValueTask<AiRuntimeStateManifest?> LoadManifestAsync(CancellationToken ct = default)
@@ -662,6 +823,79 @@ public sealed class AiLocalFileRuntimeStateStore : IAiRuntimeStateStore
             public DateTime QuarantinedAtUtc { get; init; }
             public long LastSequence { get; init; }
         }
+    }
+
+    private FileStream AcquireMaintenanceLock()
+    {
+        Directory.CreateDirectory(_rootPath);
+        SecureDirectory(_rootPath);
+        var lockPath = Path.Combine(_rootPath, "writer.lock");
+        try
+        {
+            var stream = new FileStream(lockPath, FileMode.OpenOrCreate, FileAccess.ReadWrite,
+                FileShare.None, 1, FileOptions.WriteThrough);
+            SecureFile(lockPath);
+            return stream;
+        }
+        catch (IOException ex)
+        {
+            throw new AiStateStoreException(
+                AiRuntimeStateReasonCodes.StoreLocked,
+                "State Store besitzt bereits einen aktiven Zugriff.", ex);
+        }
+    }
+
+    private long StoreSizeForDiagnostics()
+    {
+        if (!Directory.Exists(_rootPath)) return 0;
+        return new[] { "manifest.json", "snapshot.bin", "journal.bin", "quarantine.json" }
+            .Select(name => Path.Combine(_rootPath, name))
+            .Where(File.Exists)
+            .Sum(path => new FileInfo(path).Length);
+    }
+
+    private long ReadLastSequenceBestEffort()
+    {
+        var manifestPath = Path.Combine(_rootPath, "manifest.json");
+        if (!File.Exists(manifestPath)) return 0;
+        try
+        {
+            return JsonSerializer.Deserialize<AiRuntimeStateManifest>(
+                File.ReadAllBytes(manifestPath), JsonOptions)?.LastSequence ?? 0;
+        }
+        catch { return 0; }
+    }
+
+    private static MaintenanceQuarantineRecord? ReadQuarantineRecord(string path)
+    {
+        try
+        {
+            return JsonSerializer.Deserialize<MaintenanceQuarantineRecord>(
+                File.ReadAllBytes(path), JsonOptions);
+        }
+        catch { return null; }
+    }
+
+    private static void ValidateBackupId(string backupId)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(backupId);
+        if (!backupId.StartsWith("backup-", StringComparison.Ordinal) || backupId.Length > 100 ||
+            backupId.Any(character => !(char.IsLetterOrDigit(character) || character == '-')))
+            throw new ArgumentException("Backup-ID ist ungültig.", nameof(backupId));
+    }
+
+    private sealed class BackupRecord
+    {
+        public required string BackupId { get; init; }
+        public DateTime CreatedAtUtc { get; init; }
+        public long ThroughSequence { get; init; }
+    }
+
+    private sealed class MaintenanceQuarantineRecord
+    {
+        public string Reason { get; init; } = "";
+        public DateTime QuarantinedAtUtc { get; init; }
+        public long LastSequence { get; init; }
     }
 
     private static void ValidateStoreId(string storeId)

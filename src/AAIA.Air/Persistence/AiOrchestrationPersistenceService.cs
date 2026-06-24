@@ -19,6 +19,7 @@ public sealed partial class AiOrchestrationPersistenceService
     private const int MaxBudgets = 10_000;
     private const int MaxReservations = 100_000;
     private const int MaxIdempotencyRecords = 10_000;
+    private const int MaxAuditEntries = 50_000;
     private const int MaxMetadataLength = 4_000;
 
     private static readonly JsonSerializerOptions JsonOptions = new()
@@ -31,8 +32,7 @@ public sealed partial class AiOrchestrationPersistenceService
     private readonly AiRuntimeService _runtime;
     private readonly IAiStateProtector _protector;
     private readonly string _storeId;
-    private readonly object _recoveryGate = new();
-    private readonly IAiRecoveryAuthorizer? _recoveryAuthorizer;
+    private readonly AiRecoveryDecisionService _recoveryDecisions;
     private readonly TimeProvider _time;
 
     public AiOrchestrationPersistenceService(
@@ -48,7 +48,7 @@ public sealed partial class AiOrchestrationPersistenceService
             "Task-Payloads benötigen einen State Protector.");
         ArgumentException.ThrowIfNullOrWhiteSpace(storeId);
         _storeId = storeId;
-        _recoveryAuthorizer = recoveryAuthorizer;
+        _recoveryDecisions = new AiRecoveryDecisionService(runtime, recoveryAuthorizer);
         _time = timeProvider ?? TimeProvider.System;
     }
 
@@ -157,9 +157,11 @@ public sealed partial class AiOrchestrationPersistenceService
         foreach (var reservation in resourceState.Reservations) ValidateReservationMetadata(reservation);
         var idempotencyRecords = _runtime.Idempotency.CaptureDurableRecords(createdAtUtc);
         foreach (var record in idempotencyRecords) ValidateIdempotencyMetadata(record);
+        var auditEntries = _runtime.Audit.CaptureDurableEntries(createdAtUtc);
+        foreach (var entry in auditEntries) ValidateAuditMetadata(entry);
         if (resourceState.Budgets.Count > MaxBudgets ||
             resourceState.Reservations.Count > MaxReservations ||
-            idempotencyRecords.Count > MaxIdempotencyRecords)
+            idempotencyRecords.Count > MaxIdempotencyRecords || auditEntries.Count > MaxAuditEntries)
             throw new AiStateStoreException(AiRuntimeStateReasonCodes.QuotaExceeded,
                 "Durabler Ressourcen- oder Idempotenzzustand überschreitet die Objektgrenze.");
 
@@ -170,7 +172,8 @@ public sealed partial class AiOrchestrationPersistenceService
             Executions = durableExecutions,
             Budgets = resourceState.Budgets,
             Reservations = resourceState.Reservations,
-            IdempotencyRecords = idempotencyRecords
+            IdempotencyRecords = idempotencyRecords,
+            AuditEntries = auditEntries
         }, JsonOptions);
         return AiRuntimeStateCodec.CreateSnapshot(
             sequence, createdAtUtc, payload,
@@ -186,7 +189,7 @@ public sealed partial class AiOrchestrationPersistenceService
         AiRuntimeStateCodec.VerifySnapshot(stateSnapshot, maxPayloadBytes);
         if (_runtime.Tasks.Count != 0 || _runtime.Scheduler.List().Count != 0 ||
             _runtime.Resources.ListBudgets().Count != 0 || _runtime.Resources.ListReservations().Count != 0 ||
-            _runtime.Idempotency.Count != 0)
+            _runtime.Idempotency.Count != 0 || _runtime.Audit.Count != 0)
             throw new InvalidOperationException("Restore benötigt eine leere Runtime.");
 
         AiDurableOrchestrationSnapshot durable;
@@ -279,6 +282,7 @@ public sealed partial class AiOrchestrationPersistenceService
         foreach (var budget in durable.Budgets) ValidateBudgetMetadata(budget);
         foreach (var reservation in durable.Reservations) ValidateReservationMetadata(reservation);
         foreach (var record in durable.IdempotencyRecords) ValidateIdempotencyMetadata(record);
+        foreach (var entry in durable.AuditEntries) ValidateAuditMetadata(entry);
 
         // Eine laufende Execution macht auch den zugehörigen Task recovery-pflichtig.
         foreach (var execution in durable.Executions.Where(execution =>
@@ -301,6 +305,7 @@ public sealed partial class AiOrchestrationPersistenceService
             var executionReport = _runtime.Scheduler.RestoreDurableExecutions(durable.Executions);
             int releasedReservations;
             int idempotencyCount;
+            int auditCount;
             try
             {
                 var recoveredAtUtc = _time.GetUtcNow().UtcDateTime;
@@ -308,6 +313,7 @@ public sealed partial class AiOrchestrationPersistenceService
                     durable.Budgets, durable.Reservations, recoveredAtUtc);
                 idempotencyCount = _runtime.Idempotency.RestoreDurableRecords(
                     durable.IdempotencyRecords, recoveredAtUtc);
+                auditCount = _runtime.Audit.RestoreDurableEntries(durable.AuditEntries, recoveredAtUtc);
             }
             catch (Exception ex) when (ex is ArgumentException or InvalidOperationException)
             {
@@ -335,12 +341,14 @@ public sealed partial class AiOrchestrationPersistenceService
                 BudgetCount = durable.Budgets.Count,
                 ReservationCount = durable.Reservations.Count,
                 RecoveryReleasedReservations = releasedReservations,
-                IdempotencyRecordCount = idempotencyCount
+                IdempotencyRecordCount = idempotencyCount,
+                AuditEntryCount = auditCount
             };
         }
         catch
         {
             _runtime.Idempotency.ClearDurableRestore();
+            _runtime.Audit.ClearDurableRestore();
             _runtime.Resources.ClearDurableRestore();
             _runtime.Scheduler.ClearDurableRestore();
             _runtime.Tasks.ClearDurableRestore();
@@ -350,82 +358,11 @@ public sealed partial class AiOrchestrationPersistenceService
 
     /// <summary>Core-Primitive; Autorisierung/Bestätigung bleibt Aufgabe der lokalen UI.</summary>
     public bool ResolveRecoveryRequiredAsFailed(string executionId, string actorId, string reason)
-    {
-        ArgumentException.ThrowIfNullOrWhiteSpace(reason);
-        AuthorizeRecovery(actorId, "fail");
-        EnsureSafeMetadata(reason, nameof(reason));
-        lock (_recoveryGate)
-        {
-            var execution = _runtime.Scheduler.Get(executionId);
-            if (execution is null || execution.State != AiExecutionState.RecoveryRequired) return false;
-            if (_runtime.Tasks.Get(execution.Request.TaskId)?.Status != AiTaskStatus.RecoveryRequired) return false;
-            if (!_runtime.Tasks.FailRecoveryRequired(execution.Request.TaskId, reason)) return false;
-            if (!_runtime.Scheduler.FailRecoveryRequired(executionId, reason)) return false;
-            PublishResolved(executionId, execution.Request.TaskId, "failed", actorId: actorId);
-            return true;
-        }
-    }
+        => _recoveryDecisions.ResolveAsFailed(executionId, actorId, reason);
 
     /// <summary>Erzeugt neue IDs; die alte Execution wird als fehlgeschlagen abgeschlossen.</summary>
     public AiExecutionSnapshot CreateRecoveryRetry(string executionId, string actorId)
-    {
-        AuthorizeRecovery(actorId, "retry");
-        lock (_recoveryGate)
-        {
-            var source = _runtime.Scheduler.Get(executionId)
-                ?? throw new InvalidOperationException("Execution nicht gefunden.");
-            if (source.State != AiExecutionState.RecoveryRequired ||
-                _runtime.Tasks.Get(source.Request.TaskId)?.Status != AiTaskStatus.RecoveryRequired)
-                throw new InvalidOperationException("Execution ist nicht recovery-pflichtig.");
-
-            var retryTask = _runtime.Tasks.CreateRecoveryRetry(source.Request.TaskId);
-            AiExecutionSnapshot? retry = null;
-            try
-            {
-                retry = _runtime.Scheduler.Enqueue(
-                    retryTask.Id,
-                    source.Request.Priority,
-                    source.Request.RequiredRole,
-                    source.Request.RequiredCapabilities,
-                    notBeforeUtc: null,
-                    maxAttempts: source.Request.MaxAttempts,
-                    resourceRequirements: Clone(source.Request.ResourceRequirements),
-                    submittedBySessionId: null,
-                    submittedByClientId: source.Request.SubmittedByClientId);
-                const string reason = "runtime_recovery_retry_created";
-                if (!_runtime.Tasks.FailRecoveryRequired(source.Request.TaskId, reason) ||
-                    !_runtime.Scheduler.FailRecoveryRequired(executionId, reason))
-                    throw new InvalidOperationException("Recovery-Ausgangszustand hat sich geändert.");
-            }
-            catch
-            {
-                if (retry is not null) _runtime.Scheduler.RemoveDurableRetry(retry.Request.Id);
-                _runtime.Tasks.RemoveDurableRetry(retryTask.Id);
-                throw;
-            }
-            PublishResolved(executionId, source.Request.TaskId, "retry", retry!.Request.Id, actorId);
-            return retry;
-        }
-    }
-
-    private void PublishResolved(
-        string executionId,
-        string taskId,
-        string resolution,
-        string? retryId = null,
-        string? actorId = null)
-        => _runtime.Events.Publish(new AiRuntimeEvent
-        {
-            Type = AiRuntimeEventType.ExecutionRecoveryResolved,
-            Message = executionId,
-            Data = new Dictionary<string, object?>
-            {
-                ["taskId"] = taskId,
-                ["resolution"] = resolution,
-                ["retryExecutionId"] = retryId,
-                ["actorId"] = actorId
-            }
-        });
+        => _recoveryDecisions.CreateRetry(executionId, actorId);
 
     private void ValidateRoot(AiDurableOrchestrationSnapshot snapshot)
     {
@@ -434,10 +371,10 @@ public sealed partial class AiOrchestrationPersistenceService
                 "Orchestrierungs-Schema wird nicht unterstützt.");
         EnsureUtc(snapshot.CreatedAtUtc, "Snapshot.CreatedAtUtc");
         if (snapshot.Tasks is null || snapshot.Executions is null || snapshot.Budgets is null ||
-            snapshot.Reservations is null || snapshot.IdempotencyRecords is null ||
+            snapshot.Reservations is null || snapshot.IdempotencyRecords is null || snapshot.AuditEntries is null ||
             snapshot.Tasks.Count > MaxTasks || snapshot.Executions.Count > MaxExecutions ||
             snapshot.Budgets.Count > MaxBudgets || snapshot.Reservations.Count > MaxReservations ||
-            snapshot.IdempotencyRecords.Count > MaxIdempotencyRecords)
+            snapshot.IdempotencyRecords.Count > MaxIdempotencyRecords || snapshot.AuditEntries.Count > MaxAuditEntries)
             throw new AiStateStoreException(AiRuntimeStateReasonCodes.QuotaExceeded,
                 "Orchestrierungs-Snapshot überschreitet die Objektgrenze.");
     }
@@ -606,18 +543,26 @@ public sealed partial class AiOrchestrationPersistenceService
         EnsureUtc(record.ExpiresAtUtc, "Idempotency.ExpiresAtUtc");
     }
 
-    private void AuthorizeRecovery(string actorId, string action)
+    private static void ValidateAuditMetadata(AiDurableAuditEntry entry)
     {
-        ArgumentException.ThrowIfNullOrWhiteSpace(actorId);
-        EnsureSafeMetadata(actorId, nameof(actorId));
-        string? denialReason = null;
-        if (_recoveryAuthorizer is null ||
-            !_recoveryAuthorizer.IsAuthorized(actorId, action, out denialReason))
-            throw new AiStateStoreException(
-                AiRuntimeStateReasonCodes.RecoveryForbidden,
-                string.IsNullOrWhiteSpace(denialReason)
-                    ? "Recovery-Entscheidung ist nicht autorisiert."
-                    : denialReason);
+        if (entry is null) throw Corrupt("Audit-Eintrag fehlt.");
+        EnsureUtc(entry.TimestampUtc, "Audit.TimestampUtc");
+        ValidateRedacted(entry.Actor, "Audit.Actor");
+        ValidateRedacted(entry.Action, "Audit.Action");
+        ValidateRedacted(entry.Version, "Audit.Version");
+        ValidateRedacted(entry.Project, "Audit.Project");
+        ValidateRedacted(entry.Detail, "Audit.Detail");
+    }
+
+    private static void ValidateRedacted(string? value, string field)
+    {
+        if (value is null) return;
+        if (value.Length > MaxMetadataLength)
+            throw new AiStateStoreException(AiRuntimeStateReasonCodes.QuotaExceeded,
+                $"Metadatenfeld '{field}' überschreitet das Limit.");
+        if (!string.Equals(AiAuditService.Redact(value), value, StringComparison.Ordinal))
+            throw new AiStateStoreException(AiRuntimeStateReasonCodes.PayloadRejected,
+                $"Auditfeld '{field}' ist nicht redigiert.");
     }
 
     private static DateTime EnsureUtc(DateTime value, string field)
