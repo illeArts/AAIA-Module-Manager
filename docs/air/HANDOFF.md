@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 9 besitzt State Store, Crash-Recovery für Tasks/Executions/Ressourcen/Idempotenz, redigiertes Audit, Diagnose/Wartung, Windows-DPAPI-Protector sowie einen Single-Writer-Startup-Koordinator mit Journal-Flush-Gate vor MCP-Start und erfolgreicher Mutationsbestätigung. Tests: 280/280 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Windows ist produktiv unterstützt, macOS/Linux bleiben ohne nativen Keychain-Protector fail-closed. Nächster Schritt: Post-Phase-9-Roadmap fachlich festlegen, bevor weitere Runtime-Funktionen gebaut werden.
+**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 9 besitzt State Store, Crash-Recovery für Tasks/Executions/Ressourcen/Idempotenz, redigiertes Audit, Diagnose/Wartung, Windows-DPAPI-Protector sowie einen Single-Writer-Startup-Koordinator mit Journal-Flush-Gate vor MCP-Start und erfolgreicher Mutationsbestätigung. Tests: 280/280 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Phase 10 „Production Hardening & Portable Hosting“ ist fachlich spezifiziert, aber nicht implementiert. Nächster Schritt: Phase 10.1 Typisiertes Delta-Journal und gebündelte Snapshots implementieren.
 
 ## Wo wir stehen
 
@@ -25,9 +25,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase-9-Checkpoint fachlich abnehmen und auf Windows opt-in testen.
-2. Entscheiden, ob als Nächstes native Keychain-Protectoren für macOS/Linux oder ein neuer Phase-10-Scope priorisiert werden.
-3. Keine weiteren Runtime-Funktionen ohne neue freigegebene Spezifikation beginnen.
+1. Phase 10.1 mit BCL-only Delta-Contracts und einer geschlossenen Event-Registry beginnen.
+2. Zentrale durable Mutation-Transaktion und exakt-einmal Replay zuerst gegen den In-Memory-Store testen.
+3. Phase-9-Checkpoint lesbar halten; noch keine neuen Events produktiv schreiben, bevor Migrationstests grün sind.
+4. Keine neuen MCP-Tools, Permissions oder Orchestrierungsfunktionen einführen.
 
 ## Harte Regeln (nicht verletzen)
 
@@ -44,6 +45,7 @@ Implementiert und gebaut:
 - `docs/phase-8.3-resource-manager-spec.md` — implementierte Spezifikation für Ressourcenprofile, Kapazität, Budget, Last, Auswahlgrenzen und Pflicht-Tests.
 - `docs/phase-8.4-adapter-mcp-ui-spec.md` — Spezifikation für Permissions, MCP-Werkzeuge, Adaptergrenzen, UI-Freigaben und 30 Pflicht-Tests.
 - `docs/phase-9-durable-runtime-state-spec.md` — Spezifikation für lokalen State Store, Journal, geschützte Payloads, Crash-Recovery und 40 Pflicht-Tests.
+- `docs/phase-10-production-hardening-spec.md` — Spezifikation für Delta-Journal, native Protectoren, portablen Lifecycle und Betriebsnachweis.
 - `scripts/migrate-air-stage1.ps1` — Migrations-Script Stage 1 (mit Sicherheitschecks).
 - `phase-7.0-ai-runtime.md` (Repo-Wurzel `H:\AAIAGitHub\`) — die ursprüngliche, finale Spec (Runtime + MCP-Adapter, Akzeptanzkriterien).
 - Quell-Code: `src/AAIA.Air.Contracts/`, `src/AAIA.Air/`, `src/AAIA.Air.Mcp/` sowie `src/AAIA.ModuleManager/Services/Ai/Integration/`.
