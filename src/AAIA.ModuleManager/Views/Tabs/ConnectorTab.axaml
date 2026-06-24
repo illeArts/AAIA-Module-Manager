@@ -416,6 +416,26 @@
             </Grid>
           </Border>
 
+          <!-- Phase-8-Freigaben: unabhängig und standardmäßig AUS -->
+          <Border Background="#0a111c" Padding="24,10"
+                  BorderBrush="#1e2a3a" BorderThickness="0,0,0,1">
+            <StackPanel Orientation="Horizontal" Spacing="22">
+              <TextBlock Text="MCP-FREIGABEN" FontSize="9" FontWeight="SemiBold"
+                         Foreground="#4a5a6a" LetterSpacing="1.5" VerticalAlignment="Center"/>
+              <ToggleSwitch Content="Collaboration"
+                            IsChecked="{Binding AirAllowCollaboration}"
+                            ToolTip.Tip="Nachrichten senden und bestätigen; standardmäßig aus"/>
+              <ToggleSwitch Content="Scheduling"
+                            IsChecked="{Binding AirAllowScheduling}"
+                            ToolTip.Tip="Eigene Executions einreihen und abbrechen; standardmäßig aus"/>
+              <ToggleSwitch Content="Resource Read"
+                            IsChecked="{Binding AirAllowResourceRead}"
+                            ToolTip.Tip="Nur redigierte Ressourcenansicht; keine Mutationen"/>
+              <TextBlock Text="Ressourcenverwaltung bleibt lokal und ist nie über MCP verfügbar."
+                         FontSize="10" Foreground="#64748b" VerticalAlignment="Center"/>
+            </StackPanel>
+          </Border>
+
           <!-- Statuslisten (4 Spalten) -->
           <Grid ColumnDefinitions="*,*,*,*" Background="#080d14" MinHeight="100" MaxHeight="220">
 
@@ -501,6 +521,57 @@
               </ScrollViewer>
             </Grid>
 
+          </Grid>
+
+          <!-- Phase-8-Beobachtung (lokale Fassade, kein MCP-Loopback) -->
+          <Grid ColumnDefinitions="*,*,*" Background="#070c13" MinHeight="90" MaxHeight="190">
+            <Border Grid.Column="0" BorderBrush="#1e2a3a" BorderThickness="0,1,1,0">
+              <Grid RowDefinitions="Auto,*">
+                <Border Background="#0e1520" Padding="10,6">
+                  <TextBlock Text="MESSAGING" FontSize="9" FontWeight="SemiBold"
+                             Foreground="#4a5a6a" LetterSpacing="1.5"/>
+                </Border>
+                <ScrollViewer Grid.Row="1" Padding="10,6">
+                  <ItemsControl ItemsSource="{Binding AirMessages}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate><TextBlock Text="{Binding}" FontSize="10" Foreground="#a78bfa" TextWrapping="Wrap" Margin="0,2"/></DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+            </Border>
+
+            <Border Grid.Column="1" BorderBrush="#1e2a3a" BorderThickness="0,1,1,0">
+              <Grid RowDefinitions="Auto,*">
+                <Border Background="#0e1520" Padding="10,6">
+                  <TextBlock Text="EXECUTION QUEUE" FontSize="9" FontWeight="SemiBold"
+                             Foreground="#4a5a6a" LetterSpacing="1.5"/>
+                </Border>
+                <ScrollViewer Grid.Row="1" Padding="10,6">
+                  <ItemsControl ItemsSource="{Binding AirExecutions}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate><TextBlock Text="{Binding}" FontSize="10" Foreground="#38bdf8" TextWrapping="Wrap" Margin="0,2"/></DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+            </Border>
+
+            <Border Grid.Column="2" BorderBrush="#1e2a3a" BorderThickness="0,1,0,0">
+              <Grid RowDefinitions="Auto,*">
+                <Border Background="#0e1520" Padding="10,6">
+                  <TextBlock Text="RESOURCES" FontSize="9" FontWeight="SemiBold"
+                             Foreground="#4a5a6a" LetterSpacing="1.5"/>
+                </Border>
+                <ScrollViewer Grid.Row="1" Padding="10,6">
+                  <ItemsControl ItemsSource="{Binding AirResources}">
+                    <ItemsControl.ItemTemplate>
+                      <DataTemplate><TextBlock Text="{Binding}" FontSize="10" Foreground="#34d399" TextWrapping="Wrap" Margin="0,2"/></DataTemplate>
+                    </ItemsControl.ItemTemplate>
+                  </ItemsControl>
+                </ScrollViewer>
+              </Grid>
+            </Border>
           </Grid>
 
           <!-- Letztes Event -->

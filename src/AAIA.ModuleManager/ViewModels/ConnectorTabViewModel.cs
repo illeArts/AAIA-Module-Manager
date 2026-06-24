@@ -89,17 +89,27 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
     [ObservableProperty] private string _airUrl        = "";
     [ObservableProperty] private string _airLastEvent  = "";
     [ObservableProperty] private bool   _hasMcpBridge  = false;
+    [ObservableProperty] private bool   _airAllowCollaboration;
+    [ObservableProperty] private bool   _airAllowScheduling;
+    [ObservableProperty] private bool   _airAllowResourceRead;
 
     public ObservableCollection<string> AirSessions { get; } = [];
     public ObservableCollection<string> AirLocks    { get; } = [];
     public ObservableCollection<string> AirTools    { get; } = [];
     public ObservableCollection<string> AirAudit    { get; } = [];
+    public ObservableCollection<string> AirMessages { get; } = [];
+    public ObservableCollection<string> AirExecutions { get; } = [];
+    public ObservableCollection<string> AirResources { get; } = [];
 
     partial void OnAirIsRunningChanged(bool value)
     {
         StartAirCommand.NotifyCanExecuteChanged();
         StopAirCommand.NotifyCanExecuteChanged();
     }
+
+    partial void OnAirAllowCollaborationChanged(bool value) => PersistPhase8McpAccess();
+    partial void OnAirAllowSchedulingChanged(bool value) => PersistPhase8McpAccess();
+    partial void OnAirAllowResourceReadChanged(bool value) => PersistPhase8McpAccess();
 
     // ── Patch-Approval-Callback ───────────────────────────────────────────────
 
@@ -116,6 +126,9 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
         _config               = config;
         _aaias                = aaias;
         _allowPatchProposals  = config.AiConnector.AllowPatchProposals;
+        _airAllowCollaboration = config.McpBridge.AllowCollaboration;
+        _airAllowScheduling = config.McpBridge.AllowScheduling;
+        _airAllowResourceRead = config.McpBridge.AllowResourceRead;
 
         _server = new AiConnectorServer(config);
         _server.ConnectorConnected    += OnConnectorConnected;
@@ -273,7 +286,24 @@ public sealed partial class ConnectorTabViewModel : ObservableObject, IModuleMan
 
             var audit = _airPanel.RecentAudit(20);
             AirAudit.Clear(); foreach (var a in audit) AirAudit.Add(a);
+
+            var messages = _airPanel.MessageInboxes();
+            AirMessages.Clear(); foreach (var message in messages) AirMessages.Add(message);
+
+            var executions = _airPanel.Executions();
+            AirExecutions.Clear(); foreach (var execution in executions) AirExecutions.Add(execution);
+
+            var resources = _airPanel.Resources();
+            AirResources.Clear(); foreach (var resource in resources) AirResources.Add(resource);
         });
+    }
+
+    private void PersistPhase8McpAccess()
+    {
+        if (_airPanel is null) return;
+        _airPanel.SetPhase8McpAccess(AirAllowCollaboration, AirAllowScheduling, AirAllowResourceRead);
+        _ = _config.SaveAsync();
+        RefreshAirLists();
     }
 
     private static void CopyToClipboard(string text)

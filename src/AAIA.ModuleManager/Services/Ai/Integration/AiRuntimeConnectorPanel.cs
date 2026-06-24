@@ -44,6 +44,19 @@ public sealed class AiRuntimeConnectorPanel
     public string ClaudeDesktopConfig() => _composition.Config.ClaudeDesktopJson();
     public string CodexConfig()         => _composition.Config.CodexToml();
 
+    // ── Explizite Phase-8-MCP-Freigaben (Default AUS) ──────────────────────
+    public bool AllowCollaboration => _composition.Options.AllowCollaboration;
+    public bool AllowScheduling    => _composition.Options.AllowScheduling;
+    public bool AllowResourceRead  => _composition.Options.AllowResourceRead;
+
+    public void SetPhase8McpAccess(bool collaboration, bool scheduling, bool resourceRead)
+    {
+        _composition.Options.AllowCollaboration = collaboration;
+        _composition.Options.AllowScheduling = scheduling;
+        _composition.Options.AllowResourceRead = resourceRead;
+        _composition.Adapter.ApplyPhase8OptionsToActiveSessions();
+    }
+
     // ── Statusanzeigen für die UI ────────────────────────────────────────────
     public IReadOnlyList<string> ActiveSessions()
         => _composition.Runtime.Sessions.Active
@@ -62,6 +75,43 @@ public sealed class AiRuntimeConnectorPanel
         => _composition.Runtime.Audit.Recent(n)
             .Select(a => $"{a.TimestampUtc:HH:mm:ss} {a.ClientIdentity} {a.Tool} → {(a.Success ? "ok" : "FAIL")}")
             .ToList();
+
+    public IReadOnlyList<string> MessageInboxes()
+        => _composition.Runtime.Sessions.Active
+            .Select(session =>
+            {
+                _composition.Runtime.Messages.TryReadInbox(session.SessionId, false, out var all);
+                var unread = all.Count(message => !message.IsAcknowledged);
+                return $"{session.ClientName} · {unread} ungelesen / {all.Count} gesamt";
+            })
+            .Take(100)
+            .ToList();
+
+    public IReadOnlyList<string> Executions()
+        => _composition.Runtime.Scheduler.List()
+            .TakeLast(100)
+            .Select(item => $"{item.Request.Id} · {item.State} · Task {item.Request.TaskId} · {item.Request.Priority}")
+            .ToList();
+
+    public IReadOnlyList<string> Resources()
+    {
+        try { _composition.RefreshResourceHost(); }
+        catch (Exception ex) { Log?.Invoke($"Resource-Host konnte nicht aktualisiert werden: {ex.Message}"); }
+
+        var active = _composition.Runtime.Resources.ListReservations()
+            .Where(item => item.State == AiReservationState.Reserved)
+            .GroupBy(item => item.ResourceId)
+            .ToDictionary(group => group.Key, group => group.Count(), StringComparer.Ordinal);
+        return _composition.Runtime.Resources.Registry.ListProfiles()
+            .Take(100)
+            .Select(profile =>
+            {
+                var telemetry = _composition.Runtime.Resources.Registry.GetTelemetry(profile.ResourceId);
+                var health = telemetry is null ? "ohne Telemetrie" : telemetry.Healthy && !telemetry.Throttled ? "gesund" : "eingeschränkt";
+                return $"{profile.ResourceId} · {profile.Kind} · {health} · {active.GetValueOrDefault(profile.ResourceId)} reserviert";
+            })
+            .ToList();
+    }
 
     /// <summary>Direkter Zugriff auf die Runtime (z. B. für erweiterte UI-Panels).</summary>
     public AiRuntimeService Runtime => _composition.Runtime;
