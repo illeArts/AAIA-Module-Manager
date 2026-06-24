@@ -15,7 +15,9 @@ public static class AiRuntimeStateReasonCodes
     public const string SchemaUnsupported = "state_schema_unsupported";
     public const string SnapshotCorrupt = "state_snapshot_corrupt";
     public const string JournalGap = "state_journal_gap";
+    public const string JournalCorrupt = "state_journal_corrupt";
     public const string JournalChecksumFailed = "state_journal_checksum_failed";
+    public const string JournalEventUnknown = "state_journal_event_unknown";
     public const string ProtectorUnavailable = "state_protector_unavailable";
     public const string PayloadRejected = "state_payload_rejected";
     public const string RecoveryRequired = "state_recovery_required";
@@ -38,6 +40,14 @@ public sealed class AiStateStoreException : InvalidOperationException
         : base(message)
     {
         ArgumentException.ThrowIfNullOrWhiteSpace(reasonCode);
+        ReasonCode = reasonCode;
+    }
+
+    public AiStateStoreException(string reasonCode, string message, Exception innerException)
+        : base(message, innerException)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reasonCode);
+        ArgumentNullException.ThrowIfNull(innerException);
         ReasonCode = reasonCode;
     }
 }

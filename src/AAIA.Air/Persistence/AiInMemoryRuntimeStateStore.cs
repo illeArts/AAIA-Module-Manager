@@ -170,6 +170,7 @@ public sealed class AiInMemoryRuntimeStateStore : IAiRuntimeStateStore
             ValidateUtc(snapshot.CreatedAtUtc, nameof(snapshot.CreatedAtUtc));
             ValidatePayload(snapshot.Payload, nameof(snapshot));
             ValidateChecksum(snapshot.ChecksumSha256, nameof(snapshot));
+            AiRuntimeStateCodec.VerifySnapshot(snapshot);
 
             lock (_backend.Gate)
             {
@@ -216,6 +217,7 @@ public sealed class AiInMemoryRuntimeStateStore : IAiRuntimeStateStore
             ValidateUtc(entry.OccurredAtUtc, nameof(entry.OccurredAtUtc));
             ValidatePayload(entry.Payload, nameof(entry));
             ValidateChecksum(entry.ChecksumSha256, nameof(entry));
+            AiRuntimeStateCodec.VerifyJournalEntry(entry);
 
             lock (_backend.Gate)
             {
