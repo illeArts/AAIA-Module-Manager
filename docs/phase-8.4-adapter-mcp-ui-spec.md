@@ -1,6 +1,6 @@
 # Phase 8.4 — AIR Adapter, MCP und UI: Spezifikation
 
-> Status: implementiert; fachliche und technische Abnahme im Implementierungs-PR offen
+> Status: implementiert und über PR #10 gemergt
 > Scope: kontrollierte Freigabe bestehender Phase-8-Funktionen; keine neue Orchestrierungslogik
 
 ## 1. Ziel

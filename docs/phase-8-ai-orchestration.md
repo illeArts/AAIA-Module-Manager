@@ -13,7 +13,7 @@ und Ressourcenwahl dürfen sie weder ersetzen noch umgehen.
 | 8.1 | Sessiongebundener Messaging-Bus | abgeschlossen |
 | 8.2 | Execution Queue und Scheduler | abgeschlossen |
 | 8.3 | Resource Manager für Capabilities, Kosten- und Lastprofile | implementiert |
-| 8.4 | Adapter-/MCP-Oberfläche und UI | implementiert; PR-Abnahme offen |
+| 8.4 | Adapter-/MCP-Oberfläche und UI | abgeschlossen |
 
 ## 8.1 — Messaging
 
@@ -133,4 +133,11 @@ Owner-Isolation, die Trennung zwischen Transportadapter und AIR-Kern sowie expli
 bestätigte UI-Aktionen. Resource-Mutationen, Telemetrie und Reservationssteuerung
 werden nicht über MCP freigegeben. Permissions, abgesicherte MCP-Werkzeuge,
 Host-Telemetrie, read-only UI und lokal bestätigte/auditierte Admin-Aktionen sind
-umgesetzt. Die technische Abnahme und der Merge des Implementierungs-PRs stehen aus.
+umgesetzt und über PR #10 nach `main` gemergt.
+
+## Folgephase
+
+Der nächste eigenständige Architekturabschnitt ist Phase 9 „Durable Runtime State &
+Crash Recovery“. Die Spezifikation liegt in
+[`phase-9-durable-runtime-state-spec.md`](phase-9-durable-runtime-state-spec.md).
+Sie wird separat freigegeben und implementiert; Phase 8 wird dafür nicht wieder geöffnet.

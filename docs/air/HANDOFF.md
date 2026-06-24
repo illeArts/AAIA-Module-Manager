@@ -1,16 +1,16 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling, 8.3 Resource Manager und 8.4 Adapter/MCP/UI sind implementiert. Tests: 186/186 grün. Nächster Schritt: Phase-8.4-Implementierungs-PR technisch abnehmen und mergen.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling, 8.3 Resource Manager und 8.4 Adapter/MCP/UI sind abgeschlossen. Tests: 186/186 grün. Phase 9 Durable Runtime State & Crash Recovery ist spezifiziert, aber nicht implementiert. Nächster Schritt: Phase-9-Spezifikation fachlich freigeben und danach mit Contracts, Schema und In-Memory-Test-Store beginnen.
 
 ## Wo wir stehen
 
 Implementiert und gebaut:
 
 - **Contracts** (`src/AAIA.Air.Contracts/`): BCL-only, keine Projekt- oder NuGet-Abhängigkeiten. Enthält öffentliche Typen, Enums, Sessions, Host-Interfaces, Task-/Workflow-Modelle, Events, Capability-Interfaces und `AiMessage`.
-- **AIR-Runtime-Kern** (`src/AAIA.Air/`): `AiRuntimeService` (Orchestrator mit Sicherheits-Kette Session→Capability→Permission→Lock→Ausführung→Audit+Event), Manager, Engines, Blackboard und Memory. Referenziert nur Contracts.
-- **MCP-Adapter** (`src/AAIA.Air.Mcp/`): `AaiaMcpServer` (ASP.NET Core Streamable HTTP, 127.0.0.1:39158, Token-Middleware, SDK 1.4.0), Adapter, Auth, Konfiguration und Composition.
+- **AIR-Runtime-Kern** (`src/AAIA.Air/`): `AiRuntimeService` mit Sicherheits-Kette, Messaging, Execution Queue/Scheduler, Resource Manager, Idempotenz, Tasks, Workflows, Blackboard und Memory. Referenziert nur Contracts.
+- **MCP-Adapter** (`src/AAIA.Air.Mcp/`): lokaler token-geschützter Streamable-HTTP-Server sowie abgesicherte Phase-8-Werkzeuge mit geschlossenen Defaults, Ownership und Redaction.
 - **SDK** (`src/AAIA.Air.SDK/`): öffentliche ETW-Entwickleroberfläche mit `AirToolProviderBase` und `AirToolBuilder`; referenziert ausschließlich Contracts.
-- **Module-Manager-Integration** (`src/AAIA.ModuleManager/Services/Ai/Integration/`): app-spezifische Hosts, Bridge und UI-Glue. Die Runtime kennt den Module Manager nicht.
+- **Module-Manager-Integration** (`src/AAIA.ModuleManager/Services/Ai/Integration/`): app-spezifische Hosts, Bridge, Runtime-Beobachtung und bestätigte/auditierte lokale Admin-Aktionen. Die Runtime kennt den Module Manager nicht.
 
 ## ✅ Schritt 2 — ERLEDIGT (App-Verdrahtung)
 
@@ -25,16 +25,16 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase-8.4-Implementierungs-PR prüfen und Pflichtcheck abwarten.
-2. PR nach grüner technischer Abnahme mergen.
-3. Danach den nächsten Architekturabschnitt separat spezifizieren.
-4. Keine Resource-Mutationen, Telemetrie oder Reservationssteuerung über MCP freigeben.
+1. `docs/phase-9-durable-runtime-state-spec.md` fachlich prüfen und freigeben.
+2. Phase 9 mit Contracts, Manifest und In-Memory-Test-Store beginnen.
+3. Erst danach Journal/Flush/Crash-Recovery implementieren.
+4. Keine MCP-Erweiterung und keine automatische Wiederholung laufender Tools einführen.
 
 ## Harte Regeln (nicht verletzen)
 
 - **Keine neuen AIR-Funktionen mehr in Phase 7.0.** Nur Build-/Verdrahtungsfehler lösen.
 - **AIR ist herstellerneutral:** nirgends `if Claude` / `if GPT`. Nur Client / Capabilities / Permissions / Roles. (Vendor wird NICHT aus dem Namen abgeleitet.)
-- **Phase 8 inkrementell halten:** Messaging, Scheduler und Resource Manager sind umgesetzt; MCP-/UI-Freigaben bleiben ein getrenntes Inkrement.
+- **Phase 8 ist geschlossen:** Änderungen an Messaging, Scheduler, Resource Manager oder MCP/UI benötigen einen neuen expliziten Scope; Phase 9 erweitert ausschließlich Durability/Recovery.
 - **AIR kennt keine App.** Apps (Module Manager, AAIAS, BBK, DUKI, Website, Mobile) sind Nutzer über Hosts/Contracts — nie umgekehrt.
 - **Sicherheit unverändert lassen:** Bridge-Token-Pflicht, nur 127.0.0.1, Default deaktiviert, Patch nur über Approval, Terminal nur Allowlist, keine Secrets, Path-Traversal-Schutz, Black-Tools existieren nicht.
 
@@ -44,6 +44,7 @@ Implementiert und gebaut:
 - `docs/air/air-platform-split.md` — 4-Projekt-Zielarchitektur, Datei-/Namespace-Mapping, csproj-Inhalte, Stage 2/3-Code (`AiMessage`, AIR.SDK).
 - `docs/phase-8.3-resource-manager-spec.md` — implementierte Spezifikation für Ressourcenprofile, Kapazität, Budget, Last, Auswahlgrenzen und Pflicht-Tests.
 - `docs/phase-8.4-adapter-mcp-ui-spec.md` — Spezifikation für Permissions, MCP-Werkzeuge, Adaptergrenzen, UI-Freigaben und 30 Pflicht-Tests.
+- `docs/phase-9-durable-runtime-state-spec.md` — Spezifikation für lokalen State Store, Journal, geschützte Payloads, Crash-Recovery und 40 Pflicht-Tests.
 - `scripts/migrate-air-stage1.ps1` — Migrations-Script Stage 1 (mit Sicherheitschecks).
 - `phase-7.0-ai-runtime.md` (Repo-Wurzel `H:\AAIAGitHub\`) — die ursprüngliche, finale Spec (Runtime + MCP-Adapter, Akzeptanzkriterien).
 - Quell-Code: `src/AAIA.Air.Contracts/`, `src/AAIA.Air/`, `src/AAIA.Air.Mcp/` sowie `src/AAIA.ModuleManager/Services/Ai/Integration/`.
