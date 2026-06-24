@@ -113,6 +113,8 @@ public sealed class AiDurableOrchestrationSnapshot
         = Array.Empty<AiDurableIdempotencyRecord>();
     public IReadOnlyList<AiDurableAuditEntry> AuditEntries { get; init; }
         = Array.Empty<AiDurableAuditEntry>();
+    public IReadOnlyList<AiDurableAppliedOperation> AppliedOperations { get; init; }
+        = Array.Empty<AiDurableAppliedOperation>();
 }
 
 public sealed class AiOrchestrationRestoreReport
