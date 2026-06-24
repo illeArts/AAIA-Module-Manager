@@ -49,10 +49,36 @@ public sealed class AiRuntimeComposition
         AaiaCoreToolsBootstrap.RegisterAll(Runtime);
     }
 
+    /// <summary>
+    /// Übernimmt normalisierte Profile und Telemetrie aus dem registrierten Host.
+    /// Die Methode verändert weder Permissions noch Scheduler-Zustand.
+    /// </summary>
+    public int RefreshResourceHost()
+    {
+        var host = Runtime.Hosts.Get<IAiResourceHost>();
+        if (host is null) return 0;
+
+        var changed = 0;
+        foreach (var profile in host.GetResourceProfiles())
+        {
+            if (!string.Equals(profile.ProviderId, host.HostId, StringComparison.Ordinal))
+                throw new InvalidOperationException("Resource ProviderId muss der HostId entsprechen.");
+            Runtime.Resources.Registry.RegisterOrUpdate(profile);
+            changed++;
+        }
+        foreach (var telemetry in host.GetResourceTelemetry())
+        {
+            Runtime.Resources.Registry.UpdateTelemetry(telemetry);
+            changed++;
+        }
+        return changed;
+    }
+
     /// <summary>Registriert einen Host unter ALLEN Host-Interfaces, die er implementiert.</summary>
     private void RegisterHost(IAiHost host)
     {
         if (host is IAiStatusHost s)      Runtime.Hosts.Register(s);
+        if (host is IAiResourceHost r)    Runtime.Hosts.Register(r);
         if (host is IAiProjectHost p)     Runtime.Hosts.Register(p);
         if (host is IAiFileHost f)        Runtime.Hosts.Register(f);
         if (host is IAiPatchHost pa)      Runtime.Hosts.Register(pa);

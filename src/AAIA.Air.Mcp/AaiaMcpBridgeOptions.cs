@@ -35,6 +35,11 @@ public sealed class AaiaMcpBridgeOptions
     public bool AllowTerminal    { get; set; } = false;
     public bool AllowOpenIde     { get; set; } = false;
 
+    // Phase 8.4: jede neue MCP-Fähigkeit muss separat freigegeben werden.
+    public bool AllowCollaboration { get; set; } = false;
+    public bool AllowScheduling    { get; set; } = false;
+    public bool AllowResourceRead  { get; set; } = false;
+
     /// <summary>Signatur/Marketplace — in 7.0 nur vorbereitet, immer AUS.</summary>
     public bool AllowSignMarketplace { get; set; } = false;
 }

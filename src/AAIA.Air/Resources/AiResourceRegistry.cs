@@ -10,19 +10,21 @@ public sealed class AiResourceRegistry
 
     public void Register(AiResourceProfile profile)
     {
-        ArgumentNullException.ThrowIfNull(profile);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profile.ResourceId);
-        ArgumentException.ThrowIfNullOrWhiteSpace(profile.ProviderId);
-        ValidateCapacity(profile.Capacity);
-        if (profile.CostRate is not null &&
-            (string.IsNullOrWhiteSpace(profile.CostRate.CostUnit) ||
-             profile.CostRate.FixedPerExecution < 0 ||
-             profile.CostRate.PerThousandInputUnits < 0 ||
-             profile.CostRate.PerThousandOutputUnits < 0 ||
-             profile.CostRate.PerWorkUnit < 0))
-            throw new ArgumentOutOfRangeException(nameof(profile), "Kostensätze dürfen nicht negativ sein.");
+        ValidateProfile(profile);
         if (!_profiles.TryAdd(profile.ResourceId, Clone(profile)))
             throw new InvalidOperationException($"Ressource '{profile.ResourceId}' ist bereits registriert.");
+    }
+
+    /// <summary>Aktualisiert ein Host-Profil, ohne einen Provider-Wechsel derselben ID zuzulassen.</summary>
+    public void RegisterOrUpdate(AiResourceProfile profile)
+    {
+        ValidateProfile(profile);
+        _profiles.AddOrUpdate(
+            profile.ResourceId,
+            _ => Clone(profile),
+            (_, current) => string.Equals(current.ProviderId, profile.ProviderId, StringComparison.Ordinal)
+                ? Clone(profile)
+                : throw new InvalidOperationException("ProviderId einer registrierten Ressource darf nicht wechseln."));
     }
 
     public bool Unregister(string resourceId)
@@ -60,6 +62,21 @@ public sealed class AiResourceRegistry
             capacity.RequestsPerMinute is <= 0 || capacity.TokensPerMinute is <= 0 ||
             capacity.WorkUnitsPerMinute is <= 0 || capacity.MemoryMiB is <= 0)
             throw new ArgumentOutOfRangeException(nameof(capacity), "Bekannte Kapazitäten müssen größer als null sein.");
+    }
+
+    private static void ValidateProfile(AiResourceProfile profile)
+    {
+        ArgumentNullException.ThrowIfNull(profile);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profile.ResourceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(profile.ProviderId);
+        ValidateCapacity(profile.Capacity);
+        if (profile.CostRate is not null &&
+            (string.IsNullOrWhiteSpace(profile.CostRate.CostUnit) ||
+             profile.CostRate.FixedPerExecution < 0 ||
+             profile.CostRate.PerThousandInputUnits < 0 ||
+             profile.CostRate.PerThousandOutputUnits < 0 ||
+             profile.CostRate.PerWorkUnit < 0))
+            throw new ArgumentOutOfRangeException(nameof(profile), "Kostensätze dürfen nicht negativ sein.");
     }
 
     private static AiResourceProfile Clone(AiResourceProfile profile) => new()

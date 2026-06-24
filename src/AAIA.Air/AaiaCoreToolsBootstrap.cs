@@ -40,6 +40,7 @@ public static class AaiaCoreToolsBootstrap
         RegisterWorkflowTools(runtime, reg);
         RegisterBlackboardTools(runtime, reg);
         RegisterMemoryTools(runtime, reg);
+        AaiaPhase8ToolsBootstrap.RegisterAll(runtime, reg);
     }
 
     // ── Runtime-Tools (voll funktionsfähig, host-frei) ─────────────────────────
