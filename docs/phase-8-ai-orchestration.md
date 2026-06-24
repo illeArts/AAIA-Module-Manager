@@ -13,7 +13,7 @@ und Ressourcenwahl dürfen sie weder ersetzen noch umgehen.
 | 8.1 | Sessiongebundener Messaging-Bus | abgeschlossen |
 | 8.2 | Execution Queue und Scheduler | abgeschlossen |
 | 8.3 | Resource Manager für Capabilities, Kosten- und Lastprofile | implementiert |
-| 8.4 | Adapter-/MCP-Oberfläche und UI | geplant, nach Permission-Entscheidung |
+| 8.4 | Adapter-/MCP-Oberfläche und UI | spezifiziert, Implementierung offen |
 
 ## 8.1 — Messaging
 
@@ -121,3 +121,14 @@ Festgelegt sind Ressourcenprofile, Kapazitätsvektor, Kostenbudgets, Lasttelemet
 harte Auswahlgrenzen, deterministisches Ranking, Reservationszustände, erlaubte und
 verbotene Entscheidungen sowie 26 Pflicht-Tests. Die interne AIR-Implementierung ist
 abgeschlossen; MCP, UI und Host-Adapter bleiben Phase 8.4.
+
+## 8.4 — Adapter, MCP und UI
+
+Die vollständige Spezifikation liegt in
+[`phase-8.4-adapter-mcp-ui-spec.md`](phase-8.4-adapter-mcp-ui-spec.md).
+
+Festgelegt sind separate Permissions für Collaboration, Scheduling und lokale
+Ressourcenverwaltung, eine standardmäßig geschlossene MCP-Oberfläche, Session- und
+Owner-Isolation, die Trennung zwischen Transportadapter und AIR-Kern sowie explizit
+bestätigte UI-Aktionen. Resource-Mutationen, Telemetrie und Reservationssteuerung
+werden nicht über MCP freigegeben. Die Implementierung ist noch offen.
