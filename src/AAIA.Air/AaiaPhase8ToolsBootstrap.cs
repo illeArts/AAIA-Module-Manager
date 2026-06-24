@@ -61,7 +61,7 @@ internal static class AaiaPhase8ToolsBootstrap
                     return Task.FromResult(BadInput("priority ist ungültig."));
 
                 var result = runtime.Idempotency.Execute(
-                    inv.Session.SessionId,
+                    inv.Session.ClientId,
                     inv.ToolName,
                     idempotencyId!,
                     inv.Input.GetRawText(),
@@ -75,7 +75,9 @@ internal static class AaiaPhase8ToolsBootstrap
                         out var message,
                         out var error)
                             ? AiToolResult.Ok(new { messageId = message!.Id, receiver = message.Receiver, sent = true })
-                            : AiToolResult.Fail(error ?? "Nachricht abgelehnt.", AiPhase8ErrorCodes.MessageRejected));
+                            : AiToolResult.Fail(error ?? "Nachricht abgelehnt.", AiPhase8ErrorCodes.MessageRejected),
+                    result => ReadString(result.Payload, "messageId"),
+                    resultId => AiToolResult.Ok(new { messageId = resultId, replayed = true }));
                 return Task.FromResult(result);
             }));
 
@@ -144,7 +146,7 @@ internal static class AaiaPhase8ToolsBootstrap
                 if (maxAttempts is < 1 or > 10) return Task.FromResult(BadInput("maxAttempts liegt außerhalb 1..10."));
 
                 var result = runtime.Idempotency.Execute(
-                    inv.Session.SessionId,
+                    inv.Session.ClientId,
                     inv.ToolName,
                     idempotencyId!,
                     inv.Input.GetRawText(),
@@ -162,7 +164,9 @@ internal static class AaiaPhase8ToolsBootstrap
                         {
                             return AiToolResult.Fail(ex.Message, AiPhase8ErrorCodes.ExecutionRejected);
                         }
-                    });
+                    },
+                    result => ReadString(result.Payload, "executionId"),
+                    resultId => AiToolResult.Ok(new { executionId = resultId, replayed = true }));
                 return Task.FromResult(result);
             }));
 

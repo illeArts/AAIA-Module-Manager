@@ -16,16 +16,22 @@ public sealed class AiResourceManager
     private sealed class ReservationState
     {
         public required string Id { get; init; }
-        public required AiResourceProfile Profile { get; init; }
-        public required AiResourceRequest Request { get; init; }
+        public required string ResourceId { get; init; }
+        public required string ExecutionRequestId { get; init; }
+        public required string TaskId { get; init; }
+        public string? SessionId { get; init; }
         public required string CostUnit { get; init; }
         public required decimal EstimatedCost { get; init; }
+        public int EstimatedInputUnits { get; init; }
+        public int EstimatedOutputUnits { get; init; }
+        public decimal EstimatedWorkUnits { get; init; }
         public required DateTime ReservedAtUtc { get; init; }
         public required DateTime ExpiresAtUtc { get; init; }
         public required string[] BudgetIds { get; init; }
         public AiReservationState State { get; set; } = AiReservationState.Reserved;
         public decimal? ActualCost { get; set; }
         public DateTime? SettledAtUtc { get; set; }
+        public string? SettlementReasonCode { get; set; }
     }
 
     private sealed record Candidate(
@@ -134,10 +140,15 @@ public sealed class AiResourceManager
             var reservation = new ReservationState
             {
                 Id = Guid.NewGuid().ToString("N")[..12],
-                Profile = selected.Candidate.Profile,
-                Request = request,
+                ResourceId = selected.Candidate.Profile.ResourceId,
+                ExecutionRequestId = request.ExecutionRequestId,
+                TaskId = request.TaskId,
+                SessionId = request.SessionId,
                 CostUnit = selected.Candidate.CostUnit,
                 EstimatedCost = selected.Candidate.EstimatedCost,
+                EstimatedInputUnits = request.Requirements.EstimatedInputUnits,
+                EstimatedOutputUnits = request.Requirements.EstimatedOutputUnits,
+                EstimatedWorkUnits = request.Requirements.EstimatedWorkUnits,
                 ReservedAtUtc = now,
                 ExpiresAtUtc = now + request.Requirements.ReservationDuration,
                 BudgetIds = matchingBudgets.Select(budget => budget.Budget.Id).ToArray()
@@ -148,7 +159,7 @@ public sealed class AiResourceManager
             decision = new AiResourceDecision
             {
                 Status = AiResourceDecisionStatus.Selected,
-                SelectedResourceId = reservation.Profile.ResourceId,
+                SelectedResourceId = reservation.ResourceId,
                 Reservation = ReservationSnapshot(reservation),
                 Score = selected.Score,
                 Rejections = rejections
@@ -185,6 +196,144 @@ public sealed class AiResourceManager
     public IReadOnlyList<AiResourceReservation> ListReservations()
     {
         lock (_gate) return _reservations.Values.Select(ReservationSnapshot).ToArray();
+    }
+
+    internal (IReadOnlyList<AiDurableBudgetSnapshot> Budgets,
+        IReadOnlyList<AiDurableReservationSnapshot> Reservations) CaptureDurableState()
+    {
+        lock (_gate)
+        {
+            var budgets = _budgets.Values
+                .OrderBy(state => state.Budget.Id, StringComparer.Ordinal)
+                .Select(state => new AiDurableBudgetSnapshot
+                {
+                    Budget = CloneBudget(state.Budget),
+                    Spent = state.Spent,
+                    Reserved = state.Reserved
+                }).ToArray();
+            var reservations = _reservations.Values
+                .OrderBy(state => state.Id, StringComparer.Ordinal)
+                .Select(state => new AiDurableReservationSnapshot
+                {
+                    Id = state.Id,
+                    ResourceId = state.ResourceId,
+                    ExecutionRequestId = state.ExecutionRequestId,
+                    TaskId = state.TaskId,
+                    State = state.State,
+                    CostUnit = state.CostUnit,
+                    EstimatedCost = state.EstimatedCost,
+                    ActualCost = state.ActualCost,
+                    ReservedAtUtc = state.ReservedAtUtc,
+                    ExpiresAtUtc = state.ExpiresAtUtc,
+                    SettledAtUtc = state.SettledAtUtc,
+                    SettlementReasonCode = state.SettlementReasonCode,
+                    BudgetIds = state.BudgetIds.OrderBy(id => id, StringComparer.Ordinal).ToArray()
+                }).ToArray();
+            return (budgets, reservations);
+        }
+    }
+
+    internal int RestoreDurableState(
+        IEnumerable<AiDurableBudgetSnapshot> budgets,
+        IEnumerable<AiDurableReservationSnapshot> reservations,
+        DateTime recoveredAtUtc)
+    {
+        ArgumentNullException.ThrowIfNull(budgets);
+        ArgumentNullException.ThrowIfNull(reservations);
+        EnsureUtc(recoveredAtUtc, nameof(recoveredAtUtc));
+
+        var restoredBudgets = new Dictionary<string, BudgetState>(StringComparer.Ordinal);
+        var persistedBudgetValues = new Dictionary<string, (decimal Spent, decimal Reserved)>(StringComparer.Ordinal);
+        foreach (var snapshot in budgets)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            var budget = snapshot.Budget ?? throw new InvalidOperationException("Budget fehlt.");
+            ValidateBudget(budget);
+            if (snapshot.Spent < 0 || snapshot.Reserved < 0)
+                throw new InvalidOperationException("Persistierter Budgetstand ist negativ.");
+            if (!restoredBudgets.TryAdd(budget.Id, new BudgetState { Budget = CloneBudget(budget) }))
+                throw new InvalidOperationException("Doppelte Budget-ID im Snapshot.");
+            persistedBudgetValues.Add(budget.Id, (snapshot.Spent, snapshot.Reserved));
+        }
+
+        var restoredReservations = new Dictionary<string, ReservationState>(StringComparer.Ordinal);
+        var released = 0;
+        foreach (var snapshot in reservations)
+        {
+            ArgumentNullException.ThrowIfNull(snapshot);
+            ValidateReservation(snapshot);
+            var budgetIds = snapshot.BudgetIds.Distinct(StringComparer.Ordinal).ToArray();
+            if (budgetIds.Length != snapshot.BudgetIds.Count)
+                throw new InvalidOperationException("Reservation enthält doppelte Budget-IDs.");
+            foreach (var budgetId in budgetIds)
+            {
+                if (!restoredBudgets.TryGetValue(budgetId, out var budget))
+                    throw new InvalidOperationException("Reservation verweist auf unbekanntes Budget.");
+                if (!string.Equals(budget.Budget.CostUnit, snapshot.CostUnit, StringComparison.Ordinal))
+                    throw new InvalidOperationException("Reservation und Budget verwenden unterschiedliche Kosteneinheiten.");
+                if (snapshot.State == AiReservationState.Committed)
+                    budget.Spent += snapshot.ActualCost!.Value;
+                else if (snapshot.State == AiReservationState.Reserved)
+                    budget.Reserved += snapshot.EstimatedCost;
+            }
+
+            var state = snapshot.State;
+            var settledAt = snapshot.SettledAtUtc;
+            var reason = snapshot.SettlementReasonCode;
+            if (state == AiReservationState.Reserved)
+            {
+                state = AiReservationState.Released;
+                settledAt = recoveredAtUtc;
+                reason = AiResourceReasonCodes.RuntimeRecovery;
+                released++;
+            }
+            var restored = new ReservationState
+            {
+                Id = snapshot.Id,
+                ResourceId = snapshot.ResourceId,
+                ExecutionRequestId = snapshot.ExecutionRequestId,
+                TaskId = snapshot.TaskId,
+                SessionId = null,
+                CostUnit = snapshot.CostUnit,
+                EstimatedCost = snapshot.EstimatedCost,
+                ReservedAtUtc = snapshot.ReservedAtUtc,
+                ExpiresAtUtc = snapshot.ExpiresAtUtc,
+                BudgetIds = budgetIds,
+                State = state,
+                ActualCost = snapshot.ActualCost,
+                SettledAtUtc = settledAt,
+                SettlementReasonCode = reason
+            };
+            if (!restoredReservations.TryAdd(restored.Id, restored))
+                throw new InvalidOperationException("Doppelte Reservation-ID im Snapshot.");
+        }
+
+        foreach (var pair in restoredBudgets)
+        {
+            var persisted = persistedBudgetValues[pair.Key];
+            if (pair.Value.Spent != persisted.Spent || pair.Value.Reserved != persisted.Reserved)
+                throw new InvalidOperationException("Budgetstand stimmt nicht mit der Reservationshistorie überein.");
+            // Offene Reservations sind nach dem Recovery released und binden kein Budget mehr.
+            pair.Value.Reserved = 0;
+        }
+
+        lock (_gate)
+        {
+            if (_budgets.Count != 0 || _reservations.Count != 0)
+                throw new InvalidOperationException("Ressourcenzustand kann nur leer wiederhergestellt werden.");
+            foreach (var pair in restoredBudgets) _budgets.Add(pair.Key, pair.Value);
+            foreach (var pair in restoredReservations) _reservations.Add(pair.Key, pair.Value);
+        }
+        return released;
+    }
+
+    internal void ClearDurableRestore()
+    {
+        lock (_gate)
+        {
+            _budgets.Clear();
+            _reservations.Clear();
+        }
     }
 
     private AiResourceRejection? Evaluate(
@@ -247,10 +396,10 @@ public sealed class AiResourceManager
             telemetry.RequestsInCurrentMinute + reservations.Count + 1 > capacity.RequestsPerMinute.Value) return false;
         if (capacity.TokensPerMinute.HasValue &&
             telemetry.TokensInCurrentMinute + reservations.Sum(r =>
-                r.Request.Requirements.EstimatedInputUnits + r.Request.Requirements.EstimatedOutputUnits) + units >
+                r.EstimatedInputUnits + r.EstimatedOutputUnits) + units >
             capacity.TokensPerMinute.Value) return false;
         if (capacity.WorkUnitsPerMinute.HasValue &&
-            telemetry.WorkUnitsInCurrentMinute + reservations.Sum(r => r.Request.Requirements.EstimatedWorkUnits) +
+            telemetry.WorkUnitsInCurrentMinute + reservations.Sum(r => r.EstimatedWorkUnits) +
             request.Requirements.EstimatedWorkUnits > capacity.WorkUnitsPerMinute.Value) return false;
         return true;
     }
@@ -353,7 +502,7 @@ public sealed class AiResourceManager
     }
 
     private IReadOnlyList<ReservationState> ActiveReservations(string resourceId)
-        => _reservations.Values.Where(r => r.Profile.ResourceId == resourceId && r.State == AiReservationState.Reserved).ToArray();
+        => _reservations.Values.Where(r => r.ResourceId == resourceId && r.State == AiReservationState.Reserved).ToArray();
 
     private IEnumerable<BudgetState> RelevantBudgets(AiResourceRequest request, DateTime now)
         => _budgets.Values.Where(state => state.Budget.WindowStartsAtUtc <= now && state.Budget.WindowEndsAtUtc > now &&
@@ -430,18 +579,79 @@ public sealed class AiResourceManager
         => new()
         {
             Id = state.Id,
-            ResourceId = state.Profile.ResourceId,
-            ExecutionRequestId = state.Request.ExecutionRequestId,
-            TaskId = state.Request.TaskId,
-            SessionId = state.Request.SessionId,
+            ResourceId = state.ResourceId,
+            ExecutionRequestId = state.ExecutionRequestId,
+            TaskId = state.TaskId,
+            SessionId = state.SessionId,
             State = state.State,
             CostUnit = state.CostUnit,
             EstimatedCost = state.EstimatedCost,
             ActualCost = state.ActualCost,
             ReservedAtUtc = state.ReservedAtUtc,
             ExpiresAtUtc = state.ExpiresAtUtc,
-            SettledAtUtc = state.SettledAtUtc
+            SettledAtUtc = state.SettledAtUtc,
+            SettlementReasonCode = state.SettlementReasonCode
         };
+
+    private static AiResourceBudget CloneBudget(AiResourceBudget budget) => new()
+    {
+        Id = budget.Id,
+        Scope = budget.Scope,
+        ScopeId = budget.ScopeId,
+        CostUnit = budget.CostUnit,
+        Window = budget.Window,
+        HardLimit = budget.HardLimit,
+        WarningThreshold = budget.WarningThreshold,
+        WindowStartsAtUtc = budget.WindowStartsAtUtc,
+        WindowEndsAtUtc = budget.WindowEndsAtUtc
+    };
+
+    private static void ValidateBudget(AiResourceBudget budget)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(budget.Id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(budget.CostUnit);
+        if (!Enum.IsDefined(budget.Scope) || !Enum.IsDefined(budget.Window) ||
+            budget.HardLimit < 0 || budget.WarningThreshold < 0 ||
+            budget.WarningThreshold > budget.HardLimit || budget.WindowEndsAtUtc <= budget.WindowStartsAtUtc)
+            throw new InvalidOperationException("Budget ist ungültig.");
+        if (budget.Scope != AiBudgetScope.Runtime && string.IsNullOrWhiteSpace(budget.ScopeId))
+            throw new InvalidOperationException("Nicht-globales Budget benötigt eine Scope-ID.");
+        EnsureUtc(budget.WindowStartsAtUtc, nameof(budget.WindowStartsAtUtc));
+        EnsureUtc(budget.WindowEndsAtUtc, nameof(budget.WindowEndsAtUtc));
+    }
+
+    private static void ValidateReservation(AiDurableReservationSnapshot reservation)
+    {
+        ArgumentException.ThrowIfNullOrWhiteSpace(reservation.Id);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reservation.ResourceId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reservation.ExecutionRequestId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reservation.TaskId);
+        ArgumentException.ThrowIfNullOrWhiteSpace(reservation.CostUnit);
+        if (!Enum.IsDefined(reservation.State) || reservation.EstimatedCost < 0 || reservation.ActualCost < 0)
+            throw new InvalidOperationException("Reservation ist ungültig.");
+        EnsureUtc(reservation.ReservedAtUtc, nameof(reservation.ReservedAtUtc));
+        EnsureUtc(reservation.ExpiresAtUtc, nameof(reservation.ExpiresAtUtc));
+        if (reservation.ExpiresAtUtc <= reservation.ReservedAtUtc)
+            throw new InvalidOperationException("Reservationszeitraum ist ungültig.");
+        if (reservation.SettledAtUtc.HasValue) EnsureUtc(reservation.SettledAtUtc.Value, nameof(reservation.SettledAtUtc));
+        if (reservation.State == AiReservationState.Reserved &&
+            (reservation.ActualCost.HasValue || reservation.SettledAtUtc.HasValue))
+            throw new InvalidOperationException("Offene Reservation besitzt Settlement-Daten.");
+        if (reservation.State != AiReservationState.Reserved && !reservation.SettledAtUtc.HasValue)
+            throw new InvalidOperationException("Terminale Reservation besitzt keinen Settlement-Zeitpunkt.");
+        if (reservation.State == AiReservationState.Committed && !reservation.ActualCost.HasValue)
+            throw new InvalidOperationException("Commit besitzt keine tatsächlichen Kosten.");
+        if (reservation.State != AiReservationState.Committed && reservation.ActualCost.HasValue)
+            throw new InvalidOperationException("Nicht-Commit besitzt tatsächliche Kosten.");
+        if (reservation.BudgetIds is null)
+            throw new InvalidOperationException("Reservation besitzt keine Budgetliste.");
+    }
+
+    private static void EnsureUtc(DateTime value, string field)
+    {
+        if (value.Kind != DateTimeKind.Utc)
+            throw new InvalidOperationException($"{field} ist nicht UTC.");
+    }
 
     private DateTime UtcNow => _time.GetUtcNow().UtcDateTime;
 }

@@ -1,6 +1,6 @@
 # Phase 9 — AIR Durable Runtime State & Crash Recovery: Spezifikation
 
-> Status: fachlich freigegeben; 9.1 State Store und 9.2 Durable Tasks/Executions abgeschlossen
+> Status: fachlich freigegeben; 9.1 bis 9.3 abgeschlossen
 > Scope: lokale, geschützte Persistenz des Orchestrierungszustands; kein MCP, keine Cloud
 
 ## 1. Ausgangslage und Ziel
@@ -36,7 +36,7 @@ Phase 9 implementiert ausdrücklich nicht:
 |---|---|---|
 | 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | abgeschlossen |
 | 9.2 | Durable Tasks und Execution Queue mit Recovery | abgeschlossen |
-| 9.3 | Durable Budgets, Reservationshistorie und Idempotenz | spezifiziert |
+| 9.3 | Durable Budgets, Reservationshistorie und Idempotenz | abgeschlossen |
 | 9.4 | Audit, lokale Diagnose und kontrollierte Wartung | spezifiziert |
 
 Jedes Inkrement erhält einen eigenen Commit-Checkpoint. Keine Persistenz wird aktiviert,
@@ -376,12 +376,18 @@ Umgesetzt:
 - explizites `RecoveryRequired` ohne automatischen Tool-Aufruf oder Wiederverwendung alter IDs,
 - Scheduler-Sperre bis zur Auflösung aller unsicheren Executions,
 - host-injizierte Owner/Admin-Autorisierung für manuelles Fail oder Retry,
-- 70 neue Phase-9-Tests; vollständige Regression 256/256 grün.
+- persistierbare Budgetdefinitionen und sessionfreie Reservationshistorie,
+- Rekonstruktion von `Spent` ausschließlich aus bestätigten Commits mit Konsistenzprüfung,
+- exakt-einmal Recovery-Release offener Reservations samt vollständiger Freigabe von `Reserved`,
+- expliziter Settlement-Reason-Code `runtime_recovery`; Profile und Telemetrie bleiben flüchtig,
+- stabile, clientgebundene Idempotenz über SHA-256-Input-Fingerprints und Resultat-IDs,
+- 24-Stunden-TTL, deterministische Begrenzung auf 10.000 Einträge und keine Request-/Result-Payloads,
+- 78 neue Phase-9-Tests; vollständige Regression 264/264 grün.
 
 Noch offen:
 
-- dauerhafte Budgets, Reservationshistorie und Idempotenz (Phase 9.3),
-- Runtime-Startup-/Journal-Koordination, lokaler Protector, Audit, UI und Wartungsaktionen.
+- Audit, lokale Diagnose und kontrollierte Wartung (Phase 9.4),
+- Runtime-Startup-/Journal-Koordination, lokaler Protector, UI und Wartungsaktionen.
 
 Persistenz bleibt bis zu diesen Schritten deaktiviert und ist nicht mit
 `AiRuntimeService` verbunden.

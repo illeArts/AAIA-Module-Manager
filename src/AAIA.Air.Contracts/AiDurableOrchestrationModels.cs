@@ -46,6 +46,44 @@ public sealed class AiDurableExecutionSnapshot
     public DateTime UpdatedAtUtc { get; init; }
 }
 
+/// <summary>Persistierbarer Budgetstand. Werte werden beim Restore aus der Historie verifiziert.</summary>
+public sealed class AiDurableBudgetSnapshot
+{
+    public required AiResourceBudget Budget { get; init; }
+    public decimal Spent { get; init; }
+    public decimal Reserved { get; init; }
+}
+
+/// <summary>Sessionfreie Reservationshistorie ohne Live-Profil oder Telemetrie.</summary>
+public sealed class AiDurableReservationSnapshot
+{
+    public required string Id { get; init; }
+    public required string ResourceId { get; init; }
+    public required string ExecutionRequestId { get; init; }
+    public required string TaskId { get; init; }
+    public AiReservationState State { get; init; }
+    public required string CostUnit { get; init; }
+    public decimal EstimatedCost { get; init; }
+    public decimal? ActualCost { get; init; }
+    public DateTime ReservedAtUtc { get; init; }
+    public DateTime ExpiresAtUtc { get; init; }
+    public DateTime? SettledAtUtc { get; init; }
+    public string? SettlementReasonCode { get; init; }
+    public IReadOnlyList<string> BudgetIds { get; init; } = Array.Empty<string>();
+}
+
+/// <summary>Begrenzter Idempotenzdatensatz ohne Request- oder Result-Payload.</summary>
+public sealed class AiDurableIdempotencyRecord
+{
+    public required string ClientFingerprint { get; init; }
+    public required string Operation { get; init; }
+    public required string IdempotencyId { get; init; }
+    public required string InputFingerprint { get; init; }
+    public required string ResultId { get; init; }
+    public DateTime CreatedAtUtc { get; init; }
+    public DateTime ExpiresAtUtc { get; init; }
+}
+
 /// <summary>Versionierte Nutzlast eines AIR-Orchestrierungs-Snapshots.</summary>
 public sealed class AiDurableOrchestrationSnapshot
 {
@@ -55,6 +93,12 @@ public sealed class AiDurableOrchestrationSnapshot
         = Array.Empty<AiDurableTaskSnapshot>();
     public IReadOnlyList<AiDurableExecutionSnapshot> Executions { get; init; }
         = Array.Empty<AiDurableExecutionSnapshot>();
+    public IReadOnlyList<AiDurableBudgetSnapshot> Budgets { get; init; }
+        = Array.Empty<AiDurableBudgetSnapshot>();
+    public IReadOnlyList<AiDurableReservationSnapshot> Reservations { get; init; }
+        = Array.Empty<AiDurableReservationSnapshot>();
+    public IReadOnlyList<AiDurableIdempotencyRecord> IdempotencyRecords { get; init; }
+        = Array.Empty<AiDurableIdempotencyRecord>();
 }
 
 public sealed class AiOrchestrationRestoreReport
@@ -64,6 +108,10 @@ public sealed class AiOrchestrationRestoreReport
     public int ReleasedClaims { get; init; }
     public int ReleasedLeases { get; init; }
     public int RecoveryRequiredCount { get; init; }
+    public int BudgetCount { get; init; }
+    public int ReservationCount { get; init; }
+    public int RecoveryReleasedReservations { get; init; }
+    public int IdempotencyRecordCount { get; init; }
 }
 
 /// <summary>Host-Grenze für lokale Owner/Admin-Entscheidungen nach einem Crash.</summary>
