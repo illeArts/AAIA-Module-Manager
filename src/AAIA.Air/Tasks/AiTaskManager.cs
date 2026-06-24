@@ -170,4 +170,68 @@ public sealed class AiTaskManager
     }
 
     public int Count => _tasks.Count;
+
+    internal void RestoreDurableTasks(IEnumerable<AiTask> tasks)
+    {
+        ArgumentNullException.ThrowIfNull(tasks);
+        if (!_tasks.IsEmpty)
+            throw new InvalidOperationException("Tasks können nur in einen leeren Manager wiederhergestellt werden.");
+
+        foreach (var task in tasks)
+        {
+            ArgumentNullException.ThrowIfNull(task);
+            ArgumentException.ThrowIfNullOrWhiteSpace(task.Id);
+            task.OwnerSessionId = null;
+            task.OwnerClientName = null;
+            if (!_tasks.TryAdd(task.Id, task))
+            {
+                _tasks.Clear();
+                throw new InvalidOperationException($"Doppelte Task-ID im Snapshot: {task.Id}");
+            }
+        }
+    }
+
+    internal void ClearDurableRestore() => _tasks.Clear();
+
+    internal bool RemoveDurableRetry(string taskId) => _tasks.TryRemove(taskId, out _);
+
+    internal bool FailRecoveryRequired(string taskId, string reason)
+    {
+        if (!_tasks.TryGetValue(taskId, out var task)) return false;
+        lock (task)
+        {
+            if (task.Status != AiTaskStatus.RecoveryRequired) return false;
+            var interrupted = task.Steps.FirstOrDefault(step => step.Status == AiTaskStepStatus.Running);
+            if (interrupted is not null)
+            {
+                interrupted.Status = AiTaskStepStatus.Failed;
+                interrupted.Error = reason;
+            }
+            task.Status = AiTaskStatus.Failed;
+            task.UpdatedAt = DateTime.UtcNow;
+        }
+        TaskChanged?.Invoke(task);
+        return true;
+    }
+
+    internal AiTask CreateRecoveryRetry(string taskId)
+    {
+        var source = Get(taskId) ?? throw new InvalidOperationException("Aufgabe nicht gefunden.");
+        lock (source)
+        {
+            if (source.Status != AiTaskStatus.RecoveryRequired)
+                throw new InvalidOperationException("Nur RecoveryRequired-Aufgaben können erneut erzeugt werden.");
+            var retry = Create(
+                source.Title,
+                source.Description,
+                source.Project,
+                source.Steps.Select(step => new AiTaskStep
+                {
+                    ToolName = step.ToolName,
+                    Input = step.Input.Clone(),
+                    Status = AiTaskStepStatus.Pending
+                }));
+            return retry;
+        }
+    }
 }

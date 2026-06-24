@@ -36,6 +36,7 @@ public sealed class AiExecutionScheduler
     private readonly AiResourceManager? _resources;
     private readonly int _maxResourceDeferrals;
     private long _assignmentSequence;
+    private bool _recoveryBlocked;
 
     public AiExecutionScheduler(
         AiTaskManager tasks,
@@ -68,7 +69,8 @@ public sealed class AiExecutionScheduler
         DateTime? notBeforeUtc = null,
         int maxAttempts = 3,
         AiResourceRequirements? resourceRequirements = null,
-        string? submittedBySessionId = null)
+        string? submittedBySessionId = null,
+        string? submittedByClientId = null)
     {
         if (maxAttempts <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttempts));
         var task = _tasks.Get(taskId) ?? throw new InvalidOperationException("Aufgabe nicht gefunden.");
@@ -80,6 +82,7 @@ public sealed class AiExecutionScheduler
         {
             TaskId = taskId,
             SubmittedBySessionId = submittedBySessionId,
+            SubmittedByClientId = submittedByClientId,
             Priority = priority,
             RequiredRole = requiredRole,
             RequiredCapabilities = requiredCapabilities?.Distinct(StringComparer.OrdinalIgnoreCase).ToArray()
@@ -118,6 +121,8 @@ public sealed class AiExecutionScheduler
 
         lock (_gate)
         {
+            if (_recoveryBlocked) return false;
+
             var busySessions = _items.Values
                 .Where(item => item.State is AiExecutionState.Leased or AiExecutionState.Running or AiExecutionState.Cancelling)
                 .Select(item => item.Lease?.SessionId)
@@ -351,17 +356,20 @@ public sealed class AiExecutionScheduler
     {
         AiRuntimeEventType? eventType = null;
         AiSession? session = null;
+        var handled = false;
         lock (_gate)
         {
             if (!_items.TryGetValue(requestId, out var item) || IsTerminal(item.State)) return false;
             if (item.State == AiExecutionState.Queued)
             {
+                handled = true;
                 item.State = AiExecutionState.Cancelled;
                 item.UpdatedAtUtc = UtcNow;
                 eventType = AiRuntimeEventType.ExecutionCancelled;
             }
             else if (item.State == AiExecutionState.Leased && item.Lease is not null)
             {
+                handled = true;
                 _tasks.ReleaseClaim(item.Request.TaskId, item.Lease.SessionId);
                 _sessions.TryGet(item.Lease.SessionId, out session!);
                 item.State = AiExecutionState.Cancelled;
@@ -370,6 +378,7 @@ public sealed class AiExecutionScheduler
             }
             else if (item.State == AiExecutionState.Running)
             {
+                handled = true;
                 item.State = AiExecutionState.Cancelling;
                 item.UpdatedAtUtc = UtcNow;
                 item.Cancellation?.Cancel();
@@ -378,7 +387,7 @@ public sealed class AiExecutionScheduler
 
         if (eventType.HasValue)
             _events.Publish(eventType.Value, session, message: requestId);
-        return true;
+        return handled;
     }
 
     public int RecoverExpiredLeases()
@@ -419,6 +428,118 @@ public sealed class AiExecutionScheduler
         lock (_gate)
             return _items.Values.OrderBy(item => item.Request.EnqueuedAtUtc).Select(Snapshot).ToArray();
     }
+
+    internal (int ReleasedLeases, int RecoveryRequired) RestoreDurableExecutions(
+        IEnumerable<AiDurableExecutionSnapshot> executions)
+    {
+        ArgumentNullException.ThrowIfNull(executions);
+        lock (_gate)
+        {
+            if (_items.Count != 0)
+                throw new InvalidOperationException("Executions können nur in einen leeren Scheduler wiederhergestellt werden.");
+
+            var releasedLeases = 0;
+            var recoveryRequired = 0;
+            try
+            {
+                foreach (var persisted in executions)
+                {
+                    ArgumentNullException.ThrowIfNull(persisted);
+                    if (_tasks.Get(persisted.TaskId) is null)
+                        throw new InvalidOperationException($"Task der Execution fehlt: {persisted.TaskId}");
+                    var state = persisted.State;
+                    var attempts = persisted.AttemptCount;
+                    if (state == AiExecutionState.Leased)
+                    {
+                        state = AiExecutionState.Queued;
+                        attempts = Math.Max(0, attempts - 1);
+                        releasedLeases++;
+                    }
+                    else if (state is AiExecutionState.Running or AiExecutionState.Cancelling)
+                    {
+                        state = AiExecutionState.RecoveryRequired;
+                        recoveryRequired++;
+                    }
+                    else if (state == AiExecutionState.RecoveryRequired)
+                    {
+                        recoveryRequired++;
+                    }
+
+                    var request = new AiExecutionRequest
+                    {
+                        Id = persisted.Id,
+                        TaskId = persisted.TaskId,
+                        SubmittedBySessionId = null,
+                        SubmittedByClientId = persisted.SubmittedByClientId,
+                        Priority = persisted.Priority,
+                        RequiredRole = persisted.RequiredRole,
+                        RequiredCapabilities = persisted.RequiredCapabilities
+                            .Distinct(StringComparer.OrdinalIgnoreCase).ToArray(),
+                        EnqueuedAtUtc = persisted.EnqueuedAtUtc,
+                        NotBeforeUtc = persisted.NotBeforeUtc,
+                        MaxAttempts = persisted.MaxAttempts,
+                        ResourceRequirements = CloneRequirements(persisted.ResourceRequirements)
+                    };
+                    var item = new ScheduledItem
+                    {
+                        Request = request,
+                        State = state,
+                        AttemptCount = attempts,
+                        Lease = null,
+                        LastError = persisted.LastErrorCode,
+                        UpdatedAtUtc = persisted.UpdatedAtUtc,
+                        ResourceId = persisted.ResourceId,
+                        ResourceReservationId = persisted.ResourceReservationId,
+                        ResourceDeferralCount = persisted.ResourceDeferralCount,
+                        ResourceDeferredUntilUtc = persisted.ResourceDeferredUntilUtc
+                    };
+                    if (!_items.TryAdd(request.Id, item))
+                        throw new InvalidOperationException($"Doppelte Execution-ID im Snapshot: {request.Id}");
+                }
+            }
+            catch
+            {
+                _items.Clear();
+                _recoveryBlocked = false;
+                throw;
+            }
+            _recoveryBlocked = recoveryRequired > 0;
+            return (releasedLeases, recoveryRequired);
+        }
+    }
+
+    internal bool IsRecoveryRequired(string requestId)
+    {
+        lock (_gate)
+            return _items.TryGetValue(requestId, out var item) &&
+                   item.State == AiExecutionState.RecoveryRequired;
+    }
+
+    internal bool FailRecoveryRequired(string requestId, string reason)
+    {
+        lock (_gate)
+        {
+            if (!_items.TryGetValue(requestId, out var item) ||
+                item.State != AiExecutionState.RecoveryRequired)
+                return false;
+            item.State = AiExecutionState.Failed;
+            item.LastError = reason;
+            item.UpdatedAtUtc = UtcNow;
+            RefreshRecoveryBlock();
+            return true;
+        }
+    }
+
+    internal bool RemoveDurableRetry(string requestId)
+    {
+        lock (_gate)
+            return _items.TryGetValue(requestId, out var item) &&
+                   item.State == AiExecutionState.Queued &&
+                   _items.Remove(requestId);
+    }
+
+    private void RefreshRecoveryBlock()
+        => _recoveryBlocked = _items.Values.Any(item => item.State == AiExecutionState.RecoveryRequired);
 
     private ScheduledItem GetItem(string requestId)
         => _items.TryGetValue(requestId, out var item)
@@ -461,6 +582,7 @@ public sealed class AiExecutionScheduler
         ResourceId = item.ResourceId,
         ResourceReservationId = item.ResourceReservationId,
         ResourceDeferralCount = item.ResourceDeferralCount,
+        ResourceDeferredUntilUtc = item.ResourceDeferredUntilUtc,
         UpdatedAtUtc = item.UpdatedAtUtc
     };
 

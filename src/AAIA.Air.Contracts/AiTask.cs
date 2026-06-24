@@ -9,6 +9,7 @@ public enum AiTaskStatus
     Pending,     // erstellt, niemand übernommen
     Claimed,     // eine KI hat übernommen
     InProgress,  // läuft
+    RecoveryRequired,
     Completed,
     Failed,
     Cancelled
@@ -32,7 +33,7 @@ public sealed class AiTaskStep
 /// </summary>
 public sealed class AiTask
 {
-    public string Id { get; } = Guid.NewGuid().ToString("N")[..12];
+    public string Id { get; init; } = Guid.NewGuid().ToString("N")[..12];
     public required string Title { get; init; }
     public string Description { get; init; } = "";
     public string? Project { get; init; }
@@ -45,6 +46,6 @@ public sealed class AiTask
 
     public List<AiTaskStep> Steps { get; } = new();
 
-    public DateTime CreatedAt { get; } = DateTime.UtcNow;
+    public DateTime CreatedAt { get; init; } = DateTime.UtcNow;
     public DateTime UpdatedAt { get; set; } = DateTime.UtcNow;
 }
