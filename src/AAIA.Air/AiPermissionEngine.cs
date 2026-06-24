@@ -37,13 +37,13 @@ public sealed class AiPermissionEngine
         return result;
     }
 
-    /// <summary>Prüft, ob die Session ein Tool ausführen darf. Sign/Marketplace sind in 7.0 gesperrt.</summary>
+    /// <summary>Prüft, ob die Session ein Tool ausführen darf. Sign/Marketplace sind hart gesperrt.</summary>
     public bool IsAllowed(AiSession session, AiToolDefinition tool, string? projectPath, out string reason)
     {
-        // In Phase 7.0 nicht implementierte Stufen hart sperren
+        // Nicht über AIR freigegebene Stufen hart sperren.
         if ((tool.RequiredPermissions & (AiPermission.Sign | AiPermission.Marketplace)) != 0)
         {
-            reason = "Signatur/Marketplace ist in Phase 7.0 nicht über die AI Runtime verfügbar.";
+            reason = "Signatur/Marketplace ist nicht über die AI Runtime verfügbar.";
             return false;
         }
 

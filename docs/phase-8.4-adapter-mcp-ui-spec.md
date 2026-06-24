@@ -1,6 +1,6 @@
 # Phase 8.4 — AIR Adapter, MCP und UI: Spezifikation
 
-> Status: spezifiziert, fachliche Freigabe und Implementierung offen
+> Status: implementiert; fachliche und technische Abnahme im Implementierungs-PR offen
 > Scope: kontrollierte Freigabe bestehender Phase-8-Funktionen; keine neue Orchestrierungslogik
 
 ## 1. Ziel
@@ -244,3 +244,22 @@ Phase 8.4 ist erst abgeschlossen, wenn:
 - Ownership, Idempotenz, Redaction und lokale Bestätigungen getestet sind,
 - die vollständige Regression grün ist,
 - Dokumentation und Handoff den tatsächlich implementierten Stand wiedergeben.
+
+## 11. Implementierungsstand
+
+Umgesetzt:
+
+- Permissions `Collaborate`, `Schedule` und `ManageResources`,
+- standardmäßig deaktivierte MCP-Schalter für Collaboration, Scheduling und Resource Read,
+- Permission- und Optionsfilter sowohl beim Tool-Listing als auch beim direkten Aufruf,
+- eigene Inbox und eigene Executions mit servergebundener Sender-/Owner-Identität,
+- idempotentes Message Send und Execution Enqueue,
+- Enqueue/Cancel ohne Lease-, Run- oder Reservationszugriff,
+- redigierte Ressourcenliste und aggregierter Ressourcenstatus,
+- interner, herstellerneutraler Host-Adapter für Profile und Telemetrie,
+- lokale read-only UI-Ansichten und getrennte MCP-Freigabeschalter,
+- lokale Owner/Admin-Aktionen für Execution-Cancel, Resource Enable/Disable und
+  Runtime-Budgets mit Pflichtbegründung, Bestätigungsdialog und Audit,
+- 25 neue Adapter-, Isolation-, Idempotenz-, Host- und Admin-Tests; zusammen mit den
+  bestehenden Auth-, Messaging-, Scheduler- und Resource-Tests sind alle 30
+  Pflichtfälle abgedeckt.

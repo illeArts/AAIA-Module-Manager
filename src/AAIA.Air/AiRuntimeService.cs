@@ -30,6 +30,9 @@ public sealed class AiRuntimeService
     public AiRuntimeEventBus     Events        { get; }
     public AiAuditService        Audit         { get; }
 
+    /// <summary>Sessiongebundene Idempotenz für mutierende Adapteraufrufe.</summary>
+    public AiIdempotencyStore    Idempotency   { get; } = new();
+
     /// <summary>Interne Ressourcenwahl für Kapazität, Last und Budgets.</summary>
     public AiResourceManager     Resources     { get; }
 

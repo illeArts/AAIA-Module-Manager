@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling und 8.3 Resource Manager sind abgeschlossen. Tests: 161/161 grün. Phase 8.4 Adapter/MCP/UI ist spezifiziert, aber nicht implementiert. Nächster Schritt: Spezifikation fachlich freigeben und anschließend in einem eigenen PR exakt nach der dokumentierten Reihenfolge implementieren.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling, 8.3 Resource Manager und 8.4 Adapter/MCP/UI sind implementiert. Tests: 186/186 grün. Nächster Schritt: Phase-8.4-Implementierungs-PR technisch abnehmen und mergen.
 
 ## Wo wir stehen
 
@@ -25,9 +25,9 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. `docs/phase-8.4-adapter-mcp-ui-spec.md` fachlich prüfen und freigeben.
-2. Phase 8.4 mit Contracts und Permission-/Isolationstests beginnen.
-3. Read-only MCP vor mutierenden Tools; lokale UI-Admin-Aktionen zuletzt.
+1. Phase-8.4-Implementierungs-PR prüfen und Pflichtcheck abwarten.
+2. PR nach grüner technischer Abnahme mergen.
+3. Danach den nächsten Architekturabschnitt separat spezifizieren.
 4. Keine Resource-Mutationen, Telemetrie oder Reservationssteuerung über MCP freigeben.
 
 ## Harte Regeln (nicht verletzen)

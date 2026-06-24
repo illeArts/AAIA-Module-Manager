@@ -61,6 +61,16 @@ public interface IAiStatusHost : IAiHost
     AaiaProjectStatus GetStatus();
 }
 
+/// <summary>
+/// Liefert normalisierte Ressourcenprofile und Telemetrie aus einem Host. Secrets und
+/// Provider-Verbindungen bleiben beim Host; die Runtime erhält nur Phase-8-Contracts.
+/// </summary>
+public interface IAiResourceHost : IAiHost
+{
+    IReadOnlyList<AiResourceProfile> GetResourceProfiles();
+    IReadOnlyList<AiResourceTelemetry> GetResourceTelemetry();
+}
+
 /// <summary>Projektlebenszyklus: anlegen, sicherer Kontext.</summary>
 public interface IAiProjectHost : IAiHost
 {

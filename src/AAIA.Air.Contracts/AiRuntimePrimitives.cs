@@ -30,8 +30,11 @@ public enum AiPermission
     Package         = 1 << 5,
     OpenIde         = 1 << 6,
     RunSafeTerminal = 1 << 7,
-    Sign            = 1 << 8,   // in Phase 7.0 nicht implementiert
-    Marketplace     = 1 << 9    // in Phase 7.0 nicht implementiert
+    Sign            = 1 << 8,   // nicht über AIR freigegeben
+    Marketplace     = 1 << 9,   // nicht über AIR freigegeben
+    Collaborate     = 1 << 10,
+    Schedule        = 1 << 11,
+    ManageResources = 1 << 12
 }
 
 /// <summary>Geltungsbereich eines Workspace-Locks.</summary>

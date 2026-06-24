@@ -13,7 +13,7 @@ und Ressourcenwahl dürfen sie weder ersetzen noch umgehen.
 | 8.1 | Sessiongebundener Messaging-Bus | abgeschlossen |
 | 8.2 | Execution Queue und Scheduler | abgeschlossen |
 | 8.3 | Resource Manager für Capabilities, Kosten- und Lastprofile | implementiert |
-| 8.4 | Adapter-/MCP-Oberfläche und UI | spezifiziert, Implementierung offen |
+| 8.4 | Adapter-/MCP-Oberfläche und UI | implementiert; PR-Abnahme offen |
 
 ## 8.1 — Messaging
 
@@ -131,4 +131,6 @@ Festgelegt sind separate Permissions für Collaboration, Scheduling und lokale
 Ressourcenverwaltung, eine standardmäßig geschlossene MCP-Oberfläche, Session- und
 Owner-Isolation, die Trennung zwischen Transportadapter und AIR-Kern sowie explizit
 bestätigte UI-Aktionen. Resource-Mutationen, Telemetrie und Reservationssteuerung
-werden nicht über MCP freigegeben. Die Implementierung ist noch offen.
+werden nicht über MCP freigegeben. Permissions, abgesicherte MCP-Werkzeuge,
+Host-Telemetrie, read-only UI und lokal bestätigte/auditierte Admin-Aktionen sind
+umgesetzt. Die technische Abnahme und der Merge des Implementierungs-PRs stehen aus.

@@ -67,7 +67,8 @@ public sealed class AiExecutionScheduler
         IEnumerable<string>? requiredCapabilities = null,
         DateTime? notBeforeUtc = null,
         int maxAttempts = 3,
-        AiResourceRequirements? resourceRequirements = null)
+        AiResourceRequirements? resourceRequirements = null,
+        string? submittedBySessionId = null)
     {
         if (maxAttempts <= 0) throw new ArgumentOutOfRangeException(nameof(maxAttempts));
         var task = _tasks.Get(taskId) ?? throw new InvalidOperationException("Aufgabe nicht gefunden.");
@@ -78,6 +79,7 @@ public sealed class AiExecutionScheduler
         var request = new AiExecutionRequest
         {
             TaskId = taskId,
+            SubmittedBySessionId = submittedBySessionId,
             Priority = priority,
             RequiredRole = requiredRole,
             RequiredCapabilities = requiredCapabilities?.Distinct(StringComparer.OrdinalIgnoreCase).ToArray()

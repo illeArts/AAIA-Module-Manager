@@ -45,6 +45,7 @@ public sealed class AaiaMcpAdapter
         if (session is null) return Array.Empty<McpToolInfo>();
 
         return _runtime.Tools.ListForSession(session)
+            .Where(tool => IsExposed(session, tool))
             .Select(t => new McpToolInfo(t.Name, t.Description, t.InputSchema))
             .ToList();
     }
@@ -56,6 +57,14 @@ public sealed class AaiaMcpAdapter
     public async Task<(bool Success, string Json)> CallToolAsync(
         string sessionId, string toolName, JsonElement arguments, CancellationToken ct)
     {
+        var session = _sessions.Get(sessionId);
+        var tool = _runtime.Tools.Resolve(toolName);
+        if (session is null || tool is null || !IsExposed(session, tool))
+        {
+            var hidden = JsonSerializer.Serialize(new { error = "Unbekanntes Tool.", code = "unknown_tool" });
+            return (false, hidden);
+        }
+
         var result = await _runtime.InvokeToolAsync(sessionId, toolName, arguments, ct).ConfigureAwait(false);
 
         var payload = result.Success
@@ -89,7 +98,33 @@ public sealed class AaiaMcpAdapter
         if (_options.AllowBuild)       p |= AiPermission.Build | AiPermission.Package;
         if (_options.AllowTerminal)    p |= AiPermission.RunSafeTerminal;
         if (_options.AllowOpenIde)     p |= AiPermission.OpenIde;
+        if (_options.AllowCollaboration) p |= AiPermission.Collaborate;
+        if (_options.AllowScheduling)    p |= AiPermission.Schedule;
         // Sign/Marketplace bleiben in 7.0 immer gesperrt.
         return p;
+    }
+
+    /// <summary>
+    /// Übernimmt ausschließlich die expliziten Phase-8-Schalter in bereits aktive
+    /// Sessions. Andere, eventuell projektspezifisch erteilte Rechte bleiben erhalten.
+    /// </summary>
+    public void ApplyPhase8OptionsToActiveSessions()
+    {
+        const AiPermission phase8Mutations = AiPermission.Collaborate | AiPermission.Schedule;
+        var desired = DefaultPermissionsFromOptions() & phase8Mutations;
+        foreach (var session in _sessions.Active)
+            session.GrantedPermissions = (session.GrantedPermissions & ~phase8Mutations) | desired;
+    }
+
+    private bool IsExposed(AiSession session, AiToolDefinition tool)
+    {
+        if (tool.Name.StartsWith("aaia.resource.", StringComparison.Ordinal) && !_options.AllowResourceRead)
+            return false;
+
+        var permissions = _runtime.Permissions.Effective(session.ClientId, session.CurrentProject)
+            | session.GrantedPermissions;
+        if ((tool.RequiredPermissions & (AiPermission.Sign | AiPermission.Marketplace | AiPermission.ManageResources)) != 0)
+            return false;
+        return (permissions & tool.RequiredPermissions) == tool.RequiredPermissions;
     }
 }
