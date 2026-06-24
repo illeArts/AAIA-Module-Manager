@@ -12,7 +12,7 @@
   #define AppVersion   "2.4.0"
 #endif
 #define AppPublisher "André Iljaschow / IleArts"
-#define AppURL       "https://aaia.dev"
+#define AppURL       "https://aaiagent.de"
 #define AppExeName   "AAIA.ModuleManager.exe"
 #define AppGUID      "{{A1B2C3D4-E5F6-4A7B-8C9D-E0F1A2B3C4D5}"
 

@@ -24,7 +24,7 @@ Dev-Tool für AAIA-Modul- und Plugin-Entwickler — alles auf wenige Klicks redu
 
 ## Installation
 
-Die neueste Version ist auf der [Website](https://aaia.dev) oder unter [Releases](https://github.com/illeArts/AAIA-Module-Manager/releases/latest) verfügbar.
+Die neueste Version ist auf der [offiziellen AAIA-Website](https://aaiagent.de) oder unter [Releases](https://github.com/illeArts/AAIA-Module-Manager/releases/latest) verfügbar.
 
 **Windows**
 1. `AAIA.ModuleManager.exe` herunterladen

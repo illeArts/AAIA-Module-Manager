@@ -1,6 +1,6 @@
 # AAIA-Handbuch — öffentlicher Einstieg
 
-> Vorgesehene Route: `/handbuch`
+> Vorgesehene Route: `https://aaiagent.de/handbuch`
 > Veröffentlichungsstatus: noch nicht auf der Website ausgerollt
 
 ## Neu bei AAIA?
