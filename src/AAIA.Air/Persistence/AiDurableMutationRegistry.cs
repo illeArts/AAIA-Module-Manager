@@ -1,5 +1,7 @@
 using System.Security.Cryptography;
+using System.Text;
 using System.Text.Json;
+using AAIA.Air.Messaging;
 
 namespace AAIA.Air.Persistence;
 
@@ -207,6 +209,11 @@ public static class AiDurableMutationCodec
         if (envelope.Payload is null || envelope.Payload.Length > maxPayloadBytes)
             throw new AiStateStoreException(AiRuntimeStateReasonCodes.QuotaExceeded,
                 "Mutation-Payload überschreitet das Limit.");
+        if (AiMessageSafetyPolicy.ContainsSensitiveContent(envelope.ActorFingerprint) ||
+            AiMessageSafetyPolicy.ContainsSensitiveContent(envelope.InputFingerprint) ||
+            AiMessageSafetyPolicy.ContainsSensitiveContent(Encoding.UTF8.GetString(envelope.Payload)))
+            throw new AiStateStoreException(AiRuntimeStateReasonCodes.PayloadRejected,
+                "Mutation enthält sensible Inhalte und wird nicht persistiert.");
         var expected = Convert.ToHexString(SHA256.HashData(envelope.Payload));
         if (!CryptographicOperations.FixedTimeEquals(
                 Convert.FromHexString(expected), ParseChecksum(envelope.PayloadChecksumSha256)))

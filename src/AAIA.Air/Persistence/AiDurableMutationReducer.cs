@@ -266,6 +266,11 @@ public sealed class AiDurableMutationReducer
 
     private static void ValidateCollections(AiDurableOrchestrationSnapshot snapshot)
     {
+        if (snapshot.SchemaVersion != AiRuntimeStateSchema.CurrentVersion)
+            throw new AiStateStoreException(AiRuntimeStateReasonCodes.SchemaUnsupported,
+                "Durable Snapshot-Schema wird nicht unterstützt.");
+        if (snapshot.CreatedAtUtc.Kind != DateTimeKind.Utc)
+            throw Corrupt("Snapshot-Zeitpunkt ist nicht UTC.");
         if (snapshot.Tasks is null || snapshot.Executions is null || snapshot.Budgets is null ||
             snapshot.Reservations is null || snapshot.IdempotencyRecords is null ||
             snapshot.AuditEntries is null || snapshot.AppliedOperations is null)
