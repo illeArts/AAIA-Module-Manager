@@ -1,6 +1,6 @@
 # Phase 9 — AIR Durable Runtime State & Crash Recovery: Spezifikation
 
-> Status: spezifiziert, fachliche Freigabe und Implementierung offen
+> Status: fachlich freigegeben; 9.1-Grundlagencheckpoint implementiert
 > Scope: lokale, geschützte Persistenz des Orchestrierungszustands; kein MCP, keine Cloud
 
 ## 1. Ausgangslage und Ziel
@@ -34,7 +34,7 @@ Phase 9 implementiert ausdrücklich nicht:
 
 | Inkrement | Inhalt | Status |
 |---|---|---|
-| 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | spezifiziert |
+| 9.1 | State-Store-Contracts, Schema, Snapshot und Journal | Grundlagen implementiert; Codec offen |
 | 9.2 | Durable Tasks und Execution Queue mit Recovery | spezifiziert |
 | 9.3 | Durable Budgets, Reservationshistorie und Idempotenz | spezifiziert |
 | 9.4 | Audit, lokale Diagnose und kontrollierte Wartung | spezifiziert |
@@ -345,3 +345,25 @@ Phase 9 ist abgeschlossen, wenn:
 - keine Secrets, Sessions, Permissions oder Locks persistiert werden,
 - alle 40 Pflichtfälle und die vollständige Regression grün sind,
 - Handoff und Betriebsdokumentation den implementierten Store exakt beschreiben.
+
+## 16. Implementierungsstand
+
+Umgesetzt:
+
+- BCL-only Contracts für Manifest, Snapshot, Journal, Store-Session und Protector,
+- stabile State-Store-Reason-Codes und standardmäßig deaktivierte Optionen,
+- sessiongebundener `AiInMemoryRuntimeStateStore` als isolierbarer Referenz-Store,
+- Single-Writer mit parallelem read-only Diagnosezugriff,
+- defensive Kopien, Schema-/UTC-/Checksum-Formatprüfung, lückenlose Sequenzen,
+- Flush-Checkpoint, Snapshot-Grenze, Kompaktierung, Quota und Quarantäne,
+- 17 neue 9.1-Tests; vollständige Regression 203/203 grün.
+
+Noch offen:
+
+- kanonischer Snapshot-/Journal-Codec und echte Prüfsummenverifikation,
+- Datei-Store, atomischer Replace, OS-Lock und Crash-Injection,
+- Verdrahtung mit Tasks, Scheduler, Ressourcen, Idempotenz und Audit,
+- lokaler Protector, Recovery-Normalisierung, UI und Wartungsaktionen.
+
+Persistenz bleibt bis zu diesen Schritten deaktiviert und ist nicht mit
+`AiRuntimeService` verbunden.

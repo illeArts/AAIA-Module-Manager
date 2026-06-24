@@ -140,4 +140,5 @@ umgesetzt und über PR #10 nach `main` gemergt.
 Der nächste eigenständige Architekturabschnitt ist Phase 9 „Durable Runtime State &
 Crash Recovery“. Die Spezifikation liegt in
 [`phase-9-durable-runtime-state-spec.md`](phase-9-durable-runtime-state-spec.md).
-Sie wird separat freigegeben und implementiert; Phase 8 wird dafür nicht wieder geöffnet.
+Sie wurde über PR #11 freigegeben; der 9.1-Grundlagencheckpoint ist in Umsetzung.
+Phase 8 wird dafür nicht wieder geöffnet.

@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling, 8.3 Resource Manager und 8.4 Adapter/MCP/UI sind abgeschlossen. Tests: 186/186 grün. Phase 9 Durable Runtime State & Crash Recovery ist spezifiziert, aber nicht implementiert. Nächster Schritt: Phase-9-Spezifikation fachlich freigeben und danach mit Contracts, Schema und In-Memory-Test-Store beginnen.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9 Durable Runtime State & Crash Recovery ist fachlich freigegeben; Contracts und In-Memory-State-Store sind als 9.1-Grundlagencheckpoint implementiert. Tests: 203/203 grün. Persistenz ist weiterhin deaktiviert und nicht mit der Runtime verdrahtet. Nächster Schritt: kanonischen Snapshot-/Journal-Codec mit echter SHA-256-Prüfung spezifikationsgetreu implementieren.
 
 ## Wo wir stehen
 
@@ -25,10 +25,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. `docs/phase-9-durable-runtime-state-spec.md` fachlich prüfen und freigeben.
-2. Phase 9 mit Contracts, Manifest und In-Memory-Test-Store beginnen.
-3. Erst danach Journal/Flush/Crash-Recovery implementieren.
-4. Keine MCP-Erweiterung und keine automatische Wiederholung laufender Tools einführen.
+1. Kanonischen Snapshot-/Journal-Codec mit echter SHA-256-Prüfung implementieren.
+2. Korruptions-, Größenlimit- und unbekannte-Event-Tests ergänzen.
+3. Danach Datei-Store, atomischen Replace und Crash-Injection separat umsetzen.
+4. Keine Runtime-Verdrahtung, MCP-Erweiterung oder automatische Tool-Wiederholung vorziehen.
 
 ## Harte Regeln (nicht verletzen)
 
