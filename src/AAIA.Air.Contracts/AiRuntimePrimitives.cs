@@ -67,6 +67,8 @@ public enum AiRuntimeEventType
     ExecutionFailed,
     ExecutionCancelled,
     ExecutionRecovered,
+    ExecutionRecoveryRequired,
+    ExecutionRecoveryResolved,
     ResourceReserved,
     ResourceCommitted,
     ResourceReleased,

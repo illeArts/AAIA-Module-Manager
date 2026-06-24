@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9.1 State Store ist abgeschlossen: Contracts, In-Memory-Store, kanonischer Codec und lokaler Datei-Store mit OS-Lock/Atomic-Replace/Crash-Tail-Recovery sind implementiert. Tests: 240/240 grün. Persistenz ist weiterhin deaktiviert und nicht mit der Runtime verdrahtet. Nächster Schritt: Phase 9.2 Durable Tasks/Execution Queue mit Snapshot-DTOs und `RecoveryRequired` beginnen.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 bis 8.4 sind abgeschlossen. Phase 9.1 State Store und Phase 9.2 Durable Tasks/Execution Queue sind abgeschlossen. Persistierbare DTOs, geschützte Inputs, deterministischer Import/Export, Recovery-Normalisierung, Scheduler-Sperre und autorisierte Fail-/Retry-Entscheidungen sind implementiert. Tests: 256/256 grün. Persistenz ist weiterhin deaktiviert und nicht mit dem Runtime-Startup verdrahtet. Nächster Schritt: Phase 9.3 dauerhafte Budgets, Reservationshistorie und Idempotenz.
 
 ## Wo wir stehen
 
@@ -25,10 +25,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Persistierbare Task-/Execution-Snapshot-DTOs ohne Sessions, Locks oder Handler definieren.
-2. `RecoveryRequired` für vor dem Crash laufende Tasks/Executions einführen.
-3. Deterministischen Snapshot-Export/Import zunächst gegen den In-Memory-Store testen.
-4. Keine MCP-Erweiterung oder automatische Wiederholung laufender Tools einführen.
+1. Budgetdefinitionen sowie `Spent` und `Reserved` dauerhaft und exakt rekonstruierbar machen.
+2. Offene Reservations beim Recovery genau einmal mit `runtime_recovery` freigeben.
+3. Begrenzte, Session-unabhängige Idempotenzdatensätze mit TTL und Input-Fingerprint persistieren.
+4. Keine MCP-/UI-Erweiterung und noch keine automatische Runtime-Startup-Aktivierung einführen.
 
 ## Harte Regeln (nicht verletzen)
 

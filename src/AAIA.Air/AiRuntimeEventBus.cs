@@ -28,7 +28,9 @@ public sealed class AiRuntimeEventBus
 
     public void Publish(AiRuntimeEvent evt)
     {
-        EventPublished?.Invoke(evt);
+        if (EventPublished is { } published)
+            foreach (Action<AiRuntimeEvent> handler in published.GetInvocationList())
+                try { handler(evt); } catch { /* UI-/Log-Fehler dürfen Runtime-Zustand nicht brechen */ }
         foreach (var sub in _subscribers.Values)
         {
             try { sub(evt); } catch { /* ein Subscriber-Fehler stoppt den Bus nicht */ }

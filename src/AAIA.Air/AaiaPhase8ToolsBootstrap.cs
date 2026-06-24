@@ -154,7 +154,8 @@ internal static class AaiaPhase8ToolsBootstrap
                         {
                             var execution = runtime.Scheduler.Enqueue(
                                 taskId!, priority, role, capabilities, notBeforeUtc, maxAttempts,
-                                submittedBySessionId: inv.Session.SessionId);
+                                submittedBySessionId: inv.Session.SessionId,
+                                submittedByClientId: inv.Session.ClientId);
                             return AiToolResult.Ok(ExecutionView(execution));
                         }
                         catch (InvalidOperationException ex)

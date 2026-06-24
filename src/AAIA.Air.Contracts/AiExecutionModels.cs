@@ -8,6 +8,7 @@ public enum AiExecutionState
     Leased,
     Running,
     Cancelling,
+    RecoveryRequired,
     Completed,
     Failed,
     Cancelled
@@ -16,10 +17,12 @@ public enum AiExecutionState
 /// <summary>Unveränderliche Anforderung an die AIR Execution Queue.</summary>
 public sealed class AiExecutionRequest
 {
-    public string Id { get; } = Guid.NewGuid().ToString("N")[..12];
+    public string Id { get; init; } = Guid.NewGuid().ToString("N")[..12];
     public required string TaskId { get; init; }
     /// <summary>Session, die den Queue-Eintrag erzeugt hat; serverseitig gesetzt.</summary>
     public string? SubmittedBySessionId { get; init; }
+    /// <summary>Stabile Client-ID für restart-feste Ownership; keine Session.</summary>
+    public string? SubmittedByClientId { get; init; }
     public AiExecutionPriority Priority { get; init; } = AiExecutionPriority.Normal;
     public AiRole? RequiredRole { get; init; }
     public IReadOnlyList<string> RequiredCapabilities { get; init; } = Array.Empty<string>();
@@ -51,5 +54,6 @@ public sealed class AiExecutionSnapshot
     public string? ResourceId { get; init; }
     public string? ResourceReservationId { get; init; }
     public int ResourceDeferralCount { get; init; }
+    public DateTime? ResourceDeferredUntilUtc { get; init; }
     public DateTime UpdatedAtUtc { get; init; }
 }
