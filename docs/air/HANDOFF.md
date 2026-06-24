@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling und 8.3 Resource Manager sind abgeschlossen. Tests: 161/161 grün. Nächster Schritt: Phase 8.4 Adapter-/MCP-/UI-Grenzen separat spezifizieren.
+**Stand:** Phase 7.0, Plattform-Split sowie Phase 8.1 Messaging, 8.2 Scheduling und 8.3 Resource Manager sind abgeschlossen. Tests: 161/161 grün. Phase 8.4 Adapter/MCP/UI ist spezifiziert, aber nicht implementiert. Nächster Schritt: Spezifikation fachlich freigeben und anschließend in einem eigenen PR exakt nach der dokumentierten Reihenfolge implementieren.
 
 ## Wo wir stehen
 
@@ -25,9 +25,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase-8.3-Implementierungs-Checkpoint prüfen und mergen.
-2. Phase 8.4 separat spezifizieren: Permissions, Adaptergrenzen und explizite UI-Freigaben.
-3. Keine MCP-/UI-Oberfläche ohne diese separate Freigabe implementieren.
+1. `docs/phase-8.4-adapter-mcp-ui-spec.md` fachlich prüfen und freigeben.
+2. Phase 8.4 mit Contracts und Permission-/Isolationstests beginnen.
+3. Read-only MCP vor mutierenden Tools; lokale UI-Admin-Aktionen zuletzt.
+4. Keine Resource-Mutationen, Telemetrie oder Reservationssteuerung über MCP freigeben.
 
 ## Harte Regeln (nicht verletzen)
 
@@ -41,7 +42,8 @@ Implementiert und gebaut:
 
 - `docs/phase-7.0-ai-runtime-status.md` — kompletter Implementierungsstatus (Increment 1, 1.1, 1.2, 2) + verbleibende App-Verdrahtung.
 - `docs/air/air-platform-split.md` — 4-Projekt-Zielarchitektur, Datei-/Namespace-Mapping, csproj-Inhalte, Stage 2/3-Code (`AiMessage`, AIR.SDK).
-- `docs/phase-8.3-resource-manager-spec.md` — freizugebende Spezifikation für Ressourcenprofile, Kapazität, Budget, Last, Auswahlgrenzen und Pflicht-Tests.
+- `docs/phase-8.3-resource-manager-spec.md` — implementierte Spezifikation für Ressourcenprofile, Kapazität, Budget, Last, Auswahlgrenzen und Pflicht-Tests.
+- `docs/phase-8.4-adapter-mcp-ui-spec.md` — Spezifikation für Permissions, MCP-Werkzeuge, Adaptergrenzen, UI-Freigaben und 30 Pflicht-Tests.
 - `scripts/migrate-air-stage1.ps1` — Migrations-Script Stage 1 (mit Sicherheitschecks).
 - `phase-7.0-ai-runtime.md` (Repo-Wurzel `H:\AAIAGitHub\`) — die ursprüngliche, finale Spec (Runtime + MCP-Adapter, Akzeptanzkriterien).
 - Quell-Code: `src/AAIA.Air.Contracts/`, `src/AAIA.Air/`, `src/AAIA.Air.Mcp/` sowie `src/AAIA.ModuleManager/Services/Ai/Integration/`.
