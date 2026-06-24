@@ -7,6 +7,7 @@ using AAIA.Air.Hosts;
 using AAIA.Air.Memory;
 using AAIA.Air.Messaging;
 using AAIA.Air.Providers;
+using AAIA.Air.Persistence;
 using AAIA.Air.Scheduling;
 using AAIA.Air.Resources;
 using AAIA.Air.Tasks;
@@ -22,6 +23,7 @@ namespace AAIA.Air;
 /// </summary>
 public sealed class AiRuntimeService
 {
+    private IAiRuntimeMutationPersistence? _mutationPersistence;
     public AiToolRegistry        Tools         { get; }
     public AiSessionManager      Sessions      { get; }
     public AiCapabilityManager   Capabilities  { get; }
@@ -65,6 +67,9 @@ public sealed class AiRuntimeService
 
     /// <summary>Runtime-Version (für Tool.Since/Versionierung).</summary>
     public string RuntimeVersion { get; } = "7.0.0";
+
+    public AiRuntimeRecoveryStatus PersistenceStatus
+        => _mutationPersistence?.Status ?? AiRuntimeRecoveryStatus.Disabled;
 
     public AiRuntimeService(
         AiToolRegistry tools,
@@ -120,6 +125,16 @@ public sealed class AiRuntimeService
             return Reject(session, toolName, "Tool ist deaktiviert.", "tool_disabled");
         if (tool.RiskLevel == AiRiskLevel.Black)
             return Reject(session, toolName, "Black-Tools existieren nicht.", "black_blocked");
+        var durableMutation = _mutationPersistence?.IsDurableMutation(tool) == true;
+        if (durableMutation && _mutationPersistence!.Status is not
+            (AiRuntimeRecoveryStatus.Ready or AiRuntimeRecoveryStatus.Disabled))
+        {
+            var code = _mutationPersistence.Status == AiRuntimeRecoveryStatus.RecoveryFailed
+                ? "runtime_recovery_failed"
+                : "runtime_recovering";
+            return Reject(session, toolName,
+                "Runtime-Persistenz ist noch nicht für Mutationen freigegeben.", code);
+        }
 
         // 3. Capability Negotiation
         if (!Capabilities.Supports(session, tool))
@@ -148,6 +163,23 @@ public sealed class AiRuntimeService
             var result = await tool.Handler(invocation, ct).ConfigureAwait(false);
 
             Audit.Record(session, tool, result.Success, result.Success ? null : result.Error);
+            if (result.Success && durableMutation &&
+                _mutationPersistence!.Status != AiRuntimeRecoveryStatus.Disabled)
+            {
+                try
+                {
+                    await _mutationPersistence.PersistMutationAsync(tool.Name, ct).ConfigureAwait(false);
+                }
+                catch (Exception ex) when (ex is AiStateStoreException or IOException or UnauthorizedAccessException)
+                {
+                    Audit.Record(session, tool, false, $"Persistenz fehlgeschlagen: {ex.Message}");
+                    Events.Publish(AiRuntimeEventType.ErrorOccurred, session, tool.Name,
+                        "Durable Bestätigung fehlgeschlagen.");
+                    return AiToolResult.Fail(
+                        "Mutation konnte nicht dauerhaft bestätigt werden.",
+                        AiRuntimeStateReasonCodes.PersistenceFailed);
+                }
+            }
             if (!result.Success)
                 Events.Publish(AiRuntimeEventType.ErrorOccurred, session, tool.Name, result.Error);
             return result;
@@ -156,6 +188,15 @@ public sealed class AiRuntimeService
         {
             Audit.Record(session, tool, false, "abgebrochen");
             return AiToolResult.Fail("Tool-Ausführung abgebrochen (Timeout/Cancel).", "cancelled");
+        }
+        catch (AiStateStoreException ex)
+        {
+            Audit.Record(session, tool, false, $"Persistenz fehlgeschlagen: {ex.Message}");
+            Events.Publish(AiRuntimeEventType.ErrorOccurred, session, tool.Name,
+                "Durable Bestätigung fehlgeschlagen.");
+            return AiToolResult.Fail(
+                "Mutation konnte nicht dauerhaft bestätigt werden.",
+                AiRuntimeStateReasonCodes.PersistenceFailed);
         }
         catch (Exception ex)
         {
@@ -186,6 +227,14 @@ public sealed class AiRuntimeService
     private static bool NeedsWriteLock(AiToolDefinition tool)
         => (tool.RequiredPermissions &
             (AiPermission.ProposePatch | AiPermission.Build | AiPermission.Package)) != 0;
+
+    internal void AttachMutationPersistence(IAiRuntimeMutationPersistence persistence)
+    {
+        ArgumentNullException.ThrowIfNull(persistence);
+        if (_mutationPersistence is not null && !ReferenceEquals(_mutationPersistence, persistence))
+            throw new InvalidOperationException("Runtime-Persistenz ist bereits konfiguriert.");
+        _mutationPersistence = persistence;
+    }
 
     private static string? TryReadString(JsonElement input, string property)
     {
