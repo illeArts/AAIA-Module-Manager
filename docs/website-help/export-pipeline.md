@@ -12,6 +12,7 @@ Phase 11.5.10 ergänzt ein manuelles Review- und Freigabe-Gate vor jeder Ausfüh
 Phase 11.5.11 ergänzt fail-closed Execution-Adapter, die ohne approved Gate blockieren.
 Phase 11.5.12 ergänzt kontrollierte Zielmodi für Staging, lokale PDF-Finalisierung,
 In-App-Pakete und AAIAM-Dry-Run.
+Phase 11.5.14 ergänzt einen lokalen Website-Staging-Review ohne Live-Deployment.
 
 ## Exportziele
 
@@ -121,6 +122,21 @@ python docs/scripts/execute_docs_release_candidate.py . --target all --dry-run -
 Der Lauf schreibt ein lokales Audit unter `docs/.release-candidate/execution-audit.json`.
 Ohne approved Gate bleibt das Ergebnis blockiert.
 
+## Website Staging Review
+
+Der Website-Staging-Review ist unter
+[`website-staging-review.md`](website-staging-review.md) beschrieben.
+
+Der lokale Staging-Lauf:
+
+```powershell
+python docs/scripts/stage_website_help.py .
+```
+
+Er erzeugt eine lokale Kopie unter `docs/.staging/website/` und schreibt ein
+`staging-manifest.json`. Das ist keine öffentliche Website, kein Domainwechsel und kein
+WordPress-/Server-Upload.
+
 ## Schemas
 
 Vorbereitete Schemas liegen unter [`../schemas/`](../schemas/):
@@ -143,4 +159,5 @@ Teilmenge ohne externe Dependencies.
 - keine neue Runtime-Funktion,
 - keine KI-basierte Freigabe,
 - keine Adapter-Ausführung ohne approved Gate,
-- kein Live-Deployment in Phase 11.5.12.
+- kein Live-Deployment in Phase 11.5.12,
+- kein Live-Deployment im Website-Staging-Review.

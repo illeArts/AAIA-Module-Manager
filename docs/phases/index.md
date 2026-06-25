@@ -24,6 +24,7 @@ Neue Dateien werden aus [`PHASE_FINAL_TEMPLATE.md`](PHASE_FINAL_TEMPLATE.md) erz
 - [Phase 11.5.11 — Approved Release Execution Adapter](phase-11-5-11-final.md)
 - [Phase 11.5.12 — Controlled First Publication / AAIAM Import Dry-Run Against Real Library](phase-11-5-12-final.md)
 - [Phase 11.5.13 — Documentation Pipeline Stabilization, Commit Readiness & Handoff](phase-11-5-13-final.md)
+- [Phase 11.5.14 — Website Staging Review & Publication Readiness](phase-11-5-14-final.md)
 
 Bestehende ältere Abschluss- und Statusdokumente liegen vorerst weiterhin im Wurzelverzeichnis
 `docs/`. Sie werden kontrolliert inventarisiert; bloßes Verschieben ohne Link- und Quellenprüfung

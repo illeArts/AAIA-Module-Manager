@@ -33,6 +33,7 @@ REQUIRED_JSON = [
     "docs/export/manual-review-checklist.json",
     "docs/export/release-gate-manifest.json",
     "docs/export/release-execution-plan.json",
+    "docs/export/website-staging-review-checklist.json",
     "docs/schemas/help-index.schema.json",
     "docs/schemas/aaiam-import-map.schema.json",
     "docs/schemas/in-app-context-map.schema.json",
@@ -322,6 +323,17 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
         if target.get("id") == "inAppHelp" and target.get("activationAllowed") is True:
             errors.append("In-App help activation is forbidden in this phase")
 
+    staging_checklist = load_json(root, "docs/export/website-staging-review-checklist.json")
+    if staging_checklist.get("reviewStatus") not in {"pending", "approved", "rejected"}:
+        errors.append("website staging checklist reviewStatus must be pending, approved or rejected")
+    if staging_checklist.get("requiresHumanApproval") is not True:
+        errors.append("website staging checklist must require human approval")
+    if staging_checklist.get("aiMayApprove") is True:
+        errors.append("website staging checklist must not allow AI approval")
+    checklist_ids = {check.get("id") for check in staging_checklist.get("checks", [])}
+    if "owner-review-required" not in checklist_ids:
+        errors.append("website staging checklist missing owner-review-required")
+
 
 def validate_preview_artifacts(root: Path, errors: list[str]) -> None:
     preview_root = root / "docs/.preview"
@@ -527,6 +539,60 @@ def validate_release_candidate_artifacts(root: Path, errors: list[str]) -> None:
                     errors.append("execution audit website target must not be live deployment")
 
 
+def validate_website_staging_artifacts(root: Path, errors: list[str]) -> None:
+    staging_root = root / "docs/.staging"
+    if not staging_root.exists():
+        return
+
+    gitignore = (root / ".gitignore").read_text(encoding="utf-8", errors="replace") if (root / ".gitignore").exists() else ""
+    if "docs/.staging/" not in gitignore:
+        errors.append("docs/.staging/ must be ignored and not versioned")
+
+    manifest_path = staging_root / "website/staging-manifest.json"
+    if not manifest_path.exists():
+        errors.append("website staging manifest missing")
+        return
+
+    try:
+        manifest = json.loads(manifest_path.read_text(encoding="utf-8"))
+    except Exception as exc:  # noqa: BLE001
+        errors.append(f"website staging manifest invalid JSON: {exc}")
+        return
+
+    if manifest.get("status") != "staging":
+        errors.append("website staging manifest status must be staging")
+    if manifest.get("notLive") is not True:
+        errors.append("website staging manifest must set notLive=true")
+    if manifest.get("notDeployed") is not True:
+        errors.append("website staging manifest must set notDeployed=true")
+
+    routes = manifest.get("routes", [])
+    route_paths = {route.get("route") for route in routes}
+    for route in ("/handbuch", "/docs", "/help"):
+        if route not in route_paths:
+            errors.append(f"website staging route missing: {route}")
+    for route in routes:
+        source = route.get("sourcePath", "")
+        if source.startswith("docs/"):
+            assert_exists(errors, root, (root / source).resolve(), f"website staging route {route.get('route')}")
+        else:
+            errors.append(f"website staging route source must point to docs/: {route.get('route')}")
+
+    for path in staging_root.rglob("*"):
+        if path.is_file() and path.suffix.lower() in {".md", ".json", ".html"}:
+            text = path.read_text(encoding="utf-8", errors="replace")
+            lowered = text.lower()
+            for pattern, reason in SECRET_PATTERNS:
+                if pattern.search(text):
+                    errors.append(f"{path.relative_to(root)}: possible secret in website staging ({reason})")
+            for pattern, reason in PRIVATE_PATH_PATTERNS:
+                if pattern.search(text):
+                    errors.append(f"{path.relative_to(root)}: private path in website staging ({reason})")
+            for active_word in ("status: deployed", "live deployment", "notlive\": false", "notdeployed\": false"):
+                if active_word in lowered:
+                    errors.append(f"{path.relative_to(root)}: forbidden staging/live claim '{active_word}'")
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     errors: list[str] = []
@@ -537,6 +603,7 @@ def main() -> int:
     validate_forbidden_text(root, errors)
     validate_preview_artifacts(root, errors)
     validate_release_candidate_artifacts(root, errors)
+    validate_website_staging_artifacts(root, errors)
 
     if errors:
         print("DOC CONFORMANCE: FAILED")

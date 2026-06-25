@@ -1,0 +1,24 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "pending",
+  "allowedStatuses": ["pending", "approved", "rejected"],
+  "requiresHumanApproval": true,
+  "aiMayApprove": false,
+  "checks": [
+    { "id": "routes-present", "label": "Staging-Routen /handbuch, /docs und /help vorhanden", "required": true, "status": "pending" },
+    { "id": "routing-map-valid", "label": "Routing-Map geprüft", "required": true, "status": "pending" },
+    { "id": "legacy-aliases-valid", "label": "Legacy-Aliase geprüft", "required": true, "status": "pending" },
+    { "id": "no-live-deployment", "label": "Kein Live-Deployment erfolgt", "required": true, "status": "pending" },
+    { "id": "no-deployed-status", "label": "Kein deployed-Status gesetzt", "required": true, "status": "pending" },
+    { "id": "markdown-source-traceable", "label": "Markdown-Quellen rückverfolgbar", "required": true, "status": "pending" },
+    { "id": "documentation-truth-rule-applied", "label": "Dokumentationswahrheitsregel angewendet", "required": true, "status": "pending" },
+    { "id": "glossary-term-status-checked", "label": "Glossar und Begriffstatus geprüft", "required": true, "status": "pending" },
+    { "id": "no-secrets", "label": "Keine Secrets enthalten", "required": true, "status": "pending" },
+    { "id": "no-private-paths", "label": "Keine privaten Pfade enthalten", "required": true, "status": "pending" },
+    { "id": "handbuch-entry-reviewed", "label": "Handbuch-Einstieg geprüft", "required": true, "status": "pending" },
+    { "id": "docs-entry-reviewed", "label": "Docs-Einstieg geprüft", "required": true, "status": "pending" },
+    { "id": "help-entry-reviewed", "label": "Help-Einstieg geprüft", "required": true, "status": "pending" },
+    { "id": "mobile-readable", "label": "Mobile Lesbarkeit geprüft", "required": true, "status": "pending" },
+    { "id": "owner-review-required", "label": "Owner-/Maintainer-Review erforderlich", "required": true, "status": "pending" }
+  ]
+}

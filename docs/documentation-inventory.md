@@ -184,10 +184,19 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `website-help/release-readiness.md` | Commit-/PR-Readiness, lokale Artefaktgrenzen und offene Freigaben |
 | `phases/phase-11-5-13-final.md` | Abschlussnachweis für Documentation Pipeline Stabilization, Commit Readiness & Handoff |
 
+## Neue 11.5.14-Website-Staging-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `website-help/website-staging-review.md` | Spezifikation für geschützten Website-Staging-Review |
+| `export/website-staging-review-checklist.json` | maschinenlesbare Staging-Review-Checklist mit Human-Approval-Pflicht |
+| `docs/scripts/stage_website_help.py` | lokaler Staging-Helfer für `docs/.staging/website/` |
+| `docs/.staging/` | lokale Staging-Ausgabe, nicht kanonisch und nicht versioniert |
+| `phases/phase-11-5-14-final.md` | Abschlussnachweis für Website Staging Review & Publication Readiness |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
-- echte Website-Staging-Review nach manueller Freigabe,
 - tatsächliche Suchimplementierung,
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,

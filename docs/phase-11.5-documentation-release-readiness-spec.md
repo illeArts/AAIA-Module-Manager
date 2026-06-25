@@ -71,7 +71,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.11 | Approved Release Execution Adapter | umgesetzt |
 | 11.5.12 | Controlled First Publication / AAIAM Import Dry-Run Against Real Library | umgesetzt |
 | 11.5.13 | Documentation Pipeline Stabilization, Commit Readiness & Handoff | umgesetzt |
-| 11.5.14 | Website-Staging-Review oder technische Folgephase | geplant |
+| 11.5.14 | Website Staging Review & Publication Readiness | umgesetzt |
+| 11.5.15 | AAIAM Knowledge Library Integration & Search Foundation | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -182,3 +183,11 @@ Phase 11.5.13 stabilisiert die Dokumentationspipeline 11.5.1 bis 11.5.12. Sie er
 Handoff-Datei und eine Commit-/PR-Readiness-Notiz, ohne neue Veröffentlichungspfade zu bauen.
 Preview- und Release-Candidate-Artefakte bleiben lokal und ignored. Ohne approved Gate bleibt
 Execution blockiert; KI darf keine Freigabe setzen.
+
+## 21. Stand nach Phase 11.5.14
+
+Phase 11.5.14 ergänzt einen geschützten Website-Staging-Review. Das Script
+`docs/scripts/stage_website_help.py` kopiert die Website-RC-Artefakte lokal nach
+`docs/.staging/website/`, prüft Routen und Legacy-Aliase und schreibt ein
+`staging-manifest.json`. `docs/.staging/` bleibt ignored und nicht kanonisch. Es findet kein
+Live-Deployment, kein Domainwechsel und kein Server-/WordPress-Upload statt.
