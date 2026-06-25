@@ -137,12 +137,22 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `docs/.preview/` | lokal erzeugte Vorschau, nicht kanonisch und nicht versioniert |
 | `phases/phase-11-5-8-final.md` | Abschlussnachweis für Documentation Output Pipeline Dry Run |
 
+## Neue 11.5.9-Release-Candidate-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `docs/scripts/generate_docs_release_candidate.py` | lokaler RC-Generator für Website-, PDF-, In-App- und AAIAM-Pakete |
+| `.gitignore` | schließt `docs/.release-candidate/` als lokale RC-Ausgabe aus |
+| `docs/.release-candidate/` | lokal erzeugter Release Candidate, nicht kanonisch und nicht versioniert |
+| `docs/.release-candidate/release-manifest.json` | lokales RC-Manifest mit Artefakt-Hashes, Quellcommit und Exportmanifest-Hash |
+| `phases/phase-11-5-9-final.md` | Abschlussnachweis für Documentation Output Generation & Release Candidate Packaging |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
-- Website-Deployment,
+- manuelles Review- und Deployment-Gate,
 - tatsächliche Suchimplementierung,
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,
-- PDF-Generierung und In-App-Ausgabe,
+- finale PDF-Veröffentlichung,
 - echte Website-/PDF-/In-App-Exportveröffentlichung.

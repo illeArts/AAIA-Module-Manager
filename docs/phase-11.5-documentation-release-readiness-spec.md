@@ -66,7 +66,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.6 | Documentation Release Conformance & Export Pipeline Preparation | umgesetzt |
 | 11.5.7 | Export Pipeline Preparation | umgesetzt |
 | 11.5.8 | Documentation Output Pipeline Dry Run | umgesetzt |
-| 11.5.9 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe | geplant |
+| 11.5.9 | Documentation Output Generation & Release Candidate Packaging | umgesetzt |
+| 11.5.10 | Manuelle Review/Freigabe & echtes Deployment-Gate | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -135,3 +136,12 @@ Phase 11.5.8 ergänzt einen lokalen Dry-Run-Exporter. Er liest das Exportmanifes
 Quellpfade und erzeugt lokale Vorschau-Artefakte unter `docs/.preview/` für Website,
 PDF-Source, In-App-Hilfe und AAIAM-Import. `docs/.preview/` ist nicht kanonisch, wird nicht
 versioniert und darf keine produktiven Status wie deployed, generated oder imported behaupten.
+
+## 16. Stand nach Phase 11.5.9
+
+Phase 11.5.9 ergänzt einen lokalen Release-Candidate-Generator. Er erzeugt unter
+`docs/.release-candidate/` getrennte Pakete für Website, PDF-Quellen, In-App-Hilfe und
+AAIAM-Importvorbereitung. Das RC-Manifest enthält Quellcommit, Exportmanifest-Hash,
+Artefaktliste und Artefakt-Hashes. Der Status bleibt `release_candidate`; `notDeployed` und
+`notImported` bleiben verpflichtend. Es findet weiterhin kein Website-Deployment, keine finale
+PDF-Veröffentlichung, keine In-App-Hilfe-UI und keine produktive AAIAM-DB-Befüllung statt.
