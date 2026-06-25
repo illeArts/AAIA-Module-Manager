@@ -22,6 +22,7 @@ public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
     private AiRuntimeStateMaintenanceService? _stateMaintenance;
     private AiRecoveryDecisionService? _recoveryDecisions;
     private AiRuntimePersistenceCoordinator? _persistenceCoordinator;
+    private AiRuntimeLifecycle? _lifecycle;
 
     public AiRuntimeConnectorPanel(AaiaMcpBridgeOptions options, IModuleManagerAiBridge bridge)
     {
@@ -43,20 +44,27 @@ public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
     // ── Bridge-Steuerung ─────────────────────────────────────────────────────
     public async Task StartAsync(CancellationToken ct = default)
     {
-        if (_persistenceCoordinator is not null)
+        if (_lifecycle is not null)
         {
-            var status = await _persistenceCoordinator.InitializeAsync(ct).ConfigureAwait(false);
+            var status = await _lifecycle.InitializeAsync(ct).ConfigureAwait(false);
             if (status == AiRuntimeRecoveryStatus.RecoveryRequired)
                 throw new AiStateStoreException(AiRuntimeStateReasonCodes.RecoveryRequired,
                     "Lokale Recovery-Entscheidungen sind vor dem MCP-Start erforderlich.");
             if (status is not (AiRuntimeRecoveryStatus.Ready or AiRuntimeRecoveryStatus.Disabled))
                 throw new AiStateStoreException(
-                    _persistenceCoordinator.FailureReasonCode ?? AiRuntimeStateReasonCodes.SnapshotCorrupt,
+                    _lifecycle.FailureReasonCode ?? AiRuntimeStateReasonCodes.SnapshotCorrupt,
                     "Runtime-Recovery wurde nicht erfolgreich abgeschlossen.");
+            return;
         }
         await _composition.Server.StartAsync(ct).ConfigureAwait(false);
     }
-    public Task StopAsync(CancellationToken ct = default)  => _composition.Server.StopAsync(ct);
+    public async Task StopAsync(CancellationToken ct = default)
+    {
+        if (_lifecycle is not null)
+            await _lifecycle.StopAsync(ct).ConfigureAwait(false);
+        else
+            await _composition.Server.StopAsync(ct).ConfigureAwait(false);
+    }
     public string RotateToken() => _composition.Auth.Rotate();
 
     // ── Client-Config (inkl. aktuellem Token) ────────────────────────────────
@@ -136,8 +144,11 @@ public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
         IAiRuntimeStateStore store,
         IAiStateMaintenanceAuthorizer authorizer,
         string runtimeInstanceId)
-        => _stateMaintenance = new AiRuntimeStateMaintenanceService(
+    {
+        _stateMaintenance = new AiRuntimeStateMaintenanceService(
             store, _composition.Runtime.Audit, authorizer, runtimeInstanceId);
+        ConfigureLifecycle(store, persistence: null);
+    }
 
     public void ConfigurePersistence(
         IAiRuntimeStateStore store,
@@ -150,6 +161,7 @@ public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
         ConfigureRecoveryDecisions(authorizer);
         _persistenceCoordinator = new AiRuntimePersistenceCoordinator(
             _composition.Runtime, store, protector, options, runtimeInstanceId, authorizer);
+        ConfigureLifecycle(store, _persistenceCoordinator);
     }
 
     public void ConfigureRecoveryDecisions(IAiRecoveryAuthorizer authorizer)
@@ -168,19 +180,19 @@ public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
             : await _stateMaintenance.GetDiagnosticsAsync(ct).ConfigureAwait(false);
         var recoveryCount = _composition.Runtime.Scheduler.List()
             .Count(item => item.State == AiExecutionState.RecoveryRequired);
-        if (_persistenceCoordinator is not null &&
-            _persistenceCoordinator.Status is not (AiRuntimeRecoveryStatus.Ready or AiRuntimeRecoveryStatus.Disabled))
+        if (_lifecycle is not null &&
+            _lifecycle.Status is not (AiRuntimeRecoveryStatus.Ready or AiRuntimeRecoveryStatus.Disabled or AiRuntimeRecoveryStatus.Stopped))
         {
             return new AiRuntimeStateDiagnostics
             {
                 StoreId = diagnostics.StoreId,
-                Status = _persistenceCoordinator.Status,
+                Status = _lifecycle.Status,
                 SchemaVersion = diagnostics.SchemaVersion,
                 LastSequence = diagnostics.LastSequence,
                 SnapshotSequence = diagnostics.SnapshotSequence,
                 StoreSizeBytes = diagnostics.StoreSizeBytes,
                 LastUpdatedAtUtc = diagnostics.LastUpdatedAtUtc,
-                ReasonCode = _persistenceCoordinator.FailureReasonCode ??
+                ReasonCode = _lifecycle.FailureReasonCode ??
                              (recoveryCount > 0 ? AiRuntimeStateReasonCodes.RecoveryRequired : null),
                 RedactedMessage = recoveryCount > 0
                     ? $"{recoveryCount} Execution(s) benötigen lokale Recovery-Entscheidung."
@@ -380,6 +392,21 @@ public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
             ? operation(ct)
             : _persistenceCoordinator.RunExclusiveMaintenanceAsync(operation, ct);
 
+    private void ConfigureLifecycle(
+        IAiRuntimeStateStore store,
+        AiRuntimePersistenceCoordinator? persistence)
+    {
+        var maintenanceStore = store as IAiRuntimeStateMaintenanceStore;
+        if (_lifecycle is not null)
+            _lifecycle.DisposeAsync().AsTask().GetAwaiter().GetResult();
+        _lifecycle = new AiRuntimeLifecycle(
+            _composition.Runtime,
+            persistence,
+            maintenanceStore,
+            adapterStart: async token => await _composition.Server.StartAsync(token).ConfigureAwait(false),
+            adapterStop: async token => await _composition.Server.StopAsync(token).ConfigureAwait(false));
+    }
+
     private bool AuthorizeAdministrativeAction(
         string actor, string reason, bool isAdministrator, bool confirmed, string action, out string? error)
     {
@@ -409,6 +436,8 @@ public sealed class AiRuntimeConnectorPanel : IAsyncDisposable
     public async ValueTask DisposeAsync()
     {
         await _composition.Server.StopAsync().ConfigureAwait(false);
+        if (_lifecycle is not null)
+            await _lifecycle.DisposeAsync().ConfigureAwait(false);
         if (_persistenceCoordinator is not null)
             await _persistenceCoordinator.DisposeAsync().ConfigureAwait(false);
     }

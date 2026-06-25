@@ -19,6 +19,8 @@ public static class AiRuntimeStateReasonCodes
     public const string JournalChecksumFailed = "state_journal_checksum_failed";
     public const string JournalEventUnknown = "state_journal_event_unknown";
     public const string ProtectorUnavailable = "state_protector_unavailable";
+    public const string ProtectorKeyMissing = "state_protector_key_missing";
+    public const string ProtectorRotationFailed = "state_protector_rotation_failed";
     public const string PayloadRejected = "state_payload_rejected";
     public const string RecoveryRequired = "state_recovery_required";
     public const string RecoveryForbidden = "state_recovery_forbidden";
@@ -30,6 +32,10 @@ public static class AiRuntimeStateReasonCodes
     public const string RepairNotRequired = "state_repair_not_required";
     public const string PersistenceFailed = "state_persistence_failed";
     public const string OperationConflict = "state_operation_conflict";
+    public const string Backpressure = "state_backpressure";
+    public const string ShutdownIncomplete = "state_shutdown_incomplete";
+    public const string LifecycleInvalidTransition = "state_lifecycle_invalid_transition";
+    public const string ReadinessExpired = "state_readiness_expired";
 }
 
 public enum AiStateStoreOpenMode
@@ -41,11 +47,14 @@ public enum AiStateStoreOpenMode
 public enum AiRuntimeRecoveryStatus
 {
     Disabled,
+    OpeningStore,
     Ready,
     Recovering,
     RecoveryRequired,
     RecoveryFailed,
-    Quarantined
+    Quarantined,
+    Stopping,
+    Stopped
 }
 
 public sealed class AiRuntimeStateDiagnostics
@@ -106,10 +115,14 @@ public sealed class AiStateStoreException : InvalidOperationException
 public sealed class AiRuntimePersistenceOptions
 {
     public bool Enabled { get; set; }
+    public bool UseTypedDeltaWriter { get; set; }
+    public bool RollbackToPhase9CheckpointWriter { get; set; }
+    public bool BackupPhase9CheckpointBeforeMigration { get; set; } = true;
     public long MaxStoreBytes { get; set; } = 100L * 1024 * 1024;
     public int MaxProtectedPayloadBytes { get; set; } = 1024 * 1024;
     public int SnapshotJournalEntryThreshold { get; set; } = 1000;
     public TimeSpan SnapshotInterval { get; set; } = TimeSpan.FromMinutes(10);
+    public TimeSpan WriterBackpressureTimeout { get; set; } = TimeSpan.FromSeconds(30);
     public TimeSpan IdempotencyTtl { get; set; } = TimeSpan.FromHours(24);
     public int MaxIdempotencyEntries { get; set; } = 10_000;
 }

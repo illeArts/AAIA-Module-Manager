@@ -236,6 +236,23 @@ public sealed class AiDurableMutationTransactionCoordinator : IAsyncDisposable
         }
     }
 
+    public async ValueTask EnsureVerifiedSnapshotAsync(CancellationToken ct = default)
+    {
+        ThrowIfUnavailable();
+        await _gate.WaitAsync(ct).ConfigureAwait(false);
+        try
+        {
+            ThrowIfUnavailable();
+            if (LastSequence > 0)
+                await WriteVerifiedSnapshotAndCompactLockedAsync(
+                    _time.GetUtcNow().UtcDateTime, ct, force: true).ConfigureAwait(false);
+        }
+        finally
+        {
+            _gate.Release();
+        }
+    }
+
     public AiDurableOrchestrationSnapshot CreateCurrentSnapshot(DateTime createdAtUtc)
     {
         lock (_stateGate) return _reducer.CreateSnapshot(createdAtUtc);
@@ -251,14 +268,15 @@ public sealed class AiDurableMutationTransactionCoordinator : IAsyncDisposable
 
     private async ValueTask WriteVerifiedSnapshotAndCompactLockedAsync(
         DateTime now,
-        CancellationToken ct)
+        CancellationToken ct,
+        bool force = false)
     {
         AiDurableOrchestrationSnapshot durable;
         long sequence;
         lock (_stateGate)
         {
             sequence = _reducer.LastSequence;
-            if (sequence <= _snapshotSequence) return;
+            if (!force && sequence <= _snapshotSequence) return;
             durable = _reducer.CreateSnapshot(now);
         }
         var payload = JsonSerializer.SerializeToUtf8Bytes(durable, JsonOptions);

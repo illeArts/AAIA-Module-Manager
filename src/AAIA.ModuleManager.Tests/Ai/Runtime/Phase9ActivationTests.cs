@@ -229,14 +229,91 @@ public sealed class Phase9ActivationTests
         Assert.Equal(1, backend.LastFlushedSequence); // Wartungs-Audit wurde checkpointed.
     }
 
+    [Fact]
+    public async Task TypedDeltaWriter_AppendsTypedMutationInsteadOfPhase9Checkpoint()
+    {
+        var runtime = RuntimeWithDurableTaskTool();
+        var backend = new AiInMemoryRuntimeStateStoreBackend("store");
+        await using var coordinator = Coordinator(runtime, backend, options: TypedOptions());
+        Assert.Equal(AiRuntimeRecoveryStatus.Ready, await coordinator.InitializeAsync());
+        var session = Session(runtime);
+
+        var result = await runtime.InvokeToolAsync(
+            session.SessionId, "aaia.task.create", JsonSerializer.SerializeToElement(new { title = "delta" }));
+
+        Assert.True(result.Success);
+        var entries = await ReadJournal(backend);
+        Assert.Contains(entries, entry => entry.EventType == "air.mutation.task.created");
+        Assert.DoesNotContain(entries,
+            entry => entry.EventType == AiRuntimePersistenceCoordinator.CheckpointEventType);
+    }
+
+    [Fact]
+    public async Task TypedDeltaWriter_MigratesPhase9SnapshotAndRecoversMixedDeltaJournal()
+    {
+        var backend = new AiInMemoryRuntimeStateStoreBackend("store");
+        var legacy = Runtime();
+        var legacyTask = legacy.Tasks.Create("legacy");
+        await using (var coordinator = Coordinator(legacy, backend))
+        {
+            await coordinator.InitializeAsync();
+            await coordinator.PersistMutationAsync("legacy.task.created");
+        }
+
+        var migrated = RuntimeWithDurableTaskTool();
+        await using (var coordinator = Coordinator(migrated, backend, options: TypedOptions()))
+        {
+            Assert.Equal(AiRuntimeRecoveryStatus.Ready, await coordinator.InitializeAsync());
+            Assert.Equal(legacyTask.Id, Assert.Single(migrated.Tasks.List()).Id);
+            var session = Session(migrated);
+            var result = await migrated.InvokeToolAsync(
+                session.SessionId, "aaia.task.create", JsonSerializer.SerializeToElement(new { title = "new" }));
+            Assert.True(result.Success);
+        }
+
+        var restarted = Runtime();
+        await using var recovery = Coordinator(restarted, backend, options: TypedOptions());
+        Assert.Equal(AiRuntimeRecoveryStatus.Ready, await recovery.InitializeAsync());
+
+        Assert.Equal(new[] { "legacy", "new" },
+            restarted.Tasks.List().Select(task => task.Title).OrderBy(title => title).ToArray());
+        var manifest = await ReadManifest(backend);
+        Assert.True(manifest!.FeatureFlags["typedDeltaJournal"]);
+    }
+
+    [Fact]
+    public async Task RollbackSwitch_ForcesPhase9CheckpointWriter()
+    {
+        var runtime = RuntimeWithDurableTaskTool();
+        var backend = new AiInMemoryRuntimeStateStoreBackend("store");
+        await using var coordinator = Coordinator(runtime, backend, options: TypedOptions(rollback: true));
+        await coordinator.InitializeAsync();
+        var session = Session(runtime);
+
+        var result = await runtime.InvokeToolAsync(
+            session.SessionId, "aaia.task.create", JsonSerializer.SerializeToElement(new { title = "rollback" }));
+
+        Assert.True(result.Success);
+        Assert.Contains(await ReadJournal(backend),
+            entry => entry.EventType == AiRuntimePersistenceCoordinator.CheckpointEventType);
+    }
+
     private static AiRuntimePersistenceCoordinator Coordinator(
         AiRuntimeService runtime,
         AiInMemoryRuntimeStateStoreBackend backend,
-        bool enabled = true)
+        bool enabled = true,
+        AiRuntimePersistenceOptions? options = null)
         => new(runtime, new AiInMemoryRuntimeStateStore(backend), new PassthroughProtector(),
-            enabled ? EnabledOptions() : new AiRuntimePersistenceOptions(), "runtime");
+            options ?? (enabled ? EnabledOptions() : new AiRuntimePersistenceOptions()), "runtime");
 
     private static AiRuntimePersistenceOptions EnabledOptions() => new() { Enabled = true };
+
+    private static AiRuntimePersistenceOptions TypedOptions(bool rollback = false) => new()
+    {
+        Enabled = true,
+        UseTypedDeltaWriter = true,
+        RollbackToPhase9CheckpointWriter = rollback
+    };
 
     private static AiOrchestrationPersistenceService Persistence(AiRuntimeService runtime)
         => new(runtime, new PassthroughProtector(), "store");
@@ -277,6 +354,24 @@ public sealed class Phase9ActivationTests
         RecordType = type,
         RecordId = id
     };
+
+    private static async Task<IReadOnlyList<AiRuntimeJournalEntry>> ReadJournal(
+        AiInMemoryRuntimeStateStoreBackend backend)
+    {
+        await using var reader = await new AiInMemoryRuntimeStateStore(backend)
+            .OpenAsync(AiStateStoreOpenMode.ReadOnly, "reader");
+        var entries = new List<AiRuntimeJournalEntry>();
+        await foreach (var entry in reader.ReadJournalAsync(0)) entries.Add(entry);
+        return entries;
+    }
+
+    private static async Task<AiRuntimeStateManifest?> ReadManifest(
+        AiInMemoryRuntimeStateStoreBackend backend)
+    {
+        await using var reader = await new AiInMemoryRuntimeStateStore(backend)
+            .OpenAsync(AiStateStoreOpenMode.ReadOnly, "reader");
+        return await reader.LoadManifestAsync();
+    }
 
     private sealed class PassthroughProtector : IAiStateProtector
     {

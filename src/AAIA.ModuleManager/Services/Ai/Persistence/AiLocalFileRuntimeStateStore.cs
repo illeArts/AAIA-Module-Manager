@@ -915,10 +915,14 @@ public sealed class AiLocalFileRuntimeStateStore : IAiRuntimeStateStore, IAiRunt
     private static AiRuntimePersistenceOptions CloneOptions(AiRuntimePersistenceOptions options) => new()
     {
         Enabled = options.Enabled,
+        UseTypedDeltaWriter = options.UseTypedDeltaWriter,
+        RollbackToPhase9CheckpointWriter = options.RollbackToPhase9CheckpointWriter,
+        BackupPhase9CheckpointBeforeMigration = options.BackupPhase9CheckpointBeforeMigration,
         MaxStoreBytes = options.MaxStoreBytes,
         MaxProtectedPayloadBytes = options.MaxProtectedPayloadBytes,
         SnapshotJournalEntryThreshold = options.SnapshotJournalEntryThreshold,
         SnapshotInterval = options.SnapshotInterval,
+        WriterBackpressureTimeout = options.WriterBackpressureTimeout,
         IdempotencyTtl = options.IdempotencyTtl,
         MaxIdempotencyEntries = options.MaxIdempotencyEntries
     };
