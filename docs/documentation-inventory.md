@@ -176,6 +176,14 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `docs/.release-candidate/execution-audit.json` | lokal erzeugtes Audit nach Adapterlauf; nicht versioniert |
 | `phases/phase-11-5-12-final.md` | Abschlussnachweis für Controlled First Publication / AAIAM Import Dry-Run |
 
+## Neue 11.5.13-Stabilisierung- und Handoff-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `handoff/phase-11-5-documentation-pipeline-handoff.md` | kompakter Übergabestand für 11.5.1 bis 11.5.12 |
+| `website-help/release-readiness.md` | Commit-/PR-Readiness, lokale Artefaktgrenzen und offene Freigaben |
+| `phases/phase-11-5-13-final.md` | Abschlussnachweis für Documentation Pipeline Stabilization, Commit Readiness & Handoff |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,

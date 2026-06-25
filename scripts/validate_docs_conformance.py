@@ -45,6 +45,7 @@ SCANNED_DOC_DIRS = [
     "architecture",
     "developer-guide",
     "glossary",
+    "handoff",
     "help",
     "export",
     "phases",
