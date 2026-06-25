@@ -65,7 +65,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.5 | AAIAM Knowledge Sync Preparation & Help Runtime Integration | umgesetzt |
 | 11.5.6 | Documentation Release Conformance & Export Pipeline Preparation | umgesetzt |
 | 11.5.7 | Export Pipeline Preparation | umgesetzt |
-| 11.5.8 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe | geplant |
+| 11.5.8 | Documentation Output Pipeline Dry Run | umgesetzt |
+| 11.5.9 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -127,3 +128,10 @@ Phase 11.5.7 ergänzt ein Exportmanifest und JSON-Schemas für Help-Index, AAIAM
 In-App-Kontextmap, Legacy-Aliase und Exportmanifest. Der Conformance-Guard prüft zusätzlich
 Exportquellen und verhindert aktive Status wie deployed, generated oder imported. Die Phase
 bereitet Exportpfade vor, führt aber keine Ausgabe aus.
+
+## 15. Stand nach Phase 11.5.8
+
+Phase 11.5.8 ergänzt einen lokalen Dry-Run-Exporter. Er liest das Exportmanifest, prüft
+Quellpfade und erzeugt lokale Vorschau-Artefakte unter `docs/.preview/` für Website,
+PDF-Source, In-App-Hilfe und AAIAM-Import. `docs/.preview/` ist nicht kanonisch, wird nicht
+versioniert und darf keine produktiven Status wie deployed, generated oder imported behaupten.

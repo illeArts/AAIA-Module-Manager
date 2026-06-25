@@ -5,7 +5,7 @@
 > Scope: Website-, PDF-, In-App- und AAIAM-Exportplanung
 
 Phase 11.5.7 bereitet Export-Artefakte vor, ohne einen Ausgabekanal produktiv zu aktivieren.
-Markdown bleibt die kanonische Quelle.
+Phase 11.5.8 ergänzt einen lokalen Dry-Run-Exporter. Markdown bleibt die kanonische Quelle.
 
 ## Exportziele
 
@@ -23,6 +23,23 @@ Markdown bleibt die kanonische Quelle.
 
 Das zentrale Exportmanifest liegt unter [`../export/export-manifest.json`](../export/export-manifest.json).
 Es nennt Exportziel, Typ, Status, Route und kanonische Quellen.
+
+## Lokaler Dry Run
+
+Der Dry Run wird lokal ausgeführt:
+
+```powershell
+python docs/scripts/export_docs_dry_run.py .
+```
+
+Er erzeugt ausschließlich Vorschau-Artefakte unter `docs/.preview/`:
+
+- `website/` — einfache statische HTML-Vorschau aus Markdown,
+- `pdf-source/` — kombinierte Markdown-Quellen für spätere PDF-Erzeugung,
+- `in-app/help-contexts.json` — Vorschaupaket für kontextsensitive Hilfe,
+- `aaiam/aaiam-import-preview.json` — Vorschau eines AAIAM-Importpakets ohne DB-Schreibzugriff.
+
+`docs/.preview/` ist nicht Teil der kanonischen Quelle und wird nicht eingecheckt.
 
 ## Schemas
 

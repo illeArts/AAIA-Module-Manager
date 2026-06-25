@@ -127,6 +127,8 @@ def assert_exists(errors: list[str], root: Path, path: Path, context: str) -> No
 
 def validate_markdown_links(root: Path, errors: list[str]) -> None:
     for md in (root / "docs").rglob("*.md"):
+        if ".preview" in md.parts:
+            continue
         text = md.read_text(encoding="utf-8", errors="replace")
         for match in MARKDOWN_LINK_RE.finditer(text):
             target = match.group(1)
@@ -231,6 +233,58 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
                 errors.append(f"export manifest entry missing '{key}': {export.get('id', '<unknown>')}")
 
 
+def validate_preview_artifacts(root: Path, errors: list[str]) -> None:
+    preview_root = root / "docs/.preview"
+    if not preview_root.exists():
+        return
+
+    def validate_preview_json_value(path: Path, value: object, location: str) -> None:
+        if isinstance(value, dict):
+            status = value.get("status")
+            if status in {"deployed", "generated", "imported"}:
+                errors.append(f"preview artifact has active status {status}: {path} at {location}.status")
+            if value.get("dbWrite") is True:
+                errors.append(f"preview artifact enables DB write: {path} at {location}.dbWrite")
+            for key, child in value.items():
+                validate_preview_json_value(path, child, f"{location}.{key}")
+        elif isinstance(value, list):
+            for index, child in enumerate(value):
+                validate_preview_json_value(path, child, f"{location}[{index}]")
+
+    required = [
+        preview_root / "export-plan.json",
+        preview_root / "in-app/help-contexts.json",
+        preview_root / "aaiam/aaiam-import-preview.json",
+    ]
+    for path in required:
+        if not path.exists():
+            errors.append(f"preview missing required artifact: {path}")
+
+    for path in preview_root.rglob("*"):
+        if not path.is_file():
+            continue
+        if path.suffix.lower() == ".json":
+            try:
+                data = json.loads(path.read_text(encoding="utf-8"))
+            except Exception as exc:  # noqa: BLE001
+                errors.append(f"preview JSON invalid {path}: {exc}")
+                continue
+            validate_preview_json_value(path, data, "$")
+
+    for path in preview_root.rglob("*"):
+        if path.is_file() and path.suffix.lower() in {".md", ".json", ".html"}:
+            text = path.read_text(encoding="utf-8", errors="replace")
+            for pattern, reason in SECRET_PATTERNS:
+                if pattern.search(text):
+                    errors.append(f"{path.relative_to(root)}: possible secret in preview ({reason})")
+            for pattern, reason in PRIVATE_PATH_PATTERNS:
+                if pattern.search(text):
+                    errors.append(f"{path.relative_to(root)}: private path in preview ({reason})")
+            for active_word in ("Status: deployed", "Status: generated", "Status: imported"):
+                if active_word in text:
+                    errors.append(f"{path.relative_to(root)}: forbidden active output claim '{active_word}'")
+
+
 def main() -> int:
     root = Path(sys.argv[1] if len(sys.argv) > 1 else ".").resolve()
     errors: list[str] = []
@@ -239,6 +293,7 @@ def main() -> int:
     validate_markdown_links(root, errors)
     validate_json_sources(root, errors)
     validate_forbidden_text(root, errors)
+    validate_preview_artifacts(root, errors)
 
     if errors:
         print("DOC CONFORMANCE: FAILED")

@@ -18,6 +18,7 @@ Neue Dateien werden aus [`PHASE_FINAL_TEMPLATE.md`](PHASE_FINAL_TEMPLATE.md) erz
 - [Phase 11.5.5 — AAIAM Knowledge Sync Preparation & Help Runtime Integration](phase-11-5-5-final.md)
 - [Phase 11.5.6 — Documentation Release Conformance & Export Pipeline Preparation](phase-11-5-6-final.md)
 - [Phase 11.5.7 — Export Pipeline Preparation](phase-11-5-7-final.md)
+- [Phase 11.5.8 — Documentation Output Pipeline Dry Run](phase-11-5-8-final.md)
 
 Bestehende ältere Abschluss- und Statusdokumente liegen vorerst weiterhin im Wurzelverzeichnis
 `docs/`. Sie werden kontrolliert inventarisiert; bloßes Verschieben ohne Link- und Quellenprüfung

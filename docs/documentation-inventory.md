@@ -128,6 +128,15 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `website-help/export-pipeline.md` | menschliche Beschreibung der vorbereiteten Exportpipeline |
 | `phases/phase-11-5-7-final.md` | Abschlussnachweis für Export Pipeline Preparation |
 
+## Neue 11.5.8-Dry-Run-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `docs/scripts/export_docs_dry_run.py` | lokaler Dry-Run-Exporter für Website-, PDF-Source-, In-App- und AAIAM-Preview |
+| `.gitignore` | schließt `docs/.preview/` als lokale Vorschau aus |
+| `docs/.preview/` | lokal erzeugte Vorschau, nicht kanonisch und nicht versioniert |
+| `phases/phase-11-5-8-final.md` | Abschlussnachweis für Documentation Output Pipeline Dry Run |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
@@ -136,4 +145,4 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,
 - PDF-Generierung und In-App-Ausgabe,
-- echte Website-/PDF-/In-App-Exportausführung.
+- echte Website-/PDF-/In-App-Exportveröffentlichung.
