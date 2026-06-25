@@ -22,3 +22,4 @@ und Deployment erfolgen im zuständigen Website-Projekt, nicht in diesem Foundat
 - [In-App-Hilfe-Mapping](in-app-help-map.md)
 - [PDF- und Release-Paket-Struktur](pdf-release-package.md)
 - [AAIAM Knowledge Sync](aaiam-knowledge-sync.md)
+- [Export Pipeline Preparation](export-pipeline.md)

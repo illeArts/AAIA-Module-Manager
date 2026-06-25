@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aaiagent.de/schemas/legacy-aliases.schema.json",
+  "title": "AAIA Legacy Help Aliases",
+  "type": "object",
+  "required": ["version", "checkedAt", "status", "aliases"],
+  "properties": {
+    "version": { "type": "string" },
+    "checkedAt": { "type": "string" },
+    "status": { "type": "string", "enum": ["prepared-not-deployed"] },
+    "aliases": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["legacyPath", "targetRoute", "sourcePath", "targetSourcePath", "status"],
+        "properties": {
+          "legacyPath": { "type": "string" },
+          "targetRoute": { "type": "string" },
+          "sourcePath": { "type": "string" },
+          "targetSourcePath": { "type": "string" },
+          "status": { "type": "string", "enum": ["legacy-source"] }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

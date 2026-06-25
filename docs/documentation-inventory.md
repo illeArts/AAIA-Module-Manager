@@ -115,6 +115,19 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `.github/workflows/build.yml` | führt den Documentation Conformance Guard im bestehenden Build aus |
 | `phases/phase-11-5-6-final.md` | Abschlussnachweis für Dokumentations-Conformance |
 
+## Neue 11.5.7-Export-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `export/export-manifest.json` | zentrale Exportplanung für Website, Handbücher, Troubleshooting, Glossar und AAIAM |
+| `schemas/help-index.schema.json` | dokumentiertes Schema für den Help-Suchindex |
+| `schemas/aaiam-import-map.schema.json` | dokumentiertes Schema für AAIAM-Importverträge |
+| `schemas/in-app-context-map.schema.json` | dokumentiertes Schema für In-App-Hilfe-Kontexte |
+| `schemas/legacy-aliases.schema.json` | dokumentiertes Schema für Legacy-Aliase |
+| `schemas/export-manifest.schema.json` | dokumentiertes Schema für Exportplanung |
+| `website-help/export-pipeline.md` | menschliche Beschreibung der vorbereiteten Exportpipeline |
+| `phases/phase-11-5-7-final.md` | Abschlussnachweis für Export Pipeline Preparation |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
@@ -122,6 +135,5 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 - tatsächliche Suchimplementierung,
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,
-- Website-/PDF-/In-App-Exportpipeline,
 - PDF-Generierung und In-App-Ausgabe,
-- automatische Linkprüfung als Build-Schritt.
+- echte Website-/PDF-/In-App-Exportausführung.

@@ -64,7 +64,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.4 | Website-Routen, Suchindex, In-App-Mapping und PDF-/Release-Struktur vorbereiten | umgesetzt |
 | 11.5.5 | AAIAM Knowledge Sync Preparation & Help Runtime Integration | umgesetzt |
 | 11.5.6 | Documentation Release Conformance & Export Pipeline Preparation | umgesetzt |
-| 11.5.7 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe | geplant |
+| 11.5.7 | Export Pipeline Preparation | umgesetzt |
+| 11.5.8 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -119,3 +120,10 @@ abgelöste Doku-Pfade, Signatur-Dublettenbegriffe sowie offensichtliche Secret- 
 Pfad-Muster. Der Guard ist in den bestehenden Build-Workflow eingebunden. Es findet weiterhin
 kein Website-Deployment, keine PDF-Generierung, keine In-App-Hilfe-UI und keine AAIAM-DB-
 Befüllung statt.
+
+## 14. Stand nach Phase 11.5.7
+
+Phase 11.5.7 ergänzt ein Exportmanifest und JSON-Schemas für Help-Index, AAIAM-Importmap,
+In-App-Kontextmap, Legacy-Aliase und Exportmanifest. Der Conformance-Guard prüft zusätzlich
+Exportquellen und verhindert aktive Status wie deployed, generated oder imported. Die Phase
+bereitet Exportpfade vor, führt aber keine Ausgabe aus.

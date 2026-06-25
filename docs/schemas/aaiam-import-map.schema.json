@@ -1,0 +1,36 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aaiagent.de/schemas/aaiam-import-map.schema.json",
+  "title": "AAIAM Import Map",
+  "type": "object",
+  "required": ["schemaVersion", "checkedAt", "generatedFrom", "canonicalSource", "status", "entries"],
+  "properties": {
+    "schemaVersion": { "type": "integer" },
+    "checkedAt": { "type": "string" },
+    "generatedFrom": { "type": "string", "const": "docs" },
+    "canonicalSource": { "type": "string", "const": "markdown" },
+    "status": { "type": "string", "enum": ["prepared-not-imported"] },
+    "entries": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "sourcePath", "type", "audience", "status", "tags", "reasonCodes", "errorCodes", "relatedTerms", "importAllowed", "requiresRedaction"],
+        "properties": {
+          "id": { "type": "string" },
+          "sourcePath": { "type": "string" },
+          "type": { "type": "string" },
+          "audience": { "type": "array", "items": { "type": "string" } },
+          "status": { "type": "string", "enum": ["canonical", "historical", "deprecated", "draft"] },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "reasonCodes": { "type": "array", "items": { "type": "string" } },
+          "errorCodes": { "type": "array", "items": { "type": "string" } },
+          "relatedTerms": { "type": "array", "items": { "type": "string" } },
+          "importAllowed": { "type": "boolean" },
+          "requiresRedaction": { "type": "boolean" }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

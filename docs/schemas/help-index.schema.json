@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aaiagent.de/schemas/help-index.schema.json",
+  "title": "AAIA Help Index",
+  "type": "object",
+  "required": ["version", "checkedAt", "status", "truthRule", "articles"],
+  "properties": {
+    "version": { "type": "string" },
+    "checkedAt": { "type": "string" },
+    "status": { "type": "string", "enum": ["prepared-not-deployed"] },
+    "truthRule": { "type": "string" },
+    "articles": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "title", "route", "sourcePath", "sourceStatus", "audience", "tags", "relatedArticleIds"],
+        "properties": {
+          "id": { "type": "string" },
+          "title": { "type": "string" },
+          "route": { "type": "string" },
+          "sourcePath": { "type": "string" },
+          "sourceStatus": { "type": "string", "enum": ["canonical", "legacy-source"] },
+          "audience": { "type": "array", "items": { "type": "string" } },
+          "tags": { "type": "array", "items": { "type": "string" } },
+          "relatedArticleIds": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

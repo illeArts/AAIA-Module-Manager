@@ -28,6 +28,12 @@ REQUIRED_JSON = [
     "docs/help/aaiam-import-map.json",
     "docs/help/in-app-context-map.json",
     "docs/website-help/legacy-aliases.json",
+    "docs/export/export-manifest.json",
+    "docs/schemas/help-index.schema.json",
+    "docs/schemas/aaiam-import-map.schema.json",
+    "docs/schemas/in-app-context-map.schema.json",
+    "docs/schemas/legacy-aliases.schema.json",
+    "docs/schemas/export-manifest.schema.json",
 ]
 
 SCANNED_DOC_DIRS = [
@@ -36,10 +42,12 @@ SCANNED_DOC_DIRS = [
     "developer-guide",
     "glossary",
     "help",
+    "export",
     "phases",
     "troubleshooting",
     "user-manual",
     "website-help",
+    "schemas",
 ]
 
 MARKDOWN_LINK_RE = re.compile(r"\[[^\]]+\]\(([^)]+)\)")
@@ -160,6 +168,14 @@ def validate_json_sources(root: Path, errors: list[str]) -> None:
             if source:
                 assert_exists(errors, root, (root / "docs" / source).resolve(), f"in-app context {context.get('contextId')}")
 
+    export_manifest = load_json(root, "docs/export/export-manifest.json")
+    for export in export_manifest.get("exports", []):
+        status = export.get("status", "")
+        if status in {"deployed", "generated", "imported"}:
+            errors.append(f"export manifest {export.get('id')}: forbidden active status '{status}'")
+        for source in export.get("sources", []):
+            assert_exists(errors, root, (root / "docs" / source).resolve(), f"export manifest {export.get('id')}")
+
 
 def validate_forbidden_text(root: Path, errors: list[str]) -> None:
     for path in iter_text_files(root):
@@ -200,6 +216,19 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
         for key in ("contextId", "title", "primaryHelp", "related", "reasonCodes", "audience"):
             if key not in context:
                 errors.append(f"in-app context missing '{key}': {context.get('contextId', '<unknown>')}")
+
+    export_manifest = load_json(root, "docs/export/export-manifest.json")
+    for key in ("schemaVersion", "checkedAt", "status", "canonicalSource", "exports"):
+        if key not in export_manifest:
+            errors.append(f"export manifest missing '{key}'")
+    if export_manifest.get("status") != "prepared-not-deployed":
+        errors.append("export manifest status must remain 'prepared-not-deployed'")
+    if export_manifest.get("canonicalSource") != "markdown":
+        errors.append("export manifest canonicalSource must remain 'markdown'")
+    for export in export_manifest.get("exports", []):
+        for key in ("id", "type", "status", "routeBase", "sources"):
+            if key not in export:
+                errors.append(f"export manifest entry missing '{key}': {export.get('id', '<unknown>')}")
 
 
 def main() -> int:

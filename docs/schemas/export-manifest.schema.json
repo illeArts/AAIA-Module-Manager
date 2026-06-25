@@ -1,0 +1,32 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aaiagent.de/schemas/export-manifest.schema.json",
+  "title": "AAIA Documentation Export Manifest",
+  "type": "object",
+  "required": ["schemaVersion", "checkedAt", "status", "canonicalSource", "exports"],
+  "properties": {
+    "schemaVersion": { "type": "integer" },
+    "checkedAt": { "type": "string" },
+    "status": { "type": "string", "enum": ["prepared-not-deployed"] },
+    "canonicalSource": { "type": "string", "const": "markdown" },
+    "exports": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["id", "type", "status", "routeBase", "sources"],
+        "properties": {
+          "id": { "type": "string" },
+          "type": { "type": "string", "enum": ["website", "manual", "help", "reference", "knowledge-sync"] },
+          "status": {
+            "type": "string",
+            "enum": ["prepared-not-deployed", "prepared-not-generated", "prepared-not-imported"]
+          },
+          "routeBase": { "type": ["string", "null"] },
+          "sources": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

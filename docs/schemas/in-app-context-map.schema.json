@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://aaiagent.de/schemas/in-app-context-map.schema.json",
+  "title": "AAIA In-App Context Map",
+  "type": "object",
+  "required": ["schemaVersion", "checkedAt", "status", "contexts"],
+  "properties": {
+    "schemaVersion": { "type": "integer" },
+    "checkedAt": { "type": "string" },
+    "status": { "type": "string", "enum": ["prepared-not-implemented"] },
+    "contexts": {
+      "type": "array",
+      "items": {
+        "type": "object",
+        "required": ["contextId", "title", "primaryHelp", "related", "reasonCodes", "audience"],
+        "properties": {
+          "contextId": { "type": "string" },
+          "title": { "type": "string" },
+          "primaryHelp": { "type": "string" },
+          "related": { "type": "array", "items": { "type": "string" } },
+          "reasonCodes": { "type": "array", "items": { "type": "string" } },
+          "audience": { "type": "array", "items": { "type": "string" } }
+        },
+        "additionalProperties": false
+      }
+    }
+  },
+  "additionalProperties": false
+}

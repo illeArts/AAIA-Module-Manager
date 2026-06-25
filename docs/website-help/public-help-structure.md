@@ -65,6 +65,8 @@ kanonischen Markdown-Quellen und verweist auf Version, Zielgruppe und Status.
 - [In-App-Hilfe-Mapping](in-app-help-map.md)
 - [PDF- und Release-Paket-Struktur](pdf-release-package.md)
 - [AAIAM Knowledge Sync](aaiam-knowledge-sync.md)
+- [Export Pipeline Preparation](export-pipeline.md)
 - Suchindex: [`../help/index.json`](../help/index.json)
 - AAIAM-Importmap: [`../help/aaiam-import-map.json`](../help/aaiam-import-map.json)
 - Error-Code-Referenz: [`../help/error-code-reference.md`](../help/error-code-reference.md)
+- Exportmanifest: [`../export/export-manifest.json`](../export/export-manifest.json)

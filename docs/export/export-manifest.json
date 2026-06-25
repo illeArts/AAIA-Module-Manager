@@ -1,0 +1,106 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-06-25",
+  "status": "prepared-not-deployed",
+  "canonicalSource": "markdown",
+  "exports": [
+    {
+      "id": "website-help",
+      "type": "website",
+      "status": "prepared-not-deployed",
+      "routeBase": "/help",
+      "sources": [
+        "website-help/routing-map.md",
+        "website-help/public-help-structure.md",
+        "help/index.json",
+        "website-help/legacy-aliases.json"
+      ]
+    },
+    {
+      "id": "user-manual",
+      "type": "manual",
+      "status": "prepared-not-generated",
+      "routeBase": "/handbuch",
+      "sources": [
+        "user-manual/index.md",
+        "user-manual/00-was-ist-aaia.md",
+        "user-manual/01-module-manager-einstieg.md",
+        "user-manual/02-projekt-erstellen.md",
+        "user-manual/03-validierung-build-paketierung.md",
+        "user-manual/04-rollen-und-rechte.md",
+        "user-manual/05-aaias-aaiaac-verbinden.md",
+        "user-manual/10-sicherheit-und-laufzeitstatus.md"
+      ]
+    },
+    {
+      "id": "developer-guide",
+      "type": "manual",
+      "status": "prepared-not-generated",
+      "routeBase": "/docs",
+      "sources": [
+        "developer-guide/index.md",
+        "developer-guide/00-was-ist-etw.md",
+        "developer-guide/01-module-und-plugin-entwicklung.md",
+        "developer-guide/03-validierung-build-paketierung.md",
+        "developer-guide/04-manifest-und-permissions.md",
+        "developer-guide/04-signatur-und-marketplace-release.md",
+        "developer-guide/05-rollen-rechte-und-verantwortung.md",
+        "developer-guide/06-signatur-und-trust-level.md",
+        "developer-guide/07-marketplace-upload.md",
+        "developer-guide/08-ki-handoff-und-connector.md",
+        "developer-guide/09-fehleranalyse-und-diagnose.md",
+        "developer-guide/10-sicherheit-und-laufzeitstatus.md",
+        "developer-guide/10-air-runtime-und-tools.md",
+        "developer-guide/runtime-durability.md"
+      ]
+    },
+    {
+      "id": "admin-guide",
+      "type": "manual",
+      "status": "prepared-not-generated",
+      "routeBase": "/docs/admin",
+      "sources": [
+        "admin-guide/index.md",
+        "admin-guide/00-aaias-einrichten.md",
+        "admin-guide/01-rollen-und-betriebsgrenzen.md",
+        "admin-guide/02-persistenz-backup-recovery.md",
+        "admin-guide/03-logs-audit-monitoring.md",
+        "admin-guide/04-updates-und-release-betrieb.md",
+        "admin-guide/10-runtime-betrieb-und-recovery.md"
+      ]
+    },
+    {
+      "id": "troubleshooting",
+      "type": "help",
+      "status": "prepared-not-generated",
+      "routeBase": "/help",
+      "sources": [
+        "troubleshooting/index.md",
+        "troubleshooting/runtime-state-und-air.md",
+        "help/error-code-reference.md"
+      ]
+    },
+    {
+      "id": "glossary",
+      "type": "reference",
+      "status": "prepared-not-generated",
+      "routeBase": "/help",
+      "sources": [
+        "glossary/index.md",
+        "glossary/term-status.md"
+      ]
+    },
+    {
+      "id": "aaiam-import",
+      "type": "knowledge-sync",
+      "status": "prepared-not-imported",
+      "routeBase": null,
+      "sources": [
+        "website-help/aaiam-knowledge-sync.md",
+        "help/aaiam-import-map.json",
+        "help/in-app-context-map.json",
+        "help/error-code-reference.md"
+      ]
+    }
+  ]
+}
