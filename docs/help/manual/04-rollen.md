@@ -26,7 +26,7 @@ Ein Käufer hat ein bestimmtes Modul erworben. Die Lizenz wird zentral verwaltet
 
 ### 🏗️ ETW (Entwickler)
 
-ETW steht für **Entwickler-Trusted-Workspace** — das offizielle Entwickler-Konto. Ein ETW-Entwickler hat den Module Manager, einen Entwicklerschlüssel (ETW-Schlüssel) und kann Module erstellen und verkaufen.
+ETW bezeichnet die offizielle Entwickler-/Erstellerrolle im AAIA-Erweiterungs- und Marketplace-Prozess. Die ausgeschriebene Langform ist im aktuellen Repository noch nicht verbindlich belegt und wird deshalb nicht erfunden. Ein ETW-Entwickler hat den Module Manager, einen Entwicklerschlüssel (ETW-Schlüssel) und kann Module erstellen und verkaufen.
 
 **Kann:** Module entwickeln, signieren, hochladen und verkaufen. Lizenzen verwalten. Käufer einsehen.  
 **Kann nicht:** Fremde Module einsehen oder verändern. Marketplace-Entscheidungen treffen.

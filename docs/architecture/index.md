@@ -6,6 +6,7 @@ verbindliche Systemgrenzen; Bedienungsanleitungen gehören in die jeweiligen Han
 ## Einstieg
 
 - [AAIA-Gesamtarchitektur](00-aaia-gesamtarchitektur.md)
+- [AIR-State-Architektur](air-runtime-state.md)
 - AIR-Architektur — siehe vorerst [`../air/air-platform-split.md`](../air/air-platform-split.md)
 - Runtime-Lifecycle — geplant
 - Sicherheitskette — geplant

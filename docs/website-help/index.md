@@ -16,3 +16,9 @@ zeigen. Umsetzung
 und Deployment erfolgen im zuständigen Website-Projekt, nicht in diesem Foundation-Checkpoint.
 
 - [Kuratierter Handbuch-Einstieg](handbuch-index.md)
+- [Public Help Structure](public-help-structure.md)
+- [Public Help Routing Map](routing-map.md)
+- [Legacy-Aliase](legacy-aliases.json)
+- [In-App-Hilfe-Mapping](in-app-help-map.md)
+- [PDF- und Release-Paket-Struktur](pdf-release-package.md)
+- [AAIAM Knowledge Sync](aaiam-knowledge-sync.md)

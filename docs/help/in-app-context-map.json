@@ -1,0 +1,50 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-06-25",
+  "status": "prepared-not-implemented",
+  "contexts": [
+    {
+      "contextId": "module-manager.marketplace-upload",
+      "title": "Marketplace-Upload",
+      "primaryHelp": "developer-guide/07-marketplace-upload.md",
+      "related": [
+        "developer-guide/06-signatur-und-trust-level.md",
+        "developer-guide/03-validierung-build-paketierung.md",
+        "help/error-code-reference.md"
+      ],
+      "reasonCodes": [],
+      "audience": ["developer"]
+    },
+    {
+      "contextId": "module-manager.connector",
+      "title": "KI-Handoff und Connector",
+      "primaryHelp": "developer-guide/08-ki-handoff-und-connector.md",
+      "related": [
+        "developer-guide/09-fehleranalyse-und-diagnose.md",
+        "developer-guide/10-sicherheit-und-laufzeitstatus.md"
+      ],
+      "reasonCodes": [],
+      "audience": ["developer", "maintainer"]
+    },
+    {
+      "contextId": "air.runtime-state",
+      "title": "Runtime-State und AIR-Fehler",
+      "primaryHelp": "troubleshooting/runtime-state-und-air.md",
+      "related": [
+        "admin-guide/10-runtime-betrieb-und-recovery.md",
+        "developer-guide/runtime-durability.md",
+        "architecture/air-runtime-state.md",
+        "help/error-code-reference.md"
+      ],
+      "reasonCodes": [
+        "state_backpressure",
+        "state_shutdown_incomplete",
+        "state_protector_key_missing",
+        "state_protector_rotation_failed",
+        "state_lifecycle_invalid_transition",
+        "state_readiness_expired"
+      ],
+      "audience": ["developer", "admin", "support"]
+    }
+  ]
+}

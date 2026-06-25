@@ -14,5 +14,11 @@ Sicherheitsprüfungen dürfen zur Fehlerbehebung nicht deaktiviert werden.
 ## Vorhandene Themen
 
 Die bisherigen Artikel liegen unter [`../help/troubleshooting/`](../help/troubleshooting/):
-Build, ETW-Signatur, Lizenzen, Marketplace-Upload und AAIAS-Verbindung. Eine zentrale,
-versionierte Fehlercode-Referenz folgt in 11.5.2.
+Build, ETW-Signatur, Lizenzen, Marketplace-Upload und AAIAS-Verbindung.
+
+## Strukturierte Fehlerleitfäden
+
+- [Runtime-State und AIR-Fehler](runtime-state-und-air.md)
+
+Eine vollständige, versionierte Fehlercode-Referenz bleibt offen und folgt in einem späteren
+Dokumentationsinkrement.
