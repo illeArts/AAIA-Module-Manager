@@ -166,10 +166,20 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `docs/scripts/execute_docs_release_candidate.py` | lokaler Execution-Adapter; prüft Gate, Checklist, Hashes und Targets |
 | `phases/phase-11-5-11-final.md` | Abschlussnachweis für Approved Release Execution Adapter |
 
+## Neue 11.5.12-Controlled-Publication-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `website-help/controlled-first-publication.md` | Spezifikation für kontrollierten Erstlauf gegen Staging-/Dry-Run-Ziele |
+| `export/release-execution-plan.json` | erweitert um Target-Modi, Fail-Closed-Gründe und Staging-/Dry-Run-Grenzen |
+| `docs/scripts/execute_docs_release_candidate.py` | erweitert um Target-Auswahl, Staging-Only, Gate-Pflicht und Audit-Ausgabe |
+| `docs/.release-candidate/execution-audit.json` | lokal erzeugtes Audit nach Adapterlauf; nicht versioniert |
+| `phases/phase-11-5-12-final.md` | Abschlussnachweis für Controlled First Publication / AAIAM Import Dry-Run |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
-- kontrollierter First-Publication-/AAIAM-Import-Dry-Run nach manueller Freigabe,
+- echte Website-Staging-Review nach manueller Freigabe,
 - tatsächliche Suchimplementierung,
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,

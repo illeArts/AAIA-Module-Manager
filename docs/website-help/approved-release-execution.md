@@ -58,3 +58,14 @@ blockiert ist, zum Beispiel `aaiam_library_unavailable`.
 
 Der Ausführungsplan liegt unter [`../export/release-execution-plan.json`](../export/release-execution-plan.json).
 Initial bleibt `executionStatus` auf `blocked`, und alle Targets bleiben deaktiviert.
+
+## Kontrollierter Erstlauf
+
+Phase 11.5.12 erweitert den Adapter um kontrollierte Zielmodi:
+
+- Website bleibt `staging`,
+- PDF bleibt lokale Finalisierung,
+- In-App-Hilfe bleibt Paket ohne Aktivierung,
+- AAIAM bleibt `dry_run` oder fail-closed.
+
+Details stehen in [`controlled-first-publication.md`](controlled-first-publication.md).

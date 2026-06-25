@@ -287,7 +287,7 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
     if execution_plan.get("executionAllowed") is True and gate.get("gateStatus") != "approved":
         errors.append("release execution plan executionAllowed=true requires approved gate")
     for target in execution_plan.get("targets", []):
-        for key in ("id", "enabled", "requiredGateFlag", "dryRunSupported", "executionAllowed", "auditRequired"):
+        for key in ("id", "enabled", "requiredGateFlag", "dryRunSupported", "executionAllowed", "auditRequired", "targetMode"):
             if key not in target:
                 errors.append(f"release execution target missing '{key}': {target.get('id', '<unknown>')}")
         flag = target.get("requiredGateFlag")
@@ -300,12 +300,26 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
         if target.get("id") == "aaiam" and target.get("enabled") is True:
             if target.get("libraryAvailable") is not True or target.get("targetConfigured") is not True:
                 errors.append("AAIAM execution target must fail closed without libraryAvailable and targetConfigured")
+        if target.get("id") == "aaiam":
+            if target.get("targetMode") != "dry_run":
+                errors.append("AAIAM execution target must remain dry_run")
+            if target.get("productiveImportAllowed") is True:
+                errors.append("AAIAM productive import is forbidden in this phase")
         if target.get("id") == "website" and target.get("enabled") is True and gate.get("deploymentAllowed") is not True:
             errors.append("Website execution target enabled while deploymentAllowed=false")
+        if target.get("id") == "website":
+            if target.get("targetMode") != "staging":
+                errors.append("Website execution target must remain staging")
+            if target.get("stagingOnly") is not True:
+                errors.append("Website execution target must be stagingOnly")
         if target.get("id") == "pdf" and target.get("enabled") is True and gate.get("pdfPublicationAllowed") is not True:
             errors.append("PDF execution target enabled while pdfPublicationAllowed=false")
+        if target.get("id") == "pdf" and target.get("localFinalizationOnly") is not True:
+            errors.append("PDF execution target must be localFinalizationOnly")
         if target.get("id") == "inAppHelp" and target.get("enabled") is True and gate.get("inAppPackagingAllowed") is not True:
             errors.append("In-App execution target enabled while inAppPackagingAllowed=false")
+        if target.get("id") == "inAppHelp" and target.get("activationAllowed") is True:
+            errors.append("In-App help activation is forbidden in this phase")
 
 
 def validate_preview_artifacts(root: Path, errors: list[str]) -> None:
@@ -483,6 +497,33 @@ def validate_release_candidate_artifacts(root: Path, errors: list[str]) -> None:
             for active_word in ("status: deployed", "status: imported", "status: generated-final", "final publication", "productive import"):
                 if active_word in text.lower():
                     errors.append(f"{path.relative_to(root)}: forbidden productive release claim '{active_word}'")
+
+    audit_path = rc_root / "execution-audit.json"
+    if audit_path.exists():
+        try:
+            audit = json.loads(audit_path.read_text(encoding="utf-8"))
+        except Exception as exc:  # noqa: BLE001
+            errors.append(f"execution audit invalid JSON: {exc}")
+            audit = {}
+        if audit:
+            for key in ("startedAtUtc", "sourceCommit", "target", "mode", "executionStatus", "reasonCode", "artifactHashes"):
+                if key not in audit:
+                    errors.append(f"execution audit missing '{key}'")
+            if audit.get("notLiveDeployment") is not True:
+                errors.append("execution audit must set notLiveDeployment=true")
+            if audit.get("noSecretsDetected") is not True:
+                errors.append("execution audit must report noSecretsDetected=true")
+            if audit.get("noPrivatePathsDetected") is not True:
+                errors.append("execution audit must report noPrivatePathsDetected=true")
+            if audit.get("executionStatus") not in {"blocked", "dry_run", "executed", "failed"}:
+                errors.append("execution audit has invalid executionStatus")
+            for target in audit.get("targets", []):
+                if target.get("target") == "aaiam" and target.get("mode") != "dry_run":
+                    errors.append("execution audit AAIAM target must remain dry_run")
+                if target.get("target") == "inAppHelp" and target.get("activationAllowed") is True:
+                    errors.append("execution audit must not mark in-app help activated")
+                if target.get("target") == "website" and target.get("notLiveDeployment") is not True:
+                    errors.append("execution audit website target must not be live deployment")
 
 
 def main() -> int:

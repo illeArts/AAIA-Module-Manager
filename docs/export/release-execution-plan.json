@@ -5,46 +5,65 @@
   "executionStatus": "blocked",
   "requiresApprovedGate": true,
   "executionAllowed": false,
+  "failClosedReasons": [
+    "gate_not_approved",
+    "target_not_enabled",
+    "aaiam_library_unavailable",
+    "target_config_missing",
+    "hash_mismatch",
+    "checklist_incomplete"
+  ],
   "targets": [
     {
       "id": "website",
       "adapter": "WebsiteExecutionAdapter",
+      "targetMode": "staging",
       "enabled": false,
       "requiredGateFlag": "deploymentAllowed",
       "dryRunSupported": true,
+      "stagingOnly": true,
       "executionAllowed": false,
       "outputPath": "docs/.release-candidate/website/",
       "targetPath": "<configured-website-staging-target>",
-      "auditRequired": true
+      "auditRequired": true,
+      "failClosedReason": "gate_not_approved"
     },
     {
       "id": "pdf",
       "adapter": "PdfPublicationAdapter",
+      "targetMode": "final",
       "enabled": false,
       "requiredGateFlag": "pdfPublicationAllowed",
       "dryRunSupported": true,
+      "localFinalizationOnly": true,
       "executionAllowed": false,
       "outputPath": "docs/.release-candidate/pdf/",
       "targetPath": "<configured-pdf-publication-target>",
-      "auditRequired": true
+      "auditRequired": true,
+      "failClosedReason": "gate_not_approved"
     },
     {
       "id": "inAppHelp",
       "adapter": "InAppHelpPackagingAdapter",
+      "targetMode": "package",
       "enabled": false,
       "requiredGateFlag": "inAppPackagingAllowed",
       "dryRunSupported": true,
+      "activationAllowed": false,
       "executionAllowed": false,
       "outputPath": "docs/.release-candidate/in-app/",
       "targetPath": "<configured-in-app-package-target>",
-      "auditRequired": true
+      "auditRequired": true,
+      "failClosedReason": "gate_not_approved"
     },
     {
       "id": "aaiam",
       "adapter": "AaiamImportAdapter",
+      "targetMode": "dry_run",
       "enabled": false,
       "requiredGateFlag": "importAllowed",
       "dryRunSupported": true,
+      "productiveImportAllowed": false,
       "executionAllowed": false,
       "outputPath": "docs/.release-candidate/aaiam/",
       "targetPath": "<configured-aaiam-target>",

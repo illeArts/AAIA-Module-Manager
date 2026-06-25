@@ -69,7 +69,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.9 | Documentation Output Generation & Release Candidate Packaging | umgesetzt |
 | 11.5.10 | Manual Review, Approval & Deployment Gate | umgesetzt |
 | 11.5.11 | Approved Release Execution Adapter | umgesetzt |
-| 11.5.12 | Controlled First Publication / AAIAM Import Dry-Run Against Real Library | geplant |
+| 11.5.12 | Controlled First Publication / AAIAM Import Dry-Run Against Real Library | umgesetzt |
+| 11.5.13 | Website-Staging-Review oder technische Folgephase | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -164,3 +165,12 @@ Der maschinenlesbare Ausführungsplan bleibt initial `blocked`, alle Targets sin
 und `executionAllowed` bleibt `false`. Das lokale Execution-Script prüft Gate, Checklist,
 RC-Manifest-Hashes und Target-Gate-Flags. Ohne approved Gate endet es mit `EXECUTION: BLOCKED`.
 AAIAM bleibt blockiert, solange Bibliothek und Zielkonfiguration fehlen.
+
+## 19. Stand nach Phase 11.5.12
+
+Phase 11.5.12 erweitert den Execution-Adapter um kontrollierte Zielmodi für Website-Staging,
+lokale PDF-Finalisierung, In-App-Hilfepaket und AAIAM-Import-Dry-Run. Der Default bleibt
+blocked/dry-run. Ohne approved Gate wird nur ein Audit unter
+`docs/.release-candidate/execution-audit.json` geschrieben; es findet kein Live-Deployment,
+kein produktiver AAIAM-Import, keine öffentliche PDF-Veröffentlichung und keine In-App-
+Aktivierung statt.

@@ -10,6 +10,8 @@ Phase 11.5.9 erzeugt lokale Release-Candidate-Artefakte, weiterhin ohne Deployme
 AAIAM-DB-Import.
 Phase 11.5.10 ergänzt ein manuelles Review- und Freigabe-Gate vor jeder Ausführung.
 Phase 11.5.11 ergänzt fail-closed Execution-Adapter, die ohne approved Gate blockieren.
+Phase 11.5.12 ergänzt kontrollierte Zielmodi für Staging, lokale PDF-Finalisierung,
+In-App-Pakete und AAIAM-Dry-Run.
 
 ## Exportziele
 
@@ -105,6 +107,20 @@ Ohne approved Gate ist das erwartete Ergebnis `EXECUTION: BLOCKED`. Das Script d
 Freigabe setzen, keine Website deployen, keine AAIAM-DB befüllen, keine PDF veröffentlichen
 und keine In-App-Hilfe aktivieren.
 
+## Controlled First Publication
+
+Die kontrollierte Erstveröffentlichung ist unter
+[`controlled-first-publication.md`](controlled-first-publication.md) beschrieben.
+
+Der Adapter unterstützt Target-Auswahl und kontrollierte Modi:
+
+```powershell
+python docs/scripts/execute_docs_release_candidate.py . --target all --dry-run --staging-only --require-approved-gate
+```
+
+Der Lauf schreibt ein lokales Audit unter `docs/.release-candidate/execution-audit.json`.
+Ohne approved Gate bleibt das Ergebnis blockiert.
+
 ## Schemas
 
 Vorbereitete Schemas liegen unter [`../schemas/`](../schemas/):
@@ -126,4 +142,5 @@ Teilmenge ohne externe Dependencies.
 - keine produktive AAIAM-DB-Befüllung,
 - keine neue Runtime-Funktion,
 - keine KI-basierte Freigabe,
-- keine Adapter-Ausführung ohne approved Gate.
+- keine Adapter-Ausführung ohne approved Gate,
+- kein Live-Deployment in Phase 11.5.12.
