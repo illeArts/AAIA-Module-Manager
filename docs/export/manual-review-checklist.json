@@ -1,0 +1,99 @@
+{
+  "schemaVersion": 1,
+  "reviewStatus": "pending",
+  "allowedStatuses": ["pending", "approved", "rejected"],
+  "requiresHumanApproval": true,
+  "aiMayApprove": false,
+  "checks": [
+    {
+      "id": "documentation-truth-rule",
+      "label": "DOCUMENTATION_TRUTH_RULE geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "glossary-term-status",
+      "label": "Glossar und Begriffstatus geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "secret-redaction",
+      "label": "Secrets, Tokens und private Schlüssel redigiert",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "private-path-redaction",
+      "label": "Private Pfade redigiert",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "markdown-link-check",
+      "label": "Markdown-Linkcheck erfolgreich",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "json-schema-check",
+      "label": "JSON-Strukturen geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "release-manifest-hashes",
+      "label": "Release-Manifest-Hashes geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "website-rc-review",
+      "label": "Website-RC geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "pdf-source-review",
+      "label": "PDF-Quellen geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "in-app-context-review",
+      "label": "In-App-Kontexte geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "aaiam-import-preview-review",
+      "label": "AAIAM-Import-RC geprüft",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "no-deployed-status",
+      "label": "Kein deployed-Status ohne Freigabe",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "no-imported-status",
+      "label": "Kein imported-Status ohne Freigabe",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "no-generated-final-status",
+      "label": "Kein finaler generated-Status ohne Freigabe",
+      "required": true,
+      "status": "pending"
+    },
+    {
+      "id": "owner-maintainer-approval",
+      "label": "Owner-/Maintainer-Freigabe liegt vor",
+      "required": true,
+      "status": "pending"
+    }
+  ]
+}

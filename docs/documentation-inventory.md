@@ -147,10 +147,20 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `docs/.release-candidate/release-manifest.json` | lokales RC-Manifest mit Artefakt-Hashes, Quellcommit und Exportmanifest-Hash |
 | `phases/phase-11-5-9-final.md` | Abschlussnachweis für Documentation Output Generation & Release Candidate Packaging |
 
+## Neue 11.5.10-Review-Gate-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `website-help/manual-release-gate.md` | menschliche Spezifikation für manuelle Freigabe vor Deployment/Import/Publikation |
+| `export/manual-review-checklist.json` | maschinenlesbare Pflichtcheckliste mit `reviewStatus: pending` und `aiMayApprove: false` |
+| `export/release-gate-manifest.json` | Gate-Status und Allow-Flags; initial alles gesperrt |
+| `docs/scripts/review_docs_release_candidate.py` | lokaler Review-Helfer zum Prüfen von RC-Manifest, Hashes und Checklist-Status |
+| `phases/phase-11-5-10-final.md` | Abschlussnachweis für Manual Review, Approval & Deployment Gate |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
-- manuelles Review- und Deployment-Gate,
+- Approved Release Execution Adapter nach manueller Freigabe,
 - tatsächliche Suchimplementierung,
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,

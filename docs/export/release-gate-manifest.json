@@ -1,0 +1,12 @@
+{
+  "schemaVersion": 1,
+  "source": "docs/.release-candidate/release-manifest.json",
+  "gateStatus": "pending",
+  "requiresHumanApproval": true,
+  "approvedBy": null,
+  "approvedAtUtc": null,
+  "deploymentAllowed": false,
+  "importAllowed": false,
+  "pdfPublicationAllowed": false,
+  "inAppPackagingAllowed": false
+}

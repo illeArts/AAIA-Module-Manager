@@ -30,6 +30,8 @@ REQUIRED_JSON = [
     "docs/help/in-app-context-map.json",
     "docs/website-help/legacy-aliases.json",
     "docs/export/export-manifest.json",
+    "docs/export/manual-review-checklist.json",
+    "docs/export/release-gate-manifest.json",
     "docs/schemas/help-index.schema.json",
     "docs/schemas/aaiam-import-map.schema.json",
     "docs/schemas/in-app-context-map.schema.json",
@@ -233,6 +235,46 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
             if key not in export:
                 errors.append(f"export manifest entry missing '{key}': {export.get('id', '<unknown>')}")
 
+    checklist = load_json(root, "docs/export/manual-review-checklist.json")
+    if checklist.get("reviewStatus") not in {"pending", "approved", "rejected"}:
+        errors.append("manual review checklist reviewStatus must be pending, approved or rejected")
+    if checklist.get("requiresHumanApproval") is not True:
+        errors.append("manual review checklist must require human approval")
+    if checklist.get("aiMayApprove") is True:
+        errors.append("manual review checklist must not allow AI approval")
+    for check in checklist.get("checks", []):
+        for key in ("id", "label", "required", "status"):
+            if key not in check:
+                errors.append(f"manual review checklist entry missing '{key}': {check.get('id', '<unknown>')}")
+        if check.get("status") not in {"pending", "approved", "rejected"}:
+            errors.append(f"manual review checklist entry has invalid status: {check.get('id', '<unknown>')}")
+
+    gate = load_json(root, "docs/export/release-gate-manifest.json")
+    if gate.get("gateStatus") not in {"pending", "approved", "rejected"}:
+        errors.append("release gate status must be pending, approved or rejected")
+    if gate.get("requiresHumanApproval") is not True:
+        errors.append("release gate must require human approval")
+    if gate.get("gateStatus") == "approved" and not gate.get("approvedBy"):
+        errors.append("release gate approved status requires approvedBy")
+    if gate.get("gateStatus") == "approved" and not gate.get("approvedAtUtc"):
+        errors.append("release gate approved status requires approvedAtUtc")
+    if gate.get("gateStatus") != "approved":
+        for flag in ("deploymentAllowed", "importAllowed", "pdfPublicationAllowed", "inAppPackagingAllowed"):
+            if gate.get(flag) is True:
+                errors.append(f"release gate must not set {flag}=true without approved status")
+    if gate.get("deploymentAllowed") is True and gate.get("gateStatus") != "approved":
+        errors.append("deploymentAllowed requires approved release gate")
+    if gate.get("importAllowed") is True and gate.get("gateStatus") != "approved":
+        errors.append("importAllowed requires approved release gate")
+    source = gate.get("source")
+    if source:
+        source_path = (root / source).resolve()
+        if source_path.exists():
+            try:
+                source_path.relative_to(root.resolve())
+            except ValueError:
+                errors.append(f"release gate source escapes repository: {source_path}")
+
 
 def validate_preview_artifacts(root: Path, errors: list[str]) -> None:
     preview_root = root / "docs/.preview"
@@ -406,6 +448,9 @@ def validate_release_candidate_artifacts(root: Path, errors: list[str]) -> None:
             for active_word in ("Status: deployed", "Status: generated", "Status: imported"):
                 if active_word in text:
                     errors.append(f"{path.relative_to(root)}: forbidden active output claim '{active_word}'")
+            for active_word in ("status: deployed", "status: imported", "status: generated-final", "final publication", "productive import"):
+                if active_word in text.lower():
+                    errors.append(f"{path.relative_to(root)}: forbidden productive release claim '{active_word}'")
 
 
 def main() -> int:

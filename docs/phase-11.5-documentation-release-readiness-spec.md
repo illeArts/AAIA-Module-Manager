@@ -67,7 +67,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.7 | Export Pipeline Preparation | umgesetzt |
 | 11.5.8 | Documentation Output Pipeline Dry Run | umgesetzt |
 | 11.5.9 | Documentation Output Generation & Release Candidate Packaging | umgesetzt |
-| 11.5.10 | Manuelle Review/Freigabe & echtes Deployment-Gate | geplant |
+| 11.5.10 | Manual Review, Approval & Deployment Gate | umgesetzt |
+| 11.5.11 | Approved Release Execution Adapter | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -145,3 +146,12 @@ AAIAM-Importvorbereitung. Das RC-Manifest enthält Quellcommit, Exportmanifest-H
 Artefaktliste und Artefakt-Hashes. Der Status bleibt `release_candidate`; `notDeployed` und
 `notImported` bleiben verpflichtend. Es findet weiterhin kein Website-Deployment, keine finale
 PDF-Veröffentlichung, keine In-App-Hilfe-UI und keine produktive AAIAM-DB-Befüllung statt.
+
+## 17. Stand nach Phase 11.5.10
+
+Phase 11.5.10 ergänzt ein manuelles Review- und Freigabe-Gate. Das Gate besteht aus einer
+menschlichen Spezifikation, einer maschinenlesbaren Review-Checklist, einem Gate-Manifest und
+einem lokalen Review-Helfer. Initial bleibt `gateStatus` auf `pending`; KI-Freigabe ist
+ausgeschlossen. `deploymentAllowed`, `importAllowed`, `pdfPublicationAllowed` und
+`inAppPackagingAllowed` bleiben `false`. Der Conformance Guard schützt diese Regeln und
+verhindert produktive Status ohne menschlich freigegebenes Gate.

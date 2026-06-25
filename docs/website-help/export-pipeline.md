@@ -8,6 +8,7 @@ Phase 11.5.7 bereitet Export-Artefakte vor, ohne einen Ausgabekanal produktiv zu
 Phase 11.5.8 ergänzt einen lokalen Dry-Run-Exporter. Markdown bleibt die kanonische Quelle.
 Phase 11.5.9 erzeugt lokale Release-Candidate-Artefakte, weiterhin ohne Deployment oder
 AAIAM-DB-Import.
+Phase 11.5.10 ergänzt ein manuelles Review- und Freigabe-Gate vor jeder Ausführung.
 
 ## Exportziele
 
@@ -66,6 +67,25 @@ Er erzeugt ausschließlich lokale RC-Artefakte unter `docs/.release-candidate/`:
 darf nicht als öffentliche Veröffentlichung behandelt werden. Der Status bleibt
 `release_candidate`; `notDeployed` und `notImported` müssen gesetzt bleiben.
 
+## Manuelles Release-Gate
+
+Das Gate ist unter [`manual-release-gate.md`](manual-release-gate.md) beschrieben.
+
+Die maschinenlesbaren Gate-Dateien liegen hier:
+
+- [`../export/manual-review-checklist.json`](../export/manual-review-checklist.json)
+- [`../export/release-gate-manifest.json`](../export/release-gate-manifest.json)
+
+Der Review-Helfer liest Checklist, Gate-Manifest und RC-Manifest:
+
+```powershell
+python docs/scripts/review_docs_release_candidate.py .
+```
+
+Das Script darf keine Freigabe setzen. Initial bleibt `gateStatus` auf `pending`.
+`deploymentAllowed`, `importAllowed`, `pdfPublicationAllowed` und `inAppPackagingAllowed`
+bleiben `false`, bis ein Maintainer oder Owner manuell freigibt.
+
 ## Schemas
 
 Vorbereitete Schemas liegen unter [`../schemas/`](../schemas/):
@@ -85,4 +105,5 @@ Teilmenge ohne externe Dependencies.
 - keine verpflichtende PDF-Erzeugung,
 - keine In-App-Hilfe-UI,
 - keine produktive AAIAM-DB-Befüllung,
-- keine neue Runtime-Funktion.
+- keine neue Runtime-Funktion,
+- keine KI-basierte Freigabe.
