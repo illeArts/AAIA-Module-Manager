@@ -13,8 +13,13 @@ namespace AAIA.ModuleManager.Views;
 
 public partial class AiHandoffWindow : Window
 {
-    private readonly AiHandoffContext _ctx;
+    private          AiHandoffContext? _ctx;
     private          AiHandoffResult? _lastResult;
+
+    public AiHandoffWindow()
+    {
+        InitializeComponent();
+    }
 
     public AiHandoffWindow(AiHandoffContext ctx)
     {
@@ -27,7 +32,8 @@ public partial class AiHandoffWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        GeneratePrompt();
+        if (_ctx is not null)
+            GeneratePrompt();
     }
 
     // ── Controls ──────────────────────────────────────────────────────────────
@@ -84,6 +90,7 @@ public partial class AiHandoffWindow : Window
 
     private void ExportPackage_Click(object? sender, RoutedEventArgs e)
     {
+        if (_ctx is null) return;
         var handoffReq  = BuildRequest();
         var adapterReq  = new AiAdapterRequest
         {
@@ -110,6 +117,7 @@ public partial class AiHandoffWindow : Window
 
     private void GeneratePrompt()
     {
+        if (_ctx is null) return;
         var req = BuildRequest();
         var result = AiHandoffGeneratorService.Generate(_ctx, req);
         _lastResult = result;

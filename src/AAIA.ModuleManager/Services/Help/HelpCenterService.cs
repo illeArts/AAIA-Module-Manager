@@ -150,9 +150,8 @@ public sealed class HelpCenterService
 
     private static string ResolveDefaultHelpRoot()
     {
-        // Versuche Pfad relativ zur ausführenden Assembly
-        var assembly = System.Reflection.Assembly.GetExecutingAssembly().Location;
-        var dir      = Path.GetDirectoryName(assembly) ?? AppContext.BaseDirectory;
+        // AppContext.BaseDirectory bleibt auch bei Single-File-Publish belastbar.
+        var dir = AppContext.BaseDirectory;
 
         // Typische Pfade: neben der EXE, oder im Repo für Entwicklung
         string[] candidates =
