@@ -1,7 +1,6 @@
 # Phase 10 — AIR Production Hardening & Portable Hosting: Spezifikation
 
-> Status: fachlich spezifiziert; 10.1.2 Transaktion und Snapshot-Batching implementiert,
-> produktive Writer-Migration noch offen
+> Status: abgeschlossen; 10.4 Betriebsnachweis implementiert
 > Scope: effiziente Durability, native Plattform-Sicherheit, app-neutraler Lifecycle und Betriebsnachweis
 
 ## 1. Ausgangslage und Ziel
@@ -36,10 +35,10 @@ Phase 10 implementiert ausdrücklich nicht:
 
 | Inkrement | Inhalt | Status |
 |---|---|---|
-| 10.1 | Typisiertes Delta-Journal und gebündelte Snapshots | 10.1.2 umgesetzt; produktive Migration offen |
-| 10.2 | Native Protectoren, Rotation und Protector-Migration | spezifiziert |
-| 10.3 | App-neutraler Runtime-Lifecycle und Readiness-Gates | spezifiziert |
-| 10.4 | Conformance-, Last-, Soak- und Betriebsnachweis | spezifiziert |
+| 10.1 | Typisiertes Delta-Journal und gebündelte Snapshots | 10.1.3 umgesetzt |
+| 10.2 | Native Protectoren, Rotation und Protector-Migration | native Protectoren umgesetzt; Rotation bleibt Folgeschritt |
+| 10.3 | App-neutraler Runtime-Lifecycle und Readiness-Gates | umgesetzt |
+| 10.4 | Conformance-, Last-, Soak- und Betriebsnachweis | umgesetzt |
 
 Jedes Inkrement erhält einen eigenen PR. Die bestehenden vollständigen Checkpoints bleiben
 während 10.1 als lesbarer Migrationspfad erhalten und werden erst nach grüner Replay- und
@@ -51,10 +50,10 @@ Die Foundation umfasst BCL-only Contracts, eine geschlossene Registry aller Even
 den prüfsummenvalidierten Journal-Codec und einen deterministischen Reducer. In 10.1.2 kam
 die Store-basierte Referenztransaktion hinzu: vollständige Vorabvalidierung, Append und Flush
 vor In-Memory-Apply, exakt-einmal Operation-IDs, Snapshot nach 1.000 Events oder 10 Minuten,
-Verify und Manifest-Flush vor Compact sowie expliziter Shutdown-Snapshot. Phase-9-Snapshots
-und `orchestration.checkpoint` bleiben als Replay-Basis lesbar. Der produktive Single Writer
-schreibt weiterhin vollständige Phase-9-Checkpoints; seine Umschaltung folgt getrennt in
-10.1.3 erst nach grüner Aktivierungs- und Rollback-Matrix.
+Verify und Manifest-Flush vor Compact sowie expliziter Shutdown-Snapshot. In 10.1.3 wurde der
+produktive Single Writer optional auf typisierte Delta-Events umgestellt. Phase-9-Snapshots
+und `orchestration.checkpoint` bleiben als Replay-Basis lesbar; der Rollback-Schalter erzwingt
+weiterhin den alten vollständigen Checkpoint-Writer.
 
 ## 4. Architekturgrenzen
 
@@ -156,6 +155,15 @@ nur Delta-Events. Das alte Original wird vor Migration gesichert und nicht in-pl
 
 ## 6. Inkrement 10.2 — Native Protectoren
 
+Implementierungsstand: Windows-DPAPI-v1 bleibt lesbar und ist weiter die Referenz für bestehende
+Installationen. Für neue native Payloads existiert ein AES-GCM-Envelope mit nicht geheimer
+Key-ID und AAD-Bindung an Store-ID, Record-Typ, Record-ID und Schema-Version. macOS verwendet
+die lokale Keychain über den nativen `security`-Client. Linux verwendet Secret Service über
+`secret-tool` und startet ohne aktive DBus-Benutzersitzung fail-closed mit
+`state_protector_unavailable`. Fehlt ein vorhandener Key, schlägt die Entschlüsselung mit
+`state_protector_key_missing` fehl. Schlüsselrotation und Offline-Protector-Migration bleiben
+als separater Wartungspfad offen.
+
 ### 6.1 Plattformen
 
 - Windows: DPAPI CurrentUser bleibt Referenzimplementierung.
@@ -189,6 +197,13 @@ Task-Titel, Projektpfade, Actor-Namen oder Tool-Ergebnisse als Schlüsselmetadat
 Keychains schreiben.
 
 ## 7. Inkrement 10.3 — Portabler Runtime-Lifecycle
+
+Implementierungsstand: `AiRuntimeLifecycle` kapselt Start, Recovery, Readiness-Lease,
+Diagnose, Stop und Dispose. Module Manager verwendet den Lifecycle für die AIR/MCP-Bridge,
+statt den Server direkt vor dem Persistenzstatus zu starten. `AiRuntimeService` besitzt ein
+Readiness-Gate, das durable Mutationen nach Stop oder bei ungültiger Lease mit
+`state_readiness_expired` blockiert. `AiRuntimePersistenceCoordinator.StopAsync` erzeugt beim
+Typed-Delta-Writer einen Shutdown-Snapshot, flusht den Store und gibt den Writer frei.
 
 ### 7.1 Zustandsmaschine
 
@@ -234,6 +249,12 @@ erfolgreicher sauberer Shutdown ausgegeben werden, wenn der Flush nicht bestäti
 
 ## 8. Inkrement 10.4 — Betriebsnachweis
 
+Implementierungsstand: Der Betriebsnachweis ergänzt gezielte Conformance-Tests für
+Backpressure bei blockiertem Writer, read-only Diagnose während Writer-Last,
+Shutdown-Timeouts mit `state_shutdown_incomplete` und wiederholte Crash/Restart-Zyklen ohne
+Sequenzlücken. Die vollständige Regression dient als aktueller Release-Nachweis; lange
+24-Stunden-Soak-Läufe bleiben ein optionales Benchmark-Profil außerhalb der normalen Unit-Suite.
+
 ### 8.1 Conformance-Kit
 
 Jeder Store-/Protector-/Host-Adapter muss dieselbe öffentliche Testsuite bestehen:
@@ -276,7 +297,8 @@ Client-Namen, Projektpfade, Task-Titel, Tool-Inputs und Resultate sind keine Met
 ## 9. Backpressure und Fehlerverhalten
 
 - Genau ein begrenzter Writer-Kanal; keine unbegrenzte Task-Sammlung.
-- Bei vollem Kanal werden neue durable Mutationen mit `state_backpressure` abgewiesen.
+- Bei blockiertem Writer werden neue durable Mutationen nach `WriterBackpressureTimeout` mit
+  `state_backpressure` abgewiesen.
 - Read-only Diagnose bleibt verfügbar.
 - Flush-, Protector- oder Quota-Fehler setzt den Lifecycle auf `RecoveryFailed`.
 - Nach `RecoveryFailed` wird keine weitere Mutation angenommen.

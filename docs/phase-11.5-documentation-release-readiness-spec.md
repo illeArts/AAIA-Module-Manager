@@ -1,6 +1,6 @@
 # Phase 11.5 — Documentation & Release Readiness
 
-> Status: Foundation umgesetzt; Inhaltsmigration und Ausgabekanäle offen
+> Status: Foundation, 11.5.2-Inhaltsmigration, 11.5.3-Kernhandbücher, 11.5.4-Ausgabestruktur und 11.5.5-AAIAM-Vorbereitung umgesetzt; Deployment offen
 > Ziel: versionierbare, zielgruppengerechte und wiederverwendbare AAIA-Dokumentation
 
 ## 1. Zweck
@@ -59,10 +59,11 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | Inkrement | Inhalt | Status |
 |---|---|---|
 | 11.5.1 | Struktur, Bereichsindizes, Glossar und Phasenabschluss-Vorlage | umgesetzt |
-| 11.5.2 | Quelleninventar, Besitzer, Versionsmetadaten und Linkprüfung | begonnen: historische Begriffskontrolle vorhanden |
-| 11.5.3 | Benutzer-, Entwickler- und Admin-Kernpfade vervollständigen | geplant |
-| 11.5.4 | Website-Routen, Suche und versionierte Veröffentlichung | geplant |
-| 11.5.5 | PDF- und In-App-Ausgabe sowie Release-Conformance | geplant |
+| 11.5.2 | Quelleninventar, Dokumentationswahrheit, Phase-10-Betriebswissen und Public-Help-Vorbereitung | umgesetzt |
+| 11.5.3 | Benutzer-, Entwickler- und Admin-Kernpfade vervollständigen und externe Developer-Docs abgleichen | umgesetzt |
+| 11.5.4 | Website-Routen, Suchindex, In-App-Mapping und PDF-/Release-Struktur vorbereiten | umgesetzt |
+| 11.5.5 | AAIAM Knowledge Sync Preparation & Help Runtime Integration | umgesetzt |
+| 11.5.6 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe sowie Release-Conformance | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -82,3 +83,29 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 - keine PDF-Generierung,
 - keine neuen AIR-, MCP-, Marketplace- oder Runtime-Funktionen,
 - keine ungeprüfte Übernahme historischer Texte als verbindliche Produktzusage.
+
+## 9. Stand nach Phase 11.5.2
+
+Phase 11.5.2 ergänzt das Quelleninventar und migriert Phase-10-Betriebswissen in die
+Zielstruktur. Die öffentliche Website-Hilfe ist vorbereitet, aber nicht deployed. Linkprüfung,
+PDF-Ausgabe, In-App-Hilfe und der externe Abgleich mit `aaia-developer-docs` bleiben spätere
+Inkremente.
+
+## 10. Stand nach Phase 11.5.3
+
+Phase 11.5.3 ergänzt Kernpfade für Benutzer, Entwickler und Administratoren und gleicht
+`aaia-developer-docs` für Modul-, Plugin-, Manifest-, Permission- und Konventionsgrundlagen ab.
+Nicht belegte Deployment-Details werden nicht als öffentliche Produktzusage übernommen.
+
+## 11. Stand nach Phase 11.5.4
+
+Phase 11.5.4 bereitet öffentliche Routen, Legacy-Aliase, Suchindex, In-App-Hilfe-Mapping und
+PDF-/Release-Paket-Reihenfolgen vor. Es findet kein Website-Deployment, keine PDF-Generierung
+und keine In-App-Implementierung statt.
+
+## 12. Stand nach Phase 11.5.5
+
+Phase 11.5.5 plant AAIAM als späteren strukturierten Wissensspeicher für freigegebene
+Dokumentationsinhalte ein. Markdown bleibt kanonische Quelle. AAIAM übernimmt später nur
+validierte, redigierte, versionierte und klassifizierte Inhalte. Es findet keine produktive
+DB-Befüllung und keine echte AAIAM-Bibliotheksintegration statt.

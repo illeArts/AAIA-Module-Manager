@@ -24,6 +24,7 @@ namespace AAIA.Air;
 public sealed class AiRuntimeService
 {
     private IAiRuntimeMutationPersistence? _mutationPersistence;
+    private Func<bool>? _readinessGate;
     public AiToolRegistry        Tools         { get; }
     public AiSessionManager      Sessions      { get; }
     public AiCapabilityManager   Capabilities  { get; }
@@ -126,6 +127,10 @@ public sealed class AiRuntimeService
         if (tool.RiskLevel == AiRiskLevel.Black)
             return Reject(session, toolName, "Black-Tools existieren nicht.", "black_blocked");
         var durableMutation = _mutationPersistence?.IsDurableMutation(tool) == true;
+        if (durableMutation && _readinessGate is not null && !_readinessGate())
+            return Reject(session, toolName,
+                "Runtime-Readiness-Lease ist abgelaufen oder nicht mehr gültig.",
+                AiRuntimeStateReasonCodes.ReadinessExpired);
         if (durableMutation && _mutationPersistence!.Status is not
             (AiRuntimeRecoveryStatus.Ready or AiRuntimeRecoveryStatus.Disabled))
         {
@@ -235,6 +240,9 @@ public sealed class AiRuntimeService
             throw new InvalidOperationException("Runtime-Persistenz ist bereits konfiguriert.");
         _mutationPersistence = persistence;
     }
+
+    public void AttachReadinessGate(Func<bool>? readinessGate)
+        => _readinessGate = readinessGate;
 
     private static string? TryReadString(JsonElement input, string property)
     {

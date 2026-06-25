@@ -1,0 +1,77 @@
+{
+  "version": "1.0.0",
+  "checkedAt": "2026-06-25",
+  "status": "prepared-not-deployed",
+  "aliases": [
+    {
+      "legacyPath": "/help/manual/01-was-ist-aaia",
+      "targetRoute": "/handbuch/was-ist-aaia",
+      "sourcePath": "docs/help/manual/01-was-ist-aaia.md",
+      "targetSourcePath": "docs/user-manual/00-was-ist-aaia.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/02-was-ist-module-manager",
+      "targetRoute": "/handbuch/module-manager",
+      "sourcePath": "docs/help/manual/02-was-ist-module-manager.md",
+      "targetSourcePath": "docs/user-manual/01-module-manager-einstieg.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/05-projekt-erstellen",
+      "targetRoute": "/handbuch/projekt-erstellen",
+      "sourcePath": "docs/help/manual/05-projekt-erstellen.md",
+      "targetSourcePath": "docs/user-manual/02-projekt-erstellen.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/06-validierung",
+      "targetRoute": "/handbuch/validierung-build-paketierung",
+      "sourcePath": "docs/help/manual/06-validierung.md",
+      "targetSourcePath": "docs/user-manual/03-validierung-build-paketierung.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/07-build",
+      "targetRoute": "/handbuch/validierung-build-paketierung",
+      "sourcePath": "docs/help/manual/07-build.md",
+      "targetSourcePath": "docs/user-manual/03-validierung-build-paketierung.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/10-marketplace-upload",
+      "targetRoute": "/docs/marketplace-upload",
+      "sourcePath": "docs/help/manual/10-marketplace-upload.md",
+      "targetSourcePath": "docs/developer-guide/07-marketplace-upload.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/12-etw-signatur",
+      "targetRoute": "/docs/signatur-und-trust-level",
+      "sourcePath": "docs/help/manual/12-etw-signatur.md",
+      "targetSourcePath": "docs/developer-guide/06-signatur-und-trust-level.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/14-trust-level",
+      "targetRoute": "/docs/signatur-und-trust-level",
+      "sourcePath": "docs/help/manual/14-trust-level.md",
+      "targetSourcePath": "docs/developer-guide/06-signatur-und-trust-level.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/manual/15-sicherheit",
+      "targetRoute": "/docs/sicherheit-laufzeitstatus",
+      "sourcePath": "docs/help/manual/15-sicherheit.md",
+      "targetSourcePath": "docs/developer-guide/10-sicherheit-und-laufzeitstatus.md",
+      "status": "legacy-source"
+    },
+    {
+      "legacyPath": "/help/troubleshooting/marketplace-upload-fehler",
+      "targetRoute": "/docs/marketplace-upload",
+      "sourcePath": "docs/help/troubleshooting/marketplace-upload-fehler.md",
+      "targetSourcePath": "docs/developer-guide/07-marketplace-upload.md",
+      "status": "legacy-source"
+    }
+  ]
+}

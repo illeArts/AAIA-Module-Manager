@@ -653,7 +653,7 @@ public partial class NewProjectWizardViewModel : ObservableObject
     [ObservableProperty] private PackageResult?    _lastPackageResult;
     [ObservableProperty] private RegistryPreview?  _registryPreview;
     [ObservableProperty] private bool              _showRegistryPreview = false;
-    public string RegistryPreviewJson => _registryPreview?.ToDisplayJson() ?? "";
+    public string RegistryPreviewJson => RegistryPreview?.ToDisplayJson() ?? "";
 
     partial void OnRegistryPreviewChanged(RegistryPreview? value)
         => OnPropertyChanged(nameof(RegistryPreviewJson));

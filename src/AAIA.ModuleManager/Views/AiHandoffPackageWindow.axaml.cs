@@ -11,7 +11,12 @@ namespace AAIA.ModuleManager.Views;
 
 public partial class AiHandoffPackageWindow : Window
 {
-    private readonly AiHandoffPackageViewModel _vm;
+    private AiHandoffPackageViewModel? _vm;
+
+    public AiHandoffPackageWindow()
+    {
+        InitializeComponent();
+    }
 
     public AiHandoffPackageWindow(AiAdapterRequest request, AiHandoffContext context)
     {
@@ -23,13 +28,15 @@ public partial class AiHandoffPackageWindow : Window
     protected override async void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        await _vm.InitAsync();
+        if (_vm is not null)
+            await _vm.InitAsync();
     }
 
     // ── Paket-Typ ─────────────────────────────────────────────────────────────
 
     private void PackageType_Changed(object? sender, SelectionChangedEventArgs e)
     {
+        if (_vm is null) return;
         if (sender is not ComboBox combo) return;
         var tag = (combo.SelectedItem as ComboBoxItem)?.Tag?.ToString();
         if (tag is not null && Enum.TryParse<AiHandoffPackageType>(tag, out var t))
@@ -39,23 +46,33 @@ public partial class AiHandoffPackageWindow : Window
     // ── Rebuild ───────────────────────────────────────────────────────────────
 
     private async void Rebuild_Click(object? sender, RoutedEventArgs e)
-        => await _vm.InitAsync();
+    {
+        if (_vm is not null)
+            await _vm.InitAsync();
+    }
 
     // ── Export ────────────────────────────────────────────────────────────────
 
     private async void ExportFolder_Click(object? sender, RoutedEventArgs e)
-        => await _vm.ExportFolderCommand.ExecuteAsync(null);
+    {
+        if (_vm is not null)
+            await _vm.ExportFolderCommand.ExecuteAsync(null);
+    }
 
     private async void ExportZip_Click(object? sender, RoutedEventArgs e)
-        => await _vm.ExportZipCommand.ExecuteAsync(null);
+    {
+        if (_vm is not null)
+            await _vm.ExportZipCommand.ExecuteAsync(null);
+    }
 
     private void OpenFolder_Click(object? sender, RoutedEventArgs e)
-        => _vm.OpenFolderCommand.Execute(null);
+        => _vm?.OpenFolderCommand.Execute(null);
 
     // ── Preview kopieren ──────────────────────────────────────────────────────
 
     private async void CopyPreview_Click(object? sender, RoutedEventArgs e)
     {
+        if (_vm is null) return;
         var text = _vm.PreviewContent;
         if (string.IsNullOrEmpty(text)) return;
 

@@ -1,6 +1,6 @@
 # AIR — Übergabebericht (Handoff für die nächste Session)
 
-**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4 und Phase 9 sind abgeschlossen. Phase 10.1.2 besitzt jetzt eine Store-basierte Durable-Mutation-Transaktion mit Append → Flush → Apply, exakt-einmal Operation-IDs, Snapshot-Batching, Verify-vor-Compact, Shutdown-Snapshot und Phase-9-Checkpoint-Replay. Datei-Crash-Tails und vollständige Crash-Frames sind getestet. Der produktive Writer schreibt weiterhin vollständige Phase-9-Checkpoints. Tests: 310/310 grün. Aktivierung ist opt-in über `AirPersistence.Enabled`; Standard bleibt AUS. Nächster Schritt: Phase 10.1.3 produktive Writer-Migration mit Aktivierungs-, Rollback- und Recovery-Matrix.
+**Stand:** Phase 7.0, Plattform-Split, Phase 8.1 bis 8.4, Phase 9 und Phase 10 sind abgeschlossen. Phase 10 besitzt Delta-Writer-Migration, native Protector-Pfade, app-neutralen Runtime-Lifecycle, Readiness-Gates, geordneten Shutdown sowie Conformance-/Crash-/Backpressure-Nachweise. Tests: 322/322 grün. Aktivierung ist opt-in über `AirPersistence.Enabled` plus `UseTypedDeltaWriter`; Standard bleibt AUS. Nächster Schritt: Arbeitsstand committen/pushen und danach den nächsten Scope explizit festlegen.
 
 **Dokumentationsregel ab jetzt:** Jede technische Phase aktualisiert die betroffenen Benutzer-,
 Entwickler-, Admin-, Architektur- und Website-Hilfebereiche und erhält einen Abschlussnachweis
@@ -32,10 +32,10 @@ Implementiert und gebaut:
 
 ## NÄCHSTER SCHRITT (genau hier weitermachen)
 
-1. Phase 10.1.3 spezifizieren und umsetzen: produktiven Phase-9-Writer kontrolliert auf typisierte Deltas migrieren.
-2. Aktivierungs-, Rollback- und Neustartmatrix einschließlich altem Checkpoint, neuem Snapshot und gemischtem Journal testen.
-3. Phase-9-Original vor Migration sichern; Umschaltung nur nach Snapshot-Verify und vollständig grüner Regression.
-4. Keine neuen MCP-Tools, Permissions oder Orchestrierungsfunktionen einführen.
+1. Arbeitsstand committen/pushen.
+2. Release-/Handoff-Notizen prüfen.
+3. Danach nächsten Scope explizit festlegen.
+4. Keine neuen MCP-Tools, Permissions oder Orchestrierungsfunktionen ohne neuen Scope einführen.
 
 ## Harte Regeln (nicht verletzen)
 
@@ -56,7 +56,7 @@ Implementiert und gebaut:
 - `docs/phase-11.5-documentation-release-readiness-spec.md` — Dokumentationssystem, feste Phasenabschlussregel und spätere Website-/PDF-/In-App-Ausgaben.
 - `docs/README.md` — kanonischer Einstieg in Benutzer-, Entwickler-, Admin-, Architektur-, Troubleshooting-, Glossar- und Website-Dokumentation.
 - `scripts/migrate-air-stage1.ps1` — Migrations-Script Stage 1 (mit Sicherheitschecks).
-- `phase-7.0-ai-runtime.md` (Repo-Wurzel `H:\AAIAGitHub\`) — die ursprüngliche, finale Spec (Runtime + MCP-Adapter, Akzeptanzkriterien).
+- `phase-7.0-ai-runtime.md` in der Repository-Wurzel — die ursprüngliche, finale Spec (Runtime + MCP-Adapter, Akzeptanzkriterien).
 - Quell-Code: `src/AAIA.Air.Contracts/`, `src/AAIA.Air/`, `src/AAIA.Air.Mcp/` sowie `src/AAIA.ModuleManager/Services/Ai/Integration/`.
 - Tests: `src/AAIA.ModuleManager.Tests/Ai/`.
 

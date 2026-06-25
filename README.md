@@ -4,7 +4,7 @@ Dev-Tool für AAIA-Modul- und Plugin-Entwickler — alles auf wenige Klicks redu
 
 **V2 neu:** Live-Verbindung mit AAIAS · FileSystemWatcher · IDE-Erkennung · WorkOrder-Simulator · SSE-Log-Stream
 
-**Tech:** Avalonia 11 · .NET 8 · GitHub CLI · Windows & macOS
+**Tech:** Avalonia 11 · .NET 8 · GitHub CLI · Windows, macOS & Linux
 
 ---
 
@@ -36,17 +36,23 @@ Die neueste Version ist auf der [offiziellen AAIA-Website](https://aaiagent.de) 
 2. Beim ersten Start evtl. Gatekeeper-Warnung: `Rechtsklick → Öffnen` oder in Systemeinstellungen freigeben
 3. Beim ersten Start: **Setup**-Tab → Pfade, GitHub Login und AAIAS-URL konfigurieren
 
+**Linux**
+1. Das passende `.deb`-Paket oder das Linux-Binary herunterladen
+2. Debian/Ubuntu: `sudo apt install ./AAIA_ModuleManager_*_linux-x64.deb`
+3. Alternativ Binary ausführbar machen: `chmod +x AAIA.ModuleManager`
+4. Beim ersten Start: **Setup**-Tab → Pfade, GitHub Login und AAIAS-URL konfigurieren
+
 ---
 
 ## Voraussetzungen
 
-| | Windows | macOS |
-|---|---|---|
-| OS | Windows 10/11 x64 | macOS 12+ (Apple Silicon & Intel) |
-| git | [git-scm.com](https://git-scm.com/) | Xcode Command Line Tools (`xcode-select --install`) |
-| GitHub CLI | via Setup-Tab (winget) | via Setup-Tab (Homebrew) |
-| .NET 8 SDK | [dotnet.microsoft.com](https://dotnet.microsoft.com/download) | [dotnet.microsoft.com](https://dotnet.microsoft.com/download) |
-| AAIAS | `localhost:5174` (für Tester-Tab) | `localhost:5174` (für Tester-Tab) |
+| | Windows | macOS | Linux |
+|---|---|---|---|
+| OS | Windows 10/11 x64 | macOS 12+ (Apple Silicon & Intel) | Debian/Ubuntu-kompatibel x64/arm64 |
+| git | [git-scm.com](https://git-scm.com/) | Xcode Command Line Tools (`xcode-select --install`) | Paketmanager, z. B. `sudo apt install git` |
+| GitHub CLI | via Setup-Tab (winget) | via Setup-Tab (Homebrew) | Paketmanager oder [cli.github.com](https://cli.github.com/) |
+| .NET 8 SDK | [dotnet.microsoft.com](https://dotnet.microsoft.com/download) | [dotnet.microsoft.com](https://dotnet.microsoft.com/download) | [dotnet.microsoft.com](https://dotnet.microsoft.com/download) |
+| AAIAS | `localhost:5174` (für Tester-Tab) | `localhost:5174` (für Tester-Tab) | `localhost:5174` (für Tester-Tab) |
 
 ---
 
@@ -84,6 +90,33 @@ dotnet publish src/AAIA.ModuleManager/AAIA.ModuleManager.csproj \
     -c Release -r osx-arm64 --self-contained true \
     /p:PublishSingleFile=true -o ./publish
 # Für Intel Mac: -r osx-x64
+```
+
+**Linux**
+```bash
+git clone https://github.com/illeArts/AAIA-Module-Manager.git
+cd AAIA-Module-Manager
+dotnet publish src/AAIA.ModuleManager/AAIA.ModuleManager.csproj \
+    -c Release -r linux-x64 --self-contained true \
+    /p:PublishSingleFile=true -o ./publish
+# Für ARM64: -r linux-arm64
+```
+
+Mit Paketbau:
+
+```bash
+chmod +x installer/build-linux.sh
+./installer/build-linux.sh --arch x64
+# Für ARM64 oder beide Architekturen:
+# ./installer/build-linux.sh --arch arm64
+# ./installer/build-linux.sh --arch both
+```
+
+Ausgaben:
+
+```text
+publish/linux-x64/AAIA.ModuleManager
+installer/dist/AAIA_ModuleManager_*_linux-x64.deb
 ```
 
 ### macOS/Xcode-Build

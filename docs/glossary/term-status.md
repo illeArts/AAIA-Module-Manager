@@ -1,6 +1,6 @@
 # AAIA-Begriffstatus
 
-> Geprüfter Stand: 2026-06-24
+> Geprüfter Stand: 2026-06-25
 > Regel: [`../DOCUMENTATION_TRUTH_RULE.md`](../DOCUMENTATION_TRUTH_RULE.md)
 
 Diese Datei trennt historische Bedeutung, aktuelle Repository-Belege und öffentlichen
@@ -81,8 +81,8 @@ Dokumentationsstatus. Das zentrale [Glossar](index.md) enthält die lesbaren Kur
 - **Status:** Entwickler-/Erstellerrolle aktuell belegt; Langform offen.
 - **Bestätigte Bedeutung:** Rolle mit ETW-ID, lokaler Signaturprüfung und Verantwortung im
   Release-/Marketplace-Prozess.
-- **Aktueller Repository-Beleg:** Module-Manager-Code und Hilfetexte für ETW-ID,
-  `EtwLocalSigned`, `EtwLocalVerified` und Marketplace-Gates.
+- **Aktueller Repository-Beleg:** Module-Manager-Code, Glossar, Entwicklerhandbuch und
+  Hilfetexte für ETW-ID, `EtwLocalSigned`, `EtwLocalVerified` und Marketplace-Gates.
 - **Historische Quelle:** nur zwei Treffer; für die heutige Rolle nicht maßgeblich.
 - **Zulässige Formulierung:** „ETW bezeichnet die offizielle Entwickler-/Erstellerrolle im
   AAIA-Erweiterungs- und Marketplace-Prozess.“

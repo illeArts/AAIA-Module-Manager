@@ -1,0 +1,93 @@
+{
+  "schemaVersion": 1,
+  "checkedAt": "2026-06-25",
+  "generatedFrom": "docs",
+  "canonicalSource": "markdown",
+  "status": "prepared-not-imported",
+  "entries": [
+    {
+      "id": "manual.security-runtime-status",
+      "sourcePath": "user-manual/10-sicherheit-und-laufzeitstatus.md",
+      "type": "manual",
+      "audience": ["user", "developer", "admin"],
+      "status": "canonical",
+      "tags": ["sicherheit", "runtime", "support"],
+      "reasonCodes": [],
+      "errorCodes": [],
+      "relatedTerms": ["AIR"],
+      "importAllowed": true,
+      "requiresRedaction": true
+    },
+    {
+      "id": "developer.runtime-durability",
+      "sourcePath": "developer-guide/runtime-durability.md",
+      "type": "developer_guide",
+      "audience": ["developer", "maintainer", "ai"],
+      "status": "canonical",
+      "tags": ["air", "runtime", "durability", "operation-id"],
+      "reasonCodes": ["state_readiness_expired"],
+      "errorCodes": [],
+      "relatedTerms": ["AIR", "Operation-ID"],
+      "importAllowed": true,
+      "requiresRedaction": true
+    },
+    {
+      "id": "troubleshooting.runtime-state-air",
+      "sourcePath": "troubleshooting/runtime-state-und-air.md",
+      "type": "troubleshooting",
+      "audience": ["developer", "admin", "ai"],
+      "status": "canonical",
+      "tags": ["runtime", "air", "recovery", "backpressure", "protector"],
+      "reasonCodes": [
+        "Backpressure",
+        "state_shutdown_incomplete",
+        "state_readiness_expired",
+        "ProtectorKeyMissing",
+        "ProtectorRotationFailed"
+      ],
+      "errorCodes": [],
+      "relatedTerms": ["AIR", "Protector", "Recovery"],
+      "importAllowed": true,
+      "requiresRedaction": true
+    },
+    {
+      "id": "glossary.term-status",
+      "sourcePath": "glossary/term-status.md",
+      "type": "glossary",
+      "audience": ["developer", "admin", "maintainer", "ai"],
+      "status": "canonical",
+      "tags": ["begriffe", "status", "dokumentationswahrheit"],
+      "reasonCodes": [],
+      "errorCodes": [],
+      "relatedTerms": ["ETW", "DUKI", "BBK", "Prompti", "Lector", "VSI"],
+      "importAllowed": true,
+      "requiresRedaction": false
+    },
+    {
+      "id": "phase.11-5-4-final",
+      "sourcePath": "phases/phase-11-5-4-final.md",
+      "type": "phase",
+      "audience": ["maintainer", "ai"],
+      "status": "canonical",
+      "tags": ["phase", "documentation", "public-help"],
+      "reasonCodes": [],
+      "errorCodes": [],
+      "relatedTerms": ["Dokumentationswahrheit"],
+      "importAllowed": true,
+      "requiresRedaction": true
+    },
+    {
+      "id": "legacy.manual.etw-signature",
+      "sourcePath": "help/manual/12-etw-signatur.md",
+      "type": "help",
+      "audience": ["developer"],
+      "status": "historical",
+      "tags": ["legacy", "signatur", "etw"],
+      "reasonCodes": [],
+      "errorCodes": [],
+      "relatedTerms": ["ETW"],
+      "importAllowed": false,
+      "requiresRedaction": true
+    }
+  ]
+}

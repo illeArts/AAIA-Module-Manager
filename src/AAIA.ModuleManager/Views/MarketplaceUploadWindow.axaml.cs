@@ -21,9 +21,14 @@ namespace AAIA.ModuleManager.Views;
 /// </summary>
 public partial class MarketplaceUploadWindow : Window
 {
-    private readonly MarketplaceSignedUploadContext _ctx;
+    private MarketplaceSignedUploadContext?         _ctx;
     private MarketplaceUploadResult?                _lastResult;
     private CancellationTokenSource?                _cts;
+
+    public MarketplaceUploadWindow()
+    {
+        InitializeComponent();
+    }
 
     public MarketplaceUploadWindow(MarketplaceSignedUploadContext ctx)
     {
@@ -34,13 +39,15 @@ public partial class MarketplaceUploadWindow : Window
     protected override void OnOpened(EventArgs e)
     {
         base.OnOpened(e);
-        PopulatePreview();
+        if (_ctx is not null)
+            PopulatePreview();
     }
 
     // ── Preview befüllen ──────────────────────────────────────────────────────
 
     private void PopulatePreview()
     {
+        if (_ctx is null) return;
         // Header
         HeaderSubLabel.Text = string.IsNullOrEmpty(_ctx.DisplayName)
             ? _ctx.ExtensionId
@@ -124,6 +131,8 @@ public partial class MarketplaceUploadWindow : Window
 
     private string BuildNotReadyMessage()
     {
+        if (_ctx is null) return "Upload-Kontext fehlt.";
+
         var reasons = new System.Collections.Generic.List<string>();
         if (!_ctx.PackageExists)    reasons.Add("Paketdatei nicht gefunden");
         if (!_ctx.SignatureExists)  reasons.Add("signature-info.json nicht gefunden");
@@ -139,6 +148,8 @@ public partial class MarketplaceUploadWindow : Window
 
     private async void Upload_Click(object? sender, RoutedEventArgs e)
     {
+        if (_ctx is null) return;
+
         UploadBtn.IsEnabled      = false;
         PreviewPanel.IsVisible   = false;
         ProgressPanel.IsVisible  = true;

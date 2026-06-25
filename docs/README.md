@@ -17,6 +17,13 @@ Website, PDF, In-App-Hilfe und KI-Handoffs wiederverwendet.
 | Website-Hilfe | Web- und Content-Integration | [website-help/index.md](website-help/index.md) |
 | Phasenabschlüsse | Maintainer und KI-Assistenten | [phases/index.md](phases/index.md) |
 
+## Migrationsstand
+
+Der aktuelle Quellen- und Migrationsstand steht in
+[`documentation-inventory.md`](documentation-inventory.md). Dieses Inventar legt fest, welche
+Alttexte bereits in die Zielstruktur übernommen wurden und welche Quellen nur historisch oder
+ergänzend gelten.
+
 ## Verbindlicher Ablauf für neue Phasen
 
 1. Während der Implementierung relevante Zielgruppen und Dokumentationsauswirkungen notieren.

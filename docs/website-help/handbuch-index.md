@@ -6,10 +6,14 @@
 ## Neu bei AAIA?
 
 1. [Was ist AAIA?](../user-manual/00-was-ist-aaia.md)
-2. [Begriffe im Glossar](../glossary/index.md)
-3. Installation — folgt nach Versions- und Plattformfreigabe
-4. AAIAS/AAIAC verbinden — folgt nach Produktabgleich
-5. [Sichere Fehlerbehebung](../troubleshooting/index.md)
+2. [Module Manager Einstieg](../user-manual/01-module-manager-einstieg.md)
+3. [Projekt erstellen](../user-manual/02-projekt-erstellen.md)
+4. [Validierung, Build und Paketierung](../user-manual/03-validierung-build-paketierung.md)
+5. [Rollen und Rechte](../user-manual/04-rollen-und-rechte.md)
+6. [AAIAS und AAIAC verbinden](../user-manual/05-aaias-aaiaac-verbinden.md)
+7. [Sicherheit und Laufzeitstatus](../user-manual/10-sicherheit-und-laufzeitstatus.md)
+8. [Begriffe im Glossar](../glossary/index.md)
+9. [Sichere Fehlerbehebung](../troubleshooting/index.md)
 
 ## Für andere Rollen
 

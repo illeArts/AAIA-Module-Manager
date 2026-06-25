@@ -7,7 +7,12 @@ namespace AAIA.ModuleManager.Views;
 
 public partial class PatchApprovalWindow : Window
 {
-    private readonly PatchApprovalViewModel _vm;
+    private PatchApprovalViewModel? _vm;
+
+    public PatchApprovalWindow()
+    {
+        InitializeComponent();
+    }
 
     public PatchApprovalWindow(
         string         proposalId,
