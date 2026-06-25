@@ -63,7 +63,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.3 | Benutzer-, Entwickler- und Admin-Kernpfade vervollständigen und externe Developer-Docs abgleichen | umgesetzt |
 | 11.5.4 | Website-Routen, Suchindex, In-App-Mapping und PDF-/Release-Struktur vorbereiten | umgesetzt |
 | 11.5.5 | AAIAM Knowledge Sync Preparation & Help Runtime Integration | umgesetzt |
-| 11.5.6 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe sowie Release-Conformance | geplant |
+| 11.5.6 | Documentation Release Conformance & Export Pipeline Preparation | umgesetzt |
+| 11.5.7 | Deployment-/Generierungs-Pipelines, PDF- und In-App-Ausgabe | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -109,3 +110,12 @@ Phase 11.5.5 plant AAIAM als späteren strukturierten Wissensspeicher für freig
 Dokumentationsinhalte ein. Markdown bleibt kanonische Quelle. AAIAM übernimmt später nur
 validierte, redigierte, versionierte und klassifizierte Inhalte. Es findet keine produktive
 DB-Befüllung und keine echte AAIAM-Bibliotheksintegration statt.
+
+## 13. Stand nach Phase 11.5.6
+
+Phase 11.5.6 macht die neuen Dokumentationsartefakte prüfbar. Ein Conformance-Guard validiert
+Markdown-Links, JSON-Quellpfade, AAIAM-Importmap, In-App-Kontextmap, Legacy-Aliase,
+abgelöste Doku-Pfade, Signatur-Dublettenbegriffe sowie offensichtliche Secret- und private
+Pfad-Muster. Der Guard ist in den bestehenden Build-Workflow eingebunden. Es findet weiterhin
+kein Website-Deployment, keine PDF-Generierung, keine In-App-Hilfe-UI und keine AAIAM-DB-
+Befüllung statt.

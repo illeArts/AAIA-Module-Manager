@@ -30,6 +30,9 @@ jobs:
       - name: Integrity Guard (module-manager)
         run: python  aaia-module-manager/scripts/check_integrity.py aaia-module-manager/src/
 
+      - name: Documentation Conformance Guard
+        run: python  aaia-module-manager/scripts/validate_docs_conformance.py aaia-module-manager
+
       - name: Integrity Guard (sdk)
         run: python  aaia-sdk/scripts/check_integrity.py aaia-sdk/src/
 
