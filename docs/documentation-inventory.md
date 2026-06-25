@@ -157,10 +157,19 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 | `docs/scripts/review_docs_release_candidate.py` | lokaler Review-Helfer zum Prüfen von RC-Manifest, Hashes und Checklist-Status |
 | `phases/phase-11-5-10-final.md` | Abschlussnachweis für Manual Review, Approval & Deployment Gate |
 
+## Neue 11.5.11-Execution-Adapter-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `website-help/approved-release-execution.md` | Spezifikation für fail-closed Ausführungsadapter nach approved Gate |
+| `export/release-execution-plan.json` | maschinenlesbarer Ausführungsplan; initial `executionStatus: blocked` |
+| `docs/scripts/execute_docs_release_candidate.py` | lokaler Execution-Adapter; prüft Gate, Checklist, Hashes und Targets |
+| `phases/phase-11-5-11-final.md` | Abschlussnachweis für Approved Release Execution Adapter |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
-- Approved Release Execution Adapter nach manueller Freigabe,
+- kontrollierter First-Publication-/AAIAM-Import-Dry-Run nach manueller Freigabe,
 - tatsächliche Suchimplementierung,
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,

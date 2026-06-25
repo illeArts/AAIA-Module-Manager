@@ -68,7 +68,8 @@ Angaben werden sichtbar markiert; sie dürfen nicht aus Chatverläufen erraten w
 | 11.5.8 | Documentation Output Pipeline Dry Run | umgesetzt |
 | 11.5.9 | Documentation Output Generation & Release Candidate Packaging | umgesetzt |
 | 11.5.10 | Manual Review, Approval & Deployment Gate | umgesetzt |
-| 11.5.11 | Approved Release Execution Adapter | geplant |
+| 11.5.11 | Approved Release Execution Adapter | umgesetzt |
+| 11.5.12 | Controlled First Publication / AAIAM Import Dry-Run Against Real Library | geplant |
 
 ## 7. Abnahmekriterien für die Foundation
 
@@ -155,3 +156,11 @@ einem lokalen Review-Helfer. Initial bleibt `gateStatus` auf `pending`; KI-Freig
 ausgeschlossen. `deploymentAllowed`, `importAllowed`, `pdfPublicationAllowed` und
 `inAppPackagingAllowed` bleiben `false`. Der Conformance Guard schützt diese Regeln und
 verhindert produktive Status ohne menschlich freigegebenes Gate.
+
+## 18. Stand nach Phase 11.5.11
+
+Phase 11.5.11 ergänzt fail-closed Execution-Adapter für Website, PDF, In-App-Hilfe und AAIAM.
+Der maschinenlesbare Ausführungsplan bleibt initial `blocked`, alle Targets sind deaktiviert
+und `executionAllowed` bleibt `false`. Das lokale Execution-Script prüft Gate, Checklist,
+RC-Manifest-Hashes und Target-Gate-Flags. Ohne approved Gate endet es mit `EXECUTION: BLOCKED`.
+AAIAM bleibt blockiert, solange Bibliothek und Zielkonfiguration fehlen.

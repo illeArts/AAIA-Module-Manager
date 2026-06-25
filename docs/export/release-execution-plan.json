@@ -1,0 +1,57 @@
+{
+  "schemaVersion": 1,
+  "sourceGateManifest": "docs/export/release-gate-manifest.json",
+  "sourceReleaseManifest": "docs/.release-candidate/release-manifest.json",
+  "executionStatus": "blocked",
+  "requiresApprovedGate": true,
+  "executionAllowed": false,
+  "targets": [
+    {
+      "id": "website",
+      "adapter": "WebsiteExecutionAdapter",
+      "enabled": false,
+      "requiredGateFlag": "deploymentAllowed",
+      "dryRunSupported": true,
+      "executionAllowed": false,
+      "outputPath": "docs/.release-candidate/website/",
+      "targetPath": "<configured-website-staging-target>",
+      "auditRequired": true
+    },
+    {
+      "id": "pdf",
+      "adapter": "PdfPublicationAdapter",
+      "enabled": false,
+      "requiredGateFlag": "pdfPublicationAllowed",
+      "dryRunSupported": true,
+      "executionAllowed": false,
+      "outputPath": "docs/.release-candidate/pdf/",
+      "targetPath": "<configured-pdf-publication-target>",
+      "auditRequired": true
+    },
+    {
+      "id": "inAppHelp",
+      "adapter": "InAppHelpPackagingAdapter",
+      "enabled": false,
+      "requiredGateFlag": "inAppPackagingAllowed",
+      "dryRunSupported": true,
+      "executionAllowed": false,
+      "outputPath": "docs/.release-candidate/in-app/",
+      "targetPath": "<configured-in-app-package-target>",
+      "auditRequired": true
+    },
+    {
+      "id": "aaiam",
+      "adapter": "AaiamImportAdapter",
+      "enabled": false,
+      "requiredGateFlag": "importAllowed",
+      "dryRunSupported": true,
+      "executionAllowed": false,
+      "outputPath": "docs/.release-candidate/aaiam/",
+      "targetPath": "<configured-aaiam-target>",
+      "auditRequired": true,
+      "libraryAvailable": false,
+      "targetConfigured": false,
+      "failClosedReason": "aaiam_library_unavailable"
+    }
+  ]
+}

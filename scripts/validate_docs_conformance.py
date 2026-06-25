@@ -32,6 +32,7 @@ REQUIRED_JSON = [
     "docs/export/export-manifest.json",
     "docs/export/manual-review-checklist.json",
     "docs/export/release-gate-manifest.json",
+    "docs/export/release-execution-plan.json",
     "docs/schemas/help-index.schema.json",
     "docs/schemas/aaiam-import-map.schema.json",
     "docs/schemas/in-app-context-map.schema.json",
@@ -266,6 +267,9 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
         errors.append("deploymentAllowed requires approved release gate")
     if gate.get("importAllowed") is True and gate.get("gateStatus") != "approved":
         errors.append("importAllowed requires approved release gate")
+    approved_by = str(gate.get("approvedBy") or "").lower()
+    if approved_by in {"ai", "codex", "chatgpt", "claude", "assistant", "llm"}:
+        errors.append("release gate approvedBy must not be an AI identity")
     source = gate.get("source")
     if source:
         source_path = (root / source).resolve()
@@ -274,6 +278,34 @@ def validate_json_shape(root: Path, errors: list[str]) -> None:
                 source_path.relative_to(root.resolve())
             except ValueError:
                 errors.append(f"release gate source escapes repository: {source_path}")
+
+    execution_plan = load_json(root, "docs/export/release-execution-plan.json")
+    if execution_plan.get("requiresApprovedGate") is not True:
+        errors.append("release execution plan must require approved gate")
+    if execution_plan.get("executionStatus") not in {"blocked", "ready", "executed", "failed"}:
+        errors.append("release execution plan has invalid executionStatus")
+    if execution_plan.get("executionAllowed") is True and gate.get("gateStatus") != "approved":
+        errors.append("release execution plan executionAllowed=true requires approved gate")
+    for target in execution_plan.get("targets", []):
+        for key in ("id", "enabled", "requiredGateFlag", "dryRunSupported", "executionAllowed", "auditRequired"):
+            if key not in target:
+                errors.append(f"release execution target missing '{key}': {target.get('id', '<unknown>')}")
+        flag = target.get("requiredGateFlag")
+        if target.get("enabled") is True and flag and gate.get(flag) is not True:
+            errors.append(f"release execution target {target.get('id')} enabled without gate flag {flag}=true")
+        if target.get("executionAllowed") is True and gate.get("gateStatus") != "approved":
+            errors.append(f"release execution target {target.get('id')} executionAllowed=true without approved gate")
+        if target.get("executionAllowed") is True and flag and gate.get(flag) is not True:
+            errors.append(f"release execution target {target.get('id')} executionAllowed=true without {flag}=true")
+        if target.get("id") == "aaiam" and target.get("enabled") is True:
+            if target.get("libraryAvailable") is not True or target.get("targetConfigured") is not True:
+                errors.append("AAIAM execution target must fail closed without libraryAvailable and targetConfigured")
+        if target.get("id") == "website" and target.get("enabled") is True and gate.get("deploymentAllowed") is not True:
+            errors.append("Website execution target enabled while deploymentAllowed=false")
+        if target.get("id") == "pdf" and target.get("enabled") is True and gate.get("pdfPublicationAllowed") is not True:
+            errors.append("PDF execution target enabled while pdfPublicationAllowed=false")
+        if target.get("id") == "inAppHelp" and target.get("enabled") is True and gate.get("inAppPackagingAllowed") is not True:
+            errors.append("In-App execution target enabled while inAppPackagingAllowed=false")
 
 
 def validate_preview_artifacts(root: Path, errors: list[str]) -> None:

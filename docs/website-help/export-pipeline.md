@@ -9,6 +9,7 @@ Phase 11.5.8 ergänzt einen lokalen Dry-Run-Exporter. Markdown bleibt die kanoni
 Phase 11.5.9 erzeugt lokale Release-Candidate-Artefakte, weiterhin ohne Deployment oder
 AAIAM-DB-Import.
 Phase 11.5.10 ergänzt ein manuelles Review- und Freigabe-Gate vor jeder Ausführung.
+Phase 11.5.11 ergänzt fail-closed Execution-Adapter, die ohne approved Gate blockieren.
 
 ## Exportziele
 
@@ -86,6 +87,24 @@ Das Script darf keine Freigabe setzen. Initial bleibt `gateStatus` auf `pending`
 `deploymentAllowed`, `importAllowed`, `pdfPublicationAllowed` und `inAppPackagingAllowed`
 bleiben `false`, bis ein Maintainer oder Owner manuell freigibt.
 
+## Approved Release Execution Adapter
+
+Die Adapter-Spezifikation liegt unter
+[`approved-release-execution.md`](approved-release-execution.md).
+
+Der maschinenlesbare Ausführungsplan liegt unter
+[`../export/release-execution-plan.json`](../export/release-execution-plan.json).
+
+Der lokale Adapter wird so geprüft:
+
+```powershell
+python docs/scripts/execute_docs_release_candidate.py . --dry-run
+```
+
+Ohne approved Gate ist das erwartete Ergebnis `EXECUTION: BLOCKED`. Das Script darf keine
+Freigabe setzen, keine Website deployen, keine AAIAM-DB befüllen, keine PDF veröffentlichen
+und keine In-App-Hilfe aktivieren.
+
 ## Schemas
 
 Vorbereitete Schemas liegen unter [`../schemas/`](../schemas/):
@@ -106,4 +125,5 @@ Teilmenge ohne externe Dependencies.
 - keine In-App-Hilfe-UI,
 - keine produktive AAIAM-DB-Befüllung,
 - keine neue Runtime-Funktion,
-- keine KI-basierte Freigabe.
+- keine KI-basierte Freigabe,
+- keine Adapter-Ausführung ohne approved Gate.

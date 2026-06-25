@@ -63,3 +63,10 @@ vorbereiten oder Fehler melden, aber keine Freigabe setzen.
 Beide Dateien bleiben initial auf `pending`. `deploymentAllowed`, `importAllowed`,
 `pdfPublicationAllowed` und `inAppPackagingAllowed` bleiben `false`, bis ein Maintainer oder
 Owner das Gate manuell freigibt.
+
+## Nachgelagerter Execution Adapter
+
+Phase 11.5.11 bereitet Ausführungsadapter vor. Diese Adapter sind unter
+[`approved-release-execution.md`](approved-release-execution.md) beschrieben und müssen ohne
+approved Gate blockieren. Das Gate bleibt die Voraussetzung; der Adapter darf es nicht selbst
+freigeben.
