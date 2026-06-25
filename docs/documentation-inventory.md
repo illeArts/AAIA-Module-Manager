@@ -107,6 +107,14 @@ AAIAM wird nicht als kanonische Quelle geführt. Importierte Inhalte müssen auf
 Version, Status, Zielgruppe und Redaktionsstatus verweisen. Historische Quellen erhalten nur
 nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 
+## Neue 11.5.6-Conformance-Artefakte
+
+| Artefakt | Zweck |
+|---|---|
+| `scripts/validate_docs_conformance.py` | Markdown-, JSON-, Redaction-, Alias-, AAIAM- und In-App-Kontextprüfung |
+| `.github/workflows/build.yml` | führt den Documentation Conformance Guard im bestehenden Build aus |
+| `phases/phase-11-5-6-final.md` | Abschlussnachweis für Dokumentations-Conformance |
+
 ## Offene Migrationen
 
 - öffentliche Installationsmatrix für AAIAS/AAIAC nach Produktfreigabe,
@@ -114,5 +122,6 @@ nach Prüfung `importAllowed: true`; Rohtexte bleiben gesperrt.
 - tatsächliche Suchimplementierung,
 - produktive AAIAM-DB-Befüllung,
 - AAIAM-Bibliotheksintegration,
+- Website-/PDF-/In-App-Exportpipeline,
 - PDF-Generierung und In-App-Ausgabe,
 - automatische Linkprüfung als Build-Schritt.
